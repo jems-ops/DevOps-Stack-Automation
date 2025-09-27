@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: install_jenkins
+  namespace: jimi_automation
+  author: Jimi
+  description: Install and configure Jenkins on Rocky Linux 9
+  license: MIT
+  min_ansible_version: 2.9
+  
+  platforms:
+    - name: EL
+      versions:
+        - 9
+
+  galaxy_tags:
+    - jenkins
+    - ci
+    - cd
+    - automation
+    - rocky
+    - rhel
+
+dependencies: []

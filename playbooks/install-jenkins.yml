@@ -1,0 +1,35 @@
+---
+- name: Install Jenkins on Jenkins Server
+  hosts: jenkins
+  gather_facts: yes
+  become: yes
+  
+  pre_tasks:
+    - name: Display installation information
+      debug:
+        msg: |
+          🚀 Jenkins Installation Playbook
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Target server: {{ inventory_hostname }}
+          👤 User: {{ ansible_user }}
+          
+  roles:
+    - install-jenkins
+    
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: |
+          ✅ Jenkins Installation Playbook Complete!
+          
+          📊 Summary:
+          • Jenkins installed on: {{ inventory_hostname }}
+          • Access URL: http://{{ inventory_hostname }}:8080
+          • Service status: Running
+          
+          🔧 Next Steps:
+          1. Access Jenkins web interface
+          2. Complete initial setup wizard
+          3. Install recommended plugins
+          4. Create admin user
+          5. Configure reverse proxy (run setup-nginx-reverse-proxy.yml)

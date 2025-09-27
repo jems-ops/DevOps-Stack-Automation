@@ -1,0 +1,18 @@
+# Ansible Inventory for Jenkins Automation Project
+# Rocky Linux 9 hosts with vagrant credentials
+
+[jenkins]
+192.168.92.224 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+
+[nginx]
+192.168.92.225 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+
+[sonarqube]
+192.168.201.1 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+
+# Group variables for all hosts
+[all:vars]
+ansible_become=yes
+ansible_become_method=sudo
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+ansible_python_interpreter=/usr/bin/python3

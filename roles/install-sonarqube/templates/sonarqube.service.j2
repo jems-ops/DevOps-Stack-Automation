@@ -1,0 +1,17 @@
+[Unit]
+Description=SonarQube service
+After=syslog.target network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=forking
+ExecStart={{ sonarqube_home }}/bin/linux-x86-64/sonar.sh start
+ExecStop={{ sonarqube_home }}/bin/linux-x86-64/sonar.sh stop
+ExecReload={{ sonarqube_home }}/bin/linux-x86-64/sonar.sh restart
+User={{ sonarqube_user }}
+Group={{ sonarqube_group }}
+Restart=always
+LimitNOFILE={{ sonarqube_max_file_descriptors }}
+
+[Install]
+WantedBy=multi-user.target

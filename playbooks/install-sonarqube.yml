@@ -1,0 +1,36 @@
+---
+- name: Install SonarQube on SonarQube Server
+  hosts: sonarqube
+  gather_facts: yes
+  become: yes
+  
+  pre_tasks:
+    - name: Display installation information
+      debug:
+        msg: |
+          🔍 SonarQube Installation Playbook
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Target server: {{ inventory_hostname }}
+          👤 User: {{ ansible_user }}
+          
+  roles:
+    - install-sonarqube
+    
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: |
+          ✅ SonarQube Installation Playbook Complete!
+          
+          📊 Summary:
+          • SonarQube installed on: {{ inventory_hostname }}
+          • Access URL: http://{{ inventory_hostname }}:9000
+          • Default credentials: admin/admin
+          • Database: PostgreSQL
+          
+          🔧 Next Steps:
+          1. Access SonarQube web interface
+          2. Change default admin password
+          3. Configure quality gates and rules
+          4. Set up project analysis
+          5. Configure reverse proxy (run setup-nginx-reverse-proxy.yml)

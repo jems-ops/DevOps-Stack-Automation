@@ -1,0 +1,43 @@
+---
+# Default variables for nginx reverse proxy setup
+
+# Backend service configuration (can be jenkins or sonarqube)
+backend_service: jenkins  # options: jenkins, sonarqube
+
+# Jenkins backend configuration
+jenkins_backend_host: 192.168.92.224
+jenkins_backend_port: 8080
+
+# SonarQube backend configuration
+sonarqube_backend_host: 192.168.201.1
+sonarqube_backend_port: 9000
+
+# Nginx configuration (dynamically set based on backend_service)
+nginx_server_name: "{{ 'jenkins.example.com' if backend_service == 'jenkins' else 'sonar.example.com' }}"
+nginx_listen_port: 80
+nginx_config_file: "{{ backend_service }}.conf"
+nginx_config_path: /etc/nginx/conf.d
+
+# Backend configuration (dynamically set)
+backend_host: "{{ jenkins_backend_host if backend_service == 'jenkins' else sonarqube_backend_host }}"
+backend_port: "{{ jenkins_backend_port if backend_service == 'jenkins' else sonarqube_backend_port }}"
+
+# Jenkins paths
+jenkins_home: /var/lib/jenkins
+jenkins_war_root: /var/run/jenkins/war
+
+# Logging
+nginx_access_log: /var/log/nginx/jenkins.access.log
+nginx_error_log: /var/log/nginx/jenkins.error.log
+
+# Connection settings
+nginx_keepalive_connections: 32
+nginx_client_max_body_size: 10m
+nginx_client_body_buffer_size: 128k
+nginx_proxy_connect_timeout: 90
+nginx_proxy_send_timeout: 90
+nginx_proxy_read_timeout: 90
+
+# Service configuration
+nginx_service_enabled: yes
+nginx_service_state: started

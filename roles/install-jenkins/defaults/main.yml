@@ -1,0 +1,24 @@
+---
+# Default variables for Jenkins installation
+
+jenkins_port: 8080
+jenkins_home: /var/lib/jenkins
+jenkins_user: jenkins
+jenkins_group: jenkins
+
+# Java configuration
+java_package: java-17-openjdk-devel
+
+# Jenkins repository configuration
+jenkins_repo_url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+jenkins_repo_key_url: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+# Package management
+jenkins_required_packages:
+  - wget
+  - curl
+  - git
+
+# Service configuration
+jenkins_service_enabled: yes
+jenkins_service_state: started

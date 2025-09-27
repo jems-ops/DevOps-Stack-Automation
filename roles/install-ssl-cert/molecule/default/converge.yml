@@ -1,0 +1,39 @@
+---
+- name: Converge
+  hosts: nginx-ssl-rocky9
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+
+    # First install nginx and basic config (prerequisite for SSL role)
+    - name: Install nginx
+      dnf:
+        name: nginx
+        state: present
+
+    - name: Create basic nginx configuration directory
+      file:
+        path: /etc/nginx/conf.d
+        state: directory
+        mode: '0755'
+
+    - name: Create basic jenkins.conf for testing
+      copy:
+        content: |
+          server {
+            listen 80;
+            server_name jenkins.example.com;
+            location / {
+              return 200 "Basic config for SSL testing";
+              add_header Content-Type text/plain;
+            }
+          }
+        dest: /etc/nginx/conf.d/jenkins.conf
+        mode: '0644'
+
+  roles:
+    - role: ../../..

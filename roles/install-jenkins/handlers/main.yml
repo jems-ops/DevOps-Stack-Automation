@@ -1,0 +1,12 @@
+---
+- name: restart jenkins
+  systemd:
+    name: jenkins
+    state: restarted
+  listen: restart jenkins
+
+- name: reload jenkins
+  systemd:
+    name: jenkins
+    state: reloaded
+  listen: reload jenkins

@@ -1,0 +1,197 @@
+---
+- name: Display SonarQube installation information
+  debug:
+    msg: |
+      🔍 Installing SonarQube on {{ inventory_hostname }}
+      📅 Installation time: {{ ansible_date_time.iso8601 }}
+      🏠 SonarQube Home: {{ sonarqube_home }}
+      🔌 SonarQube Port: {{ sonarqube_port }}
+      📊 Version: {{ sonarqube_version }}
+
+- name: Update package cache
+  dnf:
+    update_cache: yes
+
+- name: Install required packages
+  dnf:
+    name: "{{ sonarqube_required_packages }}"
+    state: present
+
+- name: Install Java OpenJDK
+  dnf:
+    name: "{{ java_package }}"
+    state: present
+
+- name: Set system parameters for SonarQube
+  sysctl:
+    name: vm.max_map_count
+    value: "{{ sonarqube_max_map_count }}"
+    state: present
+    sysctl_set: yes
+    reload: yes
+
+- name: Create SonarQube group
+  group:
+    name: "{{ sonarqube_group }}"
+    state: present
+
+- name: Create SonarQube user
+  user:
+    name: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    home: "{{ sonarqube_home }}"
+    shell: /bin/bash
+    system: yes
+    create_home: no
+
+- name: Initialize PostgreSQL database
+  command: postgresql-setup --initdb
+  register: postgres_init
+  failed_when: postgres_init.rc != 0 and "already initialized" not in postgres_init.stdout
+  changed_when: postgres_init.rc == 0
+
+- name: Start and enable PostgreSQL service
+  systemd:
+    name: "{{ postgresql_service_name }}"
+    state: started
+    enabled: yes
+
+- name: Create SonarQube database user
+  become_user: postgres
+  postgresql_user:
+    name: "{{ postgresql_db_user }}"
+    password: "{{ postgresql_db_password }}"
+    encrypted: yes
+    state: present
+
+- name: Create SonarQube database
+  become_user: postgres
+  postgresql_db:
+    name: "{{ postgresql_db_name }}"
+    owner: "{{ postgresql_db_user }}"
+    state: present
+
+- name: Check if SonarQube is already downloaded
+  stat:
+    path: "{{ sonarqube_home }}"
+  register: sonarqube_installed
+
+- name: Download SonarQube
+  get_url:
+    url: "{{ sonarqube_download_url }}"
+    dest: /tmp/sonarqube.zip
+    mode: '0644'
+  when: not sonarqube_installed.stat.exists
+
+- name: Create SonarQube home directory
+  file:
+    path: "{{ sonarqube_home }}"
+    state: directory
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    mode: '0755'
+
+- name: Extract SonarQube
+  unarchive:
+    src: /tmp/sonarqube.zip
+    dest: /opt
+    remote_src: yes
+    creates: "/opt/sonarqube-{{ sonarqube_version }}"
+  when: not sonarqube_installed.stat.exists
+
+- name: Create symlink to SonarQube
+  file:
+    src: "/opt/sonarqube-{{ sonarqube_version }}"
+    dest: "{{ sonarqube_home }}"
+    state: link
+    force: yes
+  when: not sonarqube_installed.stat.exists
+
+- name: Set ownership of SonarQube directory
+  file:
+    path: "{{ sonarqube_home }}"
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    recurse: yes
+    state: directory
+
+- name: Create SonarQube data directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    mode: '0755'
+  loop:
+    - "{{ sonarqube_data_dir }}"
+    - "{{ sonarqube_logs_dir }}"
+    - "{{ sonarqube_temp_dir }}"
+
+- name: Deploy SonarQube configuration
+  template:
+    src: sonar.properties.j2
+    dest: "{{ sonarqube_home }}/conf/sonar.properties"
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    mode: '0644'
+    backup: yes
+  notify: restart sonarqube
+
+- name: Create SonarQube systemd service
+  template:
+    src: sonarqube.service.j2
+    dest: /etc/systemd/system/sonarqube.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart sonarqube
+
+- name: Start and enable SonarQube service
+  systemd:
+    name: sonarqube
+    enabled: "{{ sonarqube_service_enabled }}"
+    state: "{{ sonarqube_service_state }}"
+    daemon_reload: yes
+
+- name: Wait for SonarQube to start
+  wait_for:
+    port: "{{ sonarqube_port }}"
+    host: "{{ inventory_hostname }}"
+    delay: 10
+    timeout: 300
+  when: sonarqube_service_state == "started"
+
+- name: Test SonarQube web interface
+  uri:
+    url: "http://{{ inventory_hostname }}:{{ sonarqube_port }}"
+    method: GET
+    timeout: 10
+  register: sonarqube_status_check
+  ignore_errors: yes
+
+- name: Clean up download file
+  file:
+    path: /tmp/sonarqube.zip
+    state: absent
+
+- name: Display SonarQube installation completion
+  debug:
+    msg: |
+      ✅ SonarQube Installation Complete!
+      
+      📋 Access Information:
+      • URL: http://{{ inventory_hostname }}:{{ sonarqube_port }}
+      • Status: {{ 'Running' if sonarqube_status_check.status is defined and sonarqube_status_check.status == 200 else 'Starting up' }}
+      • Default Login: admin/admin
+      
+      📊 Service Details:
+      • SonarQube Home: {{ sonarqube_home }}
+      • Version: {{ sonarqube_version }}
+      • Database: PostgreSQL
+      • Java Version: {{ java_package }}
+      
+      🔧 Next Steps:
+      1. Access SonarQube web interface
+      2. Complete initial setup (change default password)
+      3. Configure quality profiles
+      4. Set up project analysis

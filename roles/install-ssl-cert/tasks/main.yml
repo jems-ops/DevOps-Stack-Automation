@@ -1,0 +1,154 @@
+---
+- name: Display SSL certificate installation information
+  debug:
+    msg: |
+      🔒 Installing SSL Certificate for Jenkins Nginx Proxy
+      📅 Installation time: {{ ansible_date_time.iso8601 }}
+      🖥️  Target host: {{ inventory_hostname }}
+      🏠 Certificate directory: {{ ssl_cert_dir }}
+      🌍 Common Name: {{ ssl_common_name }}
+
+- name: Install OpenSSL
+  dnf:
+    name: openssl
+    state: present
+
+- name: Create SSL certificate directory
+  file:
+    path: "{{ ssl_cert_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Check if SSL certificate exists
+  stat:
+    path: "{{ ssl_cert_file }}"
+  register: ssl_cert_exists
+
+- name: Generate SSL private key
+  openssl_privatekey:
+    path: "{{ ssl_key_file }}"
+    size: 2048
+    type: RSA
+    owner: root
+    group: root
+    mode: '0600'
+  when: not ssl_cert_exists.stat.exists
+
+- name: Generate SSL certificate signing request
+  openssl_csr:
+    path: "{{ ssl_cert_dir }}/jenkins.csr"
+    privatekey_path: "{{ ssl_key_file }}"
+    common_name: "{{ ssl_common_name }}"
+    country_name: "{{ ssl_country }}"
+    state_or_province_name: "{{ ssl_state }}"
+    locality_name: "{{ ssl_city }}"
+    organization_name: "{{ ssl_organization }}"
+    organizational_unit_name: "{{ ssl_organization_unit }}"
+    email_address: "{{ ssl_email }}"
+    subject_alt_name:
+      - "DNS:{{ ssl_common_name }}"
+      - "DNS:{{ nginx_server_name }}"
+      - "IP:{{ ansible_default_ipv4.address }}"
+  when: not ssl_cert_exists.stat.exists
+
+- name: Generate self-signed SSL certificate
+  openssl_certificate:
+    path: "{{ ssl_cert_file }}"
+    privatekey_path: "{{ ssl_key_file }}"
+    csr_path: "{{ ssl_cert_dir }}/jenkins.csr"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ ssl_cert_days }}d"
+    owner: root
+    group: root
+    mode: '0644'
+  when: not ssl_cert_exists.stat.exists
+
+- name: Check if DH parameters exist
+  stat:
+    path: "{{ ssl_dhparam_file }}"
+  register: ssl_dhparam_exists
+
+- name: Generate Diffie-Hellman parameters
+  openssl_dhparam:
+    path: "{{ ssl_dhparam_file }}"
+    size: "{{ ssl_dhparam_bits }}"
+    owner: root
+    group: root
+    mode: '0644'
+  when: not ssl_dhparam_exists.stat.exists
+
+- name: Backup existing nginx configuration
+  copy:
+    src: "{{ nginx_config_path }}/{{ nginx_config_file }}"
+    dest: "{{ nginx_config_path }}/{{ nginx_config_file }}.backup-{{ ansible_date_time.epoch }}"
+    remote_src: yes
+  ignore_errors: yes
+
+- name: Deploy SSL-enabled Jenkins nginx configuration
+  template:
+    src: jenkins-ssl.conf.j2
+    dest: "{{ nginx_config_path }}/{{ nginx_config_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify:
+    - test nginx config
+    - restart nginx
+
+- name: Test nginx configuration with SSL
+  command: nginx -t
+  register: nginx_ssl_config_test
+  changed_when: false
+
+- name: Restart nginx to load SSL configuration
+  systemd:
+    name: nginx
+    state: restarted
+
+- name: Wait for nginx to start with SSL
+  wait_for:
+    port: "{{ nginx_https_port }}"
+    host: "{{ inventory_hostname }}"
+    delay: 5
+    timeout: 60
+
+- name: Test HTTPS connection
+  uri:
+    url: "https://{{ inventory_hostname }}"
+    method: GET
+    validate_certs: no
+    timeout: 10
+  register: https_test
+  ignore_errors: yes
+
+- name: Display SSL certificate installation completion
+  debug:
+    msg: |
+      ✅ SSL Certificate Installation Complete!
+      
+      🔒 SSL Certificate Details:
+      • Certificate: {{ ssl_cert_file }}
+      • Private Key: {{ ssl_key_file }}
+      • DH Parameters: {{ ssl_dhparam_file }}
+      • Common Name: {{ ssl_common_name }}
+      • Valid for: {{ ssl_cert_days }} days
+      
+      🌐 Access URLs:
+      • HTTPS: https://{{ inventory_hostname }} ({{ 'Working' if https_test.status is defined and https_test.status < 500 else 'Check firewall/config' }})
+      • Domain: https://{{ nginx_server_name }} (configure DNS/hosts)
+      • HTTP redirects to HTTPS automatically
+      
+      🔧 Security Features:
+      • TLS {{ ssl_protocols }}
+      • Strong cipher suites
+      • HSTS enabled
+      • Security headers configured
+      • {{ ssl_dhparam_bits }}-bit DH parameters
+      
+      📋 Certificate Information:
+      • Self-signed certificate (not trusted by browsers)
+      • Add security exception in browser
+      • Or use proper CA certificate for production

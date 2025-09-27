@@ -1,0 +1,35 @@
+---
+# Integration test - complete Jenkins + Nginx + SSL workflow
+- name: Install Jenkins
+  hosts: jenkins
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+
+  roles:
+    - role: ../../roles/install-jenkins
+
+- name: Setup Nginx Reverse Proxy
+  hosts: nginx
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+
+  roles:
+    - role: ../../roles/setup-nginx-reverse-proxy
+
+- name: Install SSL Certificate
+  hosts: nginx
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: ../../roles/install-ssl-cert

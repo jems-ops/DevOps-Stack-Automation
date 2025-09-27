@@ -1,0 +1,45 @@
+---
+- name: Install SSL Certificate for Jenkins Nginx Proxy
+  hosts: nginx
+  gather_facts: yes
+  become: yes
+  
+  pre_tasks:
+    - name: Display SSL installation information
+      debug:
+        msg: |
+          🔒 SSL Certificate Installation Playbook
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Nginx server: {{ inventory_hostname }}
+          🏠 Certificate directory: /etc/nginx/tls
+          👤 User: {{ ansible_user }}
+          
+  roles:
+    - install-ssl-cert
+    
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: |
+          ✅ SSL Certificate Installation Complete!
+          
+          📊 Summary:
+          • SSL enabled on: {{ inventory_hostname }}
+          • Certificate: /etc/nginx/tls/jenkins.crt
+          • Private key: /etc/nginx/tls/jenkins.key
+          
+          🔒 Security Features:
+          • Self-signed SSL certificate
+          • TLS 1.2 and 1.3 support
+          • Strong cipher suites
+          • HSTS enabled
+          • HTTP → HTTPS redirect
+          
+          🌐 Access Information:
+          • HTTPS: https://{{ inventory_hostname }}
+          • Domain: https://jenkins.example.com (configure DNS)
+          • HTTP redirects to HTTPS automatically
+          
+          ⚠️  Note: Self-signed certificate requires browser security exception
+          
+          🎉 Jenkins is now accessible via HTTPS reverse proxy!

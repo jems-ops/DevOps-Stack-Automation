@@ -1,0 +1,102 @@
+---
+- name: Display nginx reverse proxy setup information
+  debug:
+    msg: |
+      🌐 Setting up Nginx Reverse Proxy for {{ backend_service | title }}
+      📅 Setup time: {{ ansible_date_time.iso8601 }}
+      🖥️  Target host: {{ inventory_hostname }}
+      🔗 Backend: {{ backend_host }}:{{ backend_port }}
+      🌍 Server name: {{ nginx_server_name }}
+
+- name: Update package cache
+  dnf:
+    update_cache: yes
+
+- name: Install nginx
+  dnf:
+    name: nginx
+    state: present
+
+- name: Remove default nginx configuration
+  file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+  notify: restart nginx
+
+- name: Create nginx configuration directory
+  file:
+    path: "{{ nginx_config_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create nginx log directory
+  file:
+    path: /var/log/nginx
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: '0755'
+
+- name: Deploy nginx configuration for {{ backend_service }}
+  template:
+    src: "{{ backend_service }}.conf.j2"
+    dest: "{{ nginx_config_path }}/{{ nginx_config_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify:
+    - test nginx config
+    - restart nginx
+
+- name: Test nginx configuration syntax
+  command: nginx -t
+  register: nginx_config_test
+  changed_when: false
+
+- name: Ensure nginx service is enabled and started
+  systemd:
+    name: nginx
+    enabled: "{{ nginx_service_enabled }}"
+    state: "{{ nginx_service_state }}"
+
+- name: Test {{ backend_service }} backend connectivity
+  uri:
+    url: "http://{{ backend_host }}:{{ backend_port }}"
+    method: GET
+    timeout: 10
+  register: backend_test
+  ignore_errors: yes
+
+- name: Test nginx proxy response
+  uri:
+    url: "http://{{ inventory_hostname }}"
+    method: GET
+    timeout: 10
+  register: nginx_proxy_test
+  ignore_errors: yes
+
+- name: Display nginx reverse proxy setup completion
+  debug:
+    msg: |
+      ✅ Nginx Reverse Proxy Setup Complete!
+      
+      📋 Configuration Summary:
+      • Service: {{ backend_service | title }}
+      • Server: {{ nginx_server_name }}
+      • Backend: {{ backend_host }}:{{ backend_port }}
+      • Config file: {{ nginx_config_path }}/{{ nginx_config_file }}
+      • Backend status: {{ 'Online' if backend_test.status is defined and backend_test.status < 500 else 'Unknown' }}
+      • Proxy status: {{ 'Working' if nginx_proxy_test.status is defined and nginx_proxy_test.status < 500 else 'Unknown' }}
+      
+      🌐 Access URLs:
+      • Direct {{ backend_service | title }}: http://{{ backend_host }}:{{ backend_port }}
+      • Via Proxy: http://{{ inventory_hostname }}
+      • Domain: http://{{ nginx_server_name }} (configure DNS/hosts)
+      
+      🔧 Next Steps:
+      1. Configure DNS or add {{ nginx_server_name }} to /etc/hosts
+      2. Point {{ nginx_server_name }} to {{ inventory_hostname }}
+      3. Access {{ backend_service | title }} via nginx proxy

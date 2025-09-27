@@ -1,0 +1,50 @@
+---
+# Default variables for SonarQube installation
+
+# SonarQube configuration
+sonarqube_version: "10.3.0.82913"
+sonarqube_download_url: "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-{{ sonarqube_version }}.zip"
+sonarqube_user: sonar
+sonarqube_group: sonar
+sonarqube_home: /opt/sonarqube
+sonarqube_data_dir: "{{ sonarqube_home }}/data"
+sonarqube_logs_dir: "{{ sonarqube_home }}/logs"
+sonarqube_temp_dir: "{{ sonarqube_home }}/temp"
+
+# Java configuration
+java_package: java-17-openjdk-devel
+
+# PostgreSQL configuration
+postgresql_version: "13"
+postgresql_db_name: sonarqube
+postgresql_db_user: sonar
+postgresql_db_password: sonar123
+postgresql_service_name: postgresql
+
+# SonarQube service configuration
+sonarqube_port: 9000
+sonarqube_service_enabled: yes
+sonarqube_service_state: started
+
+# System configuration
+sonarqube_max_map_count: 524288
+sonarqube_max_file_descriptors: 131072
+
+# Required packages
+sonarqube_required_packages:
+  - wget
+  - unzip
+  - curl
+  - postgresql
+  - postgresql-server
+  - python3-psycopg2
+
+# SonarQube properties
+sonarqube_web_host: 0.0.0.0
+sonarqube_web_port: "{{ sonarqube_port }}"
+sonarqube_web_context: ""
+
+# Database connection
+sonarqube_db_url: "jdbc:postgresql://localhost/{{ postgresql_db_name }}"
+sonarqube_db_username: "{{ postgresql_db_user }}"
+sonarqube_db_password: "{{ postgresql_db_password }}"

@@ -1,0 +1,13 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+
+  roles:
+    - role: ../../..

@@ -1,0 +1,97 @@
+---
+- name: Display Jenkins installation information
+  debug:
+    msg: |
+      🚀 Installing Jenkins on {{ inventory_hostname }}
+      📅 Installation time: {{ ansible_date_time.iso8601 }}
+      🏠 Jenkins Home: {{ jenkins_home }}
+      🔌 Jenkins Port: {{ jenkins_port }}
+
+- name: Update package cache
+  dnf:
+    update_cache: yes
+
+- name: Remove conflicting packages
+  dnf:
+    name: curl-minimal
+    state: absent
+  ignore_errors: yes
+
+- name: Install required packages
+  dnf:
+    name: "{{ jenkins_required_packages }}"
+    state: present
+
+- name: Install Java OpenJDK
+  dnf:
+    name: "{{ java_package }}"
+    state: present
+
+- name: Import Jenkins repository key
+  rpm_key:
+    key: "{{ jenkins_repo_key_url }}"
+    state: present
+
+- name: Add Jenkins repository
+  get_url:
+    url: "{{ jenkins_repo_url }}"
+    dest: /etc/yum.repos.d/jenkins.repo
+    mode: '0644'
+
+- name: Install Jenkins
+  dnf:
+    name: jenkins
+    state: present
+  notify: restart jenkins
+
+- name: Ensure Jenkins service is enabled and started
+  systemd:
+    name: jenkins
+    enabled: "{{ jenkins_service_enabled }}"
+    state: "{{ jenkins_service_state }}"
+
+- name: Wait for Jenkins to start
+  wait_for:
+    port: "{{ jenkins_port }}"
+    host: "{{ inventory_hostname }}"
+    delay: 10
+    timeout: 300
+  when: jenkins_service_state == "started"
+
+- name: Check if Jenkins initial setup is complete
+  uri:
+    url: "http://{{ inventory_hostname }}:{{ jenkins_port }}"
+    method: GET
+    timeout: 10
+  register: jenkins_status_check
+  ignore_errors: yes
+
+- name: Get Jenkins initial admin password (if setup not complete)
+  slurp:
+    src: "{{ jenkins_home }}/secrets/initialAdminPassword"
+  register: jenkins_admin_password
+  ignore_errors: yes
+  when: jenkins_status_check.status is defined and jenkins_status_check.status == 403
+
+- name: Display Jenkins installation completion
+  debug:
+    msg: |
+      ✅ Jenkins Installation Complete!
+      
+      📋 Access Information:
+      • URL: http://{{ inventory_hostname }}:{{ jenkins_port }}
+      • Status: {{ 'Running' if jenkins_status_check.status is defined and jenkins_status_check.status in [200, 403] else 'Unknown' }}
+      {% if jenkins_admin_password.content is defined %}
+      • Initial Admin Password: {{ jenkins_admin_password.content | b64decode | trim }}
+      {% endif %}
+      
+      📊 Service Details:
+      • Jenkins Home: {{ jenkins_home }}
+      • Java Version: {{ java_package }}
+      • Service Status: {{ jenkins_service_state }}
+      
+      🔧 Next Steps:
+      1. Access Jenkins web interface
+      2. Complete initial setup wizard (if first install)
+      3. Install recommended plugins
+      4. Create admin user account

@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: setup_nginx_reverse_proxy
+  namespace: jimi_automation
+  author: Jimi
+  description: Setup nginx reverse proxy for Jenkins on Rocky Linux 9
+  license: MIT
+  min_ansible_version: 2.9
+  
+  platforms:
+    - name: EL
+      versions:
+        - 9
+
+  galaxy_tags:
+    - nginx
+    - proxy
+    - reverse-proxy
+    - jenkins
+    - rocky
+    - rhel
+
+dependencies: []

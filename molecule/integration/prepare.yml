@@ -1,0 +1,47 @@
+---
+- name: Prepare Jenkins Server
+  hosts: jenkins
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Install systemd and other required packages
+      dnf:
+        name:
+          - systemd
+          - python3
+          - python3-pip
+          - procps-ng
+        state: present
+
+    - name: Start systemd
+      command: systemctl daemon-reload
+      changed_when: false
+
+- name: Prepare Nginx Server
+  hosts: nginx
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Remove conflicting packages
+      dnf:
+        name: curl-minimal
+        state: absent
+      ignore_errors: yes
+
+    - name: Install systemd and other required packages
+      dnf:
+        name:
+          - systemd
+          - python3
+          - python3-pip
+          - procps-ng
+          - curl
+          - openssl
+          - python3-cryptography
+        state: present
+
+    - name: Start systemd
+      command: systemctl daemon-reload
+      changed_when: false

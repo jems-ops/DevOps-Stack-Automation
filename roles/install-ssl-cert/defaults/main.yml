@@ -1,0 +1,39 @@
+---
+# Default variables for SSL certificate installation
+
+# SSL certificate configuration
+ssl_cert_dir: /etc/nginx/tls
+ssl_cert_file: "{{ ssl_cert_dir }}/jenkins.crt"
+ssl_key_file: "{{ ssl_cert_dir }}/jenkins.key"
+ssl_dhparam_file: "{{ ssl_cert_dir }}/dhparam.pem"
+
+# Certificate details
+ssl_common_name: "{{ ansible_hostname }}"
+ssl_country: US
+ssl_state: CA
+ssl_city: San Francisco
+ssl_organization: Jenkins Automation
+ssl_organization_unit: IT Department
+ssl_email: admin@jenkins.local
+
+# Certificate validity
+ssl_cert_days: 365
+
+# Nginx SSL configuration
+nginx_config_path: /etc/nginx/conf.d
+nginx_config_file: jenkins.conf
+nginx_https_port: 443
+nginx_http_port: 80
+
+# Jenkins backend (same as reverse proxy role)
+jenkins_backend_host: 192.168.92.224
+jenkins_backend_port: 8080
+nginx_server_name: jenkins.example.com
+
+# SSL security settings
+ssl_protocols: "TLSv1.2 TLSv1.3"
+ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+ssl_prefer_server_ciphers: "off"
+
+# DH parameters size
+ssl_dhparam_bits: 2048
