@@ -146,6 +146,14 @@
     - reload systemd
     - restart sonarqube
 
+- name: Configure firewall for SonarQube
+  firewalld:
+    port: "{{ sonarqube_port }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+
 - name: Start and enable SonarQube service
   systemd:
     name: sonarqube
