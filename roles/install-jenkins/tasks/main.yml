@@ -44,6 +44,14 @@
     state: present
   notify: restart jenkins
 
+- name: Configure firewall for Jenkins
+  firewalld:
+    port: "{{ jenkins_port }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+
 - name: Ensure Jenkins service is enabled and started
   systemd:
     name: jenkins
