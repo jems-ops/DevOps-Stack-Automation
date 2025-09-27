@@ -26,7 +26,7 @@ nginx_https_port: 443
 nginx_http_port: 80
 
 # Jenkins backend (same as reverse proxy role)
-jenkins_backend_host: 192.168.92.224
+jenkins_backend_host: 192.168.201.14
 jenkins_backend_port: 8080
 nginx_server_name: jenkins.example.com
 

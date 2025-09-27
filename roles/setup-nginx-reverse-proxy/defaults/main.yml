@@ -5,11 +5,11 @@
 backend_service: jenkins  # options: jenkins, sonarqube
 
 # Jenkins backend configuration
-jenkins_backend_host: 192.168.92.224
+jenkins_backend_host: 192.168.201.14
 jenkins_backend_port: 8080
 
 # SonarQube backend configuration
-sonarqube_backend_host: 192.168.201.1
+sonarqube_backend_host: 192.168.201.16
 sonarqube_backend_port: 9000
 
 # Nginx configuration (dynamically set based on backend_service)

@@ -2,13 +2,13 @@
 # Rocky Linux 9 hosts with vagrant credentials
 
 [jenkins]
-192.168.92.224 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+192.168.201.14 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
 
 [nginx]
-192.168.92.225 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+192.168.201.15 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
 
 [sonarqube]
-192.168.201.1 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+192.168.201.16 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
 
 # Group variables for all hosts
 [all:vars]

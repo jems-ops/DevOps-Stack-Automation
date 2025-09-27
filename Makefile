@@ -22,42 +22,42 @@ test-connection: ## Test connection to all servers
 	@ansible -i inventory all -m ping
 
 test-jenkins-connection: ## Test connection to Jenkins server only
-	@echo "$(CYAN)🔗 Testing connection to Jenkins server (192.168.92.224)...$(RESET)"
+	@echo "$(CYAN)🔗 Testing connection to Jenkins server (192.168.201.14)...$(RESET)"
 	@ansible -i inventory jenkins -m ping
 
 test-nginx-connection: ## Test connection to Nginx server only
-	@echo "$(CYAN)🔗 Testing connection to Nginx server (192.168.92.225)...$(RESET)"
+	@echo "$(CYAN)🔗 Testing connection to Nginx server (192.168.201.15)...$(RESET)"
 	@ansible -i inventory nginx -m ping
 
 test-sonarqube-connection: ## Test connection to SonarQube server only
-	@echo "$(CYAN)🔗 Testing connection to SonarQube server (192.168.201.1)...$(RESET)"
+	@echo "$(CYAN)🔗 Testing connection to SonarQube server (192.168.201.16)...$(RESET)"
 	@ansible -i inventory sonarqube -m ping
 
 ##@ Jenkins Installation
-install-jenkins: ## Install Jenkins on Jenkins server (192.168.92.224)
+install-jenkins: ## Install Jenkins on Jenkins server (192.168.201.14)
 	@echo "$(CYAN)🚀 Installing Jenkins on Jenkins server...$(RESET)"
 	@ansible-playbook playbooks/install-jenkins.yml
 	@echo "$(GREEN)✅ Jenkins installation completed!$(RESET)"
 
 ##@ SonarQube Installation
-install-sonarqube: ## Install SonarQube on SonarQube server (192.168.201.1)
+install-sonarqube: ## Install SonarQube on SonarQube server (192.168.201.16)
 	@echo "$(CYAN)🔍 Installing SonarQube on SonarQube server...$(RESET)"
 	@ansible-playbook playbooks/install-sonarqube.yml
 	@echo "$(GREEN)✅ SonarQube installation completed!$(RESET)"
 
 ##@ Nginx Reverse Proxy Setup
-setup-nginx-proxy: ## Setup Nginx reverse proxy for Jenkins on Nginx server (192.168.92.225)
+setup-nginx-proxy: ## Setup Nginx reverse proxy for Jenkins on Nginx server (192.168.201.15)
 	@echo "$(CYAN)🌐 Setting up Nginx reverse proxy for Jenkins...$(RESET)"
 	@ansible-playbook playbooks/setup-nginx-reverse-proxy.yml
 	@echo "$(GREEN)✅ Nginx reverse proxy setup completed!$(RESET)"
 
-setup-sonarqube-proxy: ## Setup Nginx reverse proxy for SonarQube on Nginx server (192.168.92.225)
+setup-sonarqube-proxy: ## Setup Nginx reverse proxy for SonarQube on Nginx server (192.168.201.15)
 	@echo "$(CYAN)🌐 Setting up Nginx reverse proxy for SonarQube...$(RESET)"
 	@ansible-playbook playbooks/setup-sonarqube-nginx-proxy.yml
 	@echo "$(GREEN)✅ SonarQube reverse proxy setup completed!$(RESET)"
 
 ##@ SSL Certificate Installation
-install-ssl-cert: ## Install SSL certificate on Nginx server (192.168.92.225)
+install-ssl-cert: ## Install SSL certificate on Nginx server (192.168.201.15)
 	@echo "$(CYAN)🔒 Installing SSL certificate...$(RESET)"
 	@ansible-playbook playbooks/install-ssl-cert.yml
 	@echo "$(GREEN)✅ SSL certificate installation completed!$(RESET)"
@@ -75,8 +75,8 @@ deploy-all: ## Deploy complete Jenkins + Nginx + SSL setup
 	@echo ""
 	@echo "$(GREEN)🎉 Jenkins is now accessible via HTTPS reverse proxy!$(RESET)"
 	@echo "$(GREEN)📍 Access URLs:$(RESET)"
-	@echo "  • Jenkins direct: http://192.168.92.224:8080"
-	@echo "  • Via Nginx proxy: https://192.168.92.225"
+	@echo "  • Jenkins direct: http://192.168.201.14:8080"
+	@echo "  • Via Nginx proxy: https://192.168.201.15"
 	@echo "  • Domain: https://jenkins.example.com (configure DNS)"
 
 deploy-basic: ## Deploy Jenkins + HTTP reverse proxy (no SSL)
@@ -89,8 +89,8 @@ deploy-basic: ## Deploy Jenkins + HTTP reverse proxy (no SSL)
 	@echo ""
 	@echo "$(GREEN)🎉 Jenkins is now accessible via HTTP reverse proxy!$(RESET)"
 	@echo "$(GREEN)📍 Access URLs:$(RESET)"
-	@echo "  • Jenkins direct: http://192.168.92.224:8080"
-	@echo "  • Via Nginx proxy: http://192.168.92.225"
+	@echo "  • Jenkins direct: http://192.168.201.14:8080"
+	@echo "  • Via Nginx proxy: http://192.168.201.15"
 
 deploy-sonarqube-basic: ## Deploy SonarQube + HTTP reverse proxy (no SSL)
 	@echo "$(CYAN)🔍 Starting basic SonarQube deployment (HTTP only)...$(RESET)"
@@ -102,8 +102,8 @@ deploy-sonarqube-basic: ## Deploy SonarQube + HTTP reverse proxy (no SSL)
 	@echo ""
 	@echo "$(GREEN)🎉 SonarQube is now accessible via HTTP reverse proxy!$(RESET)"
 	@echo "$(GREEN)📍 Access URLs:$(RESET)"
-	@echo "  • SonarQube direct: http://192.168.201.1:9000"
-	@echo "  • Via Nginx proxy: http://192.168.92.225"
+	@echo "  • SonarQube direct: http://192.168.201.16:9000"
+	@echo "  • Via Nginx proxy: http://192.168.201.15"
 
 deploy-all-services: ## Deploy both Jenkins and SonarQube with proxies
 	@echo "$(CYAN)🚀 Starting complete multi-service deployment...$(RESET)"
@@ -119,18 +119,18 @@ deploy-all-services: ## Deploy both Jenkins and SonarQube with proxies
 	@echo ""
 	@echo "$(GREEN)🎉 Both Jenkins and SonarQube are deployed!$(RESET)"
 	@echo "$(GREEN)📍 Access URLs:$(RESET)"
-	@echo "  • Jenkins: https://192.168.92.225 (SSL)"
-	@echo "  • SonarQube: http://192.168.201.1:9000 (direct)"
+	@echo "  • Jenkins: https://192.168.201.15 (SSL)"
+	@echo "  • SonarQube: http://192.168.201.16:9000 (direct)"
 	@echo "  • Note: Switch nginx proxy between services as needed"
 
 ##@ Validation and Testing
 validate-deployment: ## Validate the complete deployment
 	@echo "$(CYAN)🔍 Validating deployment...$(RESET)"
 	@echo "Testing Jenkins server..."
-	@curl -s -o /dev/null -w "Jenkins (direct): %{http_code}\\n" http://192.168.92.224:8080 || echo "Jenkins: ERROR"
+	@curl -s -o /dev/null -w "Jenkins (direct): %{http_code}\\n" http://192.168.201.14:8080 || echo "Jenkins: ERROR"
 	@echo "Testing Nginx proxy..."
-	@curl -s -o /dev/null -w "Nginx proxy (HTTP): %{http_code}\\n" http://192.168.92.225 || echo "Nginx HTTP: ERROR"
-	@curl -s -k -o /dev/null -w "Nginx proxy (HTTPS): %{http_code}\\n" https://192.168.92.225 || echo "Nginx HTTPS: ERROR (SSL may not be installed)"
+	@curl -s -o /dev/null -w "Nginx proxy (HTTP): %{http_code}\\n" http://192.168.201.15 || echo "Nginx HTTP: ERROR"
+	@curl -s -k -o /dev/null -w "Nginx proxy (HTTPS): %{http_code}\\n" https://192.168.201.15 || echo "Nginx HTTPS: ERROR (SSL may not be installed)"
 	@echo "$(GREEN)✅ Validation completed!$(RESET)"
 
 ##@ Maintenance
@@ -147,8 +147,9 @@ show-info: ## Show deployment information
 	@echo "$(CYAN)📋 Jenkins Ansible Automation Information$(RESET)"
 	@echo ""
 	@echo "$(YELLOW)Servers:$(RESET)"
-	@echo "  • Jenkins Server: 192.168.92.224 (vagrant/vagrant)"
-	@echo "  • Nginx Server:   192.168.92.225 (vagrant/vagrant)"
+	@echo "  • Jenkins Server: 192.168.201.14 (vagrant/vagrant)"
+	@echo "  • Nginx Server:   192.168.201.15 (vagrant/vagrant)"
+	@echo "  • SonarQube Server: 192.168.201.16 (vagrant/vagrant)"
 	@echo ""
 	@echo "$(YELLOW)Roles:$(RESET)"
 	@echo "  • install-jenkins: Install Jenkins on Rocky Linux 9"
@@ -156,8 +157,8 @@ show-info: ## Show deployment information
 	@echo "  • install-ssl-cert: Generate self-signed SSL certificates"
 	@echo ""
 	@echo "$(YELLOW)Deployment Workflow:$(RESET)"
-	@echo "  1. make install-jenkins    → Install Jenkins on 192.168.92.224"
-	@echo "  2. make setup-nginx-proxy  → Configure proxy on 192.168.92.225"
+	@echo "  1. make install-jenkins    → Install Jenkins on 192.168.201.14"
+	@echo "  2. make setup-nginx-proxy  → Configure proxy on 192.168.201.15"
 	@echo "  3. make install-ssl-cert   → Add SSL certificate"
 	@echo "  4. make validate-deployment → Test the setup"
 	@echo ""
