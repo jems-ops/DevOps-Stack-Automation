@@ -2,11 +2,11 @@
 - name: Display nginx reverse proxy setup information
   debug:
     msg: |
-      🌐 Setting up Nginx Reverse Proxy for {{ backend_service | title }}
+      🌐 Setting up Dynamic Nginx Reverse Proxy
       📅 Setup time: {{ ansible_date_time.iso8601 }}
       🖥️  Target host: {{ inventory_hostname }}
-      🔗 Backend: {{ backend_host }}:{{ backend_port }}
-      🌍 Server name: {{ nginx_server_name }}
+      📊 Backend count: {{ site_backends | length }}
+      🔗 Backends: {{ site_backends | map(attribute='server_name') | join(', ') }}
 
 - name: Update package cache
   dnf:
@@ -39,10 +39,10 @@
     group: nginx
     mode: '0755'
 
-- name: Deploy nginx configuration for {{ backend_service }}
+- name: Deploy dynamic nginx configuration for all backends
   template:
-    src: "{{ backend_service }}.conf.j2"
-    dest: "{{ nginx_config_path }}/{{ nginx_config_file }}"
+    src: "dynamic-backends.conf.j2"
+    dest: "{{ nginx_config_path }}/dynamic-backends.conf"
     owner: root
     group: root
     mode: '0644'
@@ -80,41 +80,50 @@
     enabled: "{{ nginx_service_enabled }}"
     state: "{{ nginx_service_state }}"
 
-- name: Test {{ backend_service }} backend connectivity
+- name: Test backend connectivity for all configured backends
   uri:
-    url: "http://{{ backend_host }}:{{ backend_port }}"
+    url: "http://{{ item.ip }}:{{ item.port }}"
     method: GET
     timeout: 10
-  register: backend_test
+  loop: "{{ site_backends }}"
+  loop_control:
+    label: "{{ item.server_name }}"
+  register: backend_tests
   ignore_errors: yes
 
-- name: Test nginx proxy response
+- name: Test nginx HTTPS proxy response for each backend
   uri:
-    url: "http://{{ inventory_hostname }}"
+    url: "https://{{ item.server_name }}"
     method: GET
     timeout: 10
-  register: nginx_proxy_test
+    validate_certs: false
+  loop: "{{ site_backends }}"
+  loop_control:
+    label: "{{ item.server_name }}"
+  register: nginx_proxy_tests
   ignore_errors: yes
 
-- name: Display nginx reverse proxy setup completion
+- name: Display dynamic nginx reverse proxy setup completion
   debug:
     msg: |
-      ✅ Nginx Reverse Proxy Setup Complete!
+      ✅ Dynamic Nginx Reverse Proxy Setup Complete!
       
       📋 Configuration Summary:
-      • Service: {{ backend_service | title }}
-      • Server: {{ nginx_server_name }}
-      • Backend: {{ backend_host }}:{{ backend_port }}
-      • Config file: {{ nginx_config_path }}/{{ nginx_config_file }}
-      • Backend status: {{ 'Online' if backend_test.status is defined and backend_test.status < 500 else 'Unknown' }}
-      • Proxy status: {{ 'Working' if nginx_proxy_test.status is defined and nginx_proxy_test.status < 500 else 'Unknown' }}
+      • Backends configured: {{ site_backends | length }}
+      • Config file: {{ nginx_config_path }}/dynamic-backends.conf
+      • SSL enabled: Yes (HTTPS + HTTP redirect)
       
-      🌐 Access URLs:
-      • Direct {{ backend_service | title }}: http://{{ backend_host }}:{{ backend_port }}
-      • Via Proxy: http://{{ inventory_hostname }}
-      • Domain: http://{{ nginx_server_name }} (configure DNS/hosts)
+      🌐 Configured Services:
+      {% for backend in site_backends %}
+      • {{ backend.server_name }} → {{ backend.ip }}:{{ backend.port }}
+      {% endfor %}
+      
+      🔒 Access URLs (HTTPS):
+      {% for backend in site_backends %}
+      • https://{{ backend.server_name }}
+      {% endfor %}
       
       🔧 Next Steps:
-      1. Configure DNS or add {{ nginx_server_name }} to /etc/hosts
-      2. Point {{ nginx_server_name }} to {{ inventory_hostname }}
-      3. Access {{ backend_service | title }} via nginx proxy
+      1. Ensure DNS/hosts entries are configured for all domains
+      2. Access services via HTTPS URLs above
+      3. HTTP traffic automatically redirects to HTTPS

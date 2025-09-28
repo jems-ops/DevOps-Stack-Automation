@@ -3,7 +3,7 @@ galaxy_info:
   role_name: install_ssl_cert
   namespace: jimi_automation
   author: Jimi
-  description: Install self-signed SSL certificates for Jenkins nginx proxy on Rocky Linux 9
+  description: Install self-signed SSL certificates for dynamic nginx reverse proxy backends on Rocky Linux 9
   license: MIT
   min_ansible_version: 2.9
   
@@ -18,6 +18,9 @@ galaxy_info:
     - certificate
     - nginx
     - jenkins
+    - sonarqube
+    - dynamic
+    - proxy
     - security
     - rocky
     - rhel

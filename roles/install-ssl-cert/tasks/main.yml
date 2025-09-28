@@ -1,12 +1,13 @@
 ---
-- name: Display SSL certificate installation information
+- name: Display dynamic SSL certificate installation information
   debug:
     msg: |
-      🔒 Installing SSL Certificate for Jenkins Nginx Proxy
+      🔒 Installing SSL Certificates for Dynamic Nginx Proxy
       📅 Installation time: {{ ansible_date_time.iso8601 }}
       🖥️  Target host: {{ inventory_hostname }}
       🏠 Certificate directory: {{ ssl_cert_dir }}
-      🌍 Common Name: {{ ssl_common_name }}
+      🌍 Backends: {{ site_backends | map(attribute='server_name') | join(', ') }}
+      📋 Certificates to generate: {{ site_backends | length }}
 
 - name: Install OpenSSL
   dnf:
@@ -21,26 +22,32 @@
     group: root
     mode: '0755'
 
-- name: Check if SSL certificate exists
+- name: Check if SSL certificates exist for each backend
   stat:
-    path: "{{ ssl_cert_file }}"
+    path: "{{ ssl_cert_dir }}/{{ item.server_name }}.crt"
   register: ssl_cert_exists
+  loop: "{{ site_backends }}"
+  loop_control:
+    label: "{{ item.server_name }}"
 
-- name: Generate SSL private key
+- name: Generate SSL private keys for each backend
   openssl_privatekey:
-    path: "{{ ssl_key_file }}"
+    path: "{{ ssl_cert_dir }}/{{ item.item.server_name }}.key"
     size: 2048
     type: RSA
     owner: root
     group: root
     mode: '0600'
-  when: not ssl_cert_exists.stat.exists
+  when: not item.stat.exists
+  loop: "{{ ssl_cert_exists.results }}"
+  loop_control:
+    label: "{{ item.item.server_name }}"
 
-- name: Generate SSL certificate signing request
+- name: Generate SSL certificate signing requests for each backend
   openssl_csr:
-    path: "{{ ssl_cert_dir }}/jenkins.csr"
-    privatekey_path: "{{ ssl_key_file }}"
-    common_name: "{{ ssl_common_name }}"
+    path: "{{ ssl_cert_dir }}/{{ item.item.server_name }}.csr"
+    privatekey_path: "{{ ssl_cert_dir }}/{{ item.item.server_name }}.key"
+    common_name: "{{ item.item.server_name }}"
     country_name: "{{ ssl_country }}"
     state_or_province_name: "{{ ssl_state }}"
     locality_name: "{{ ssl_city }}"
@@ -48,22 +55,28 @@
     organizational_unit_name: "{{ ssl_organization_unit }}"
     email_address: "{{ ssl_email }}"
     subject_alt_name:
-      - "DNS:{{ ssl_common_name }}"
-      - "DNS:{{ nginx_server_name }}"
+      - "DNS:{{ item.item.server_name }}"
+      - "DNS:{{ ansible_hostname }}"
       - "IP:{{ ansible_default_ipv4.address }}"
-  when: not ssl_cert_exists.stat.exists
+  when: not item.stat.exists
+  loop: "{{ ssl_cert_exists.results }}"
+  loop_control:
+    label: "{{ item.item.server_name }}"
 
-- name: Generate self-signed SSL certificate
+- name: Generate self-signed SSL certificates for each backend
   openssl_certificate:
-    path: "{{ ssl_cert_file }}"
-    privatekey_path: "{{ ssl_key_file }}"
-    csr_path: "{{ ssl_cert_dir }}/jenkins.csr"
+    path: "{{ ssl_cert_dir }}/{{ item.item.server_name }}.crt"
+    privatekey_path: "{{ ssl_cert_dir }}/{{ item.item.server_name }}.key"
+    csr_path: "{{ ssl_cert_dir }}/{{ item.item.server_name }}.csr"
     provider: selfsigned
     selfsigned_not_after: "+{{ ssl_cert_days }}d"
     owner: root
     group: root
     mode: '0644'
-  when: not ssl_cert_exists.stat.exists
+  when: not item.stat.exists
+  loop: "{{ ssl_cert_exists.results }}"
+  loop_control:
+    label: "{{ item.item.server_name }}"
 
 - name: Check if DH parameters exist
   stat:
@@ -86,9 +99,9 @@
     remote_src: yes
   ignore_errors: yes
 
-- name: Deploy SSL-enabled Jenkins nginx configuration
+- name: Deploy SSL-enabled dynamic nginx configuration
   template:
-    src: jenkins-ssl.conf.j2
+    src: dynamic-backends-ssl.conf.j2
     dest: "{{ nginx_config_path }}/{{ nginx_config_file }}"
     owner: root
     group: root
@@ -115,31 +128,36 @@
     delay: 5
     timeout: 60
 
-- name: Test HTTPS connection
+- name: Test HTTPS connections for each backend
   uri:
     url: "https://{{ inventory_hostname }}"
     method: GET
+    headers:
+      Host: "{{ item.server_name }}"
     validate_certs: no
     timeout: 10
-  register: https_test
+  register: https_tests
+  loop: "{{ site_backends }}"
+  loop_control:
+    label: "{{ item.server_name }}"
   ignore_errors: yes
 
-- name: Display SSL certificate installation completion
+- name: Display dynamic SSL certificate installation completion
   debug:
     msg: |
-      ✅ SSL Certificate Installation Complete!
+      ✅ Dynamic SSL Certificate Installation Complete!
       
       🔒 SSL Certificate Details:
-      • Certificate: {{ ssl_cert_file }}
-      • Private Key: {{ ssl_key_file }}
+      {% for backend in site_backends %}
+      • {{ backend.server_name }}: {{ ssl_cert_dir }}/{{ backend.server_name }}.crt
+      {% endfor %}
       • DH Parameters: {{ ssl_dhparam_file }}
-      • Common Name: {{ ssl_common_name }}
-      • Valid for: {{ ssl_cert_days }} days
+      • Valid for: {{ ssl_cert_days }} days each
       
-      🌐 Access URLs:
-      • HTTPS: https://{{ inventory_hostname }} ({{ 'Working' if https_test.status is defined and https_test.status < 500 else 'Check firewall/config' }})
-      • Domain: https://{{ nginx_server_name }} (configure DNS/hosts)
-      • HTTP redirects to HTTPS automatically
+      🌐 Access URLs (HTTPS):
+      {% for backend in site_backends %}
+      • https://{{ backend.server_name }} → {{ backend.ip }}:{{ backend.port }}
+      {% endfor %}
       
       🔧 Security Features:
       • TLS {{ ssl_protocols }}
@@ -147,8 +165,14 @@
       • HSTS enabled
       • Security headers configured
       • {{ ssl_dhparam_bits }}-bit DH parameters
+      • HTTP to HTTPS redirects
       
       📋 Certificate Information:
-      • Self-signed certificate (not trusted by browsers)
-      • Add security exception in browser
-      • Or use proper CA certificate for production
+      • {{ site_backends | length }} self-signed certificates generated
+      • Not trusted by browsers (add security exceptions)
+      • Use proper CA certificates for production
+      
+      🔍 Connection Tests:
+      {% for test in https_tests.results %}
+      • {{ test.item.server_name }}: {{ 'Working' if test.status is defined and test.status < 500 else 'Check config/firewall' }}
+      {% endfor %}

@@ -1,10 +1,9 @@
 ---
 # Default variables for SSL certificate installation
+# Uses dynamic site_backends configuration from group_vars/all.yml
 
 # SSL certificate configuration
 ssl_cert_dir: /etc/nginx/tls
-ssl_cert_file: "{{ ssl_cert_dir }}/jenkins.crt"
-ssl_key_file: "{{ ssl_cert_dir }}/jenkins.key"
 ssl_dhparam_file: "{{ ssl_cert_dir }}/dhparam.pem"
 
 # Certificate details
@@ -12,23 +11,18 @@ ssl_common_name: "{{ ansible_hostname }}"
 ssl_country: US
 ssl_state: CA
 ssl_city: San Francisco
-ssl_organization: Jenkins Automation
+ssl_organization: Site Automation
 ssl_organization_unit: IT Department
-ssl_email: admin@jenkins.local
+ssl_email: admin@example.com
 
 # Certificate validity
 ssl_cert_days: 365
 
 # Nginx SSL configuration
 nginx_config_path: /etc/nginx/conf.d
-nginx_config_file: jenkins.conf
+nginx_config_file: dynamic-backends.conf
 nginx_https_port: 443
 nginx_http_port: 80
-
-# Jenkins backend (same as reverse proxy role)
-jenkins_backend_host: 192.168.201.14
-jenkins_backend_port: 8080
-nginx_server_name: jenkins.example.com
 
 # SSL security settings
 ssl_protocols: "TLSv1.2 TLSv1.3"
@@ -37,3 +31,13 @@ ssl_prefer_server_ciphers: "off"
 
 # DH parameters size
 ssl_dhparam_bits: 2048
+
+# Site backends are expected to be defined in group_vars/all.yml
+# Example structure:
+# site_backends:
+#   - server_name: jenkins.local
+#     ip: 192.168.201.14
+#     port: 8080
+#   - server_name: sonar.local
+#     ip: 192.168.201.16
+#     port: 9000

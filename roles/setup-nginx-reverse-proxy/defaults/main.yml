@@ -1,34 +1,20 @@
 ---
-# Default variables for nginx reverse proxy setup
+# Default variables for nginx reverse proxy setup - Dynamic Backend Support
 
-# Backend service configuration (can be jenkins or sonarqube)
-backend_service: jenkins  # options: jenkins, sonarqube
-
-# Jenkins backend configuration
-jenkins_backend_host: 192.168.201.14
-jenkins_backend_port: 8080
-
-# SonarQube backend configuration
-sonarqube_backend_host: 192.168.201.16
-sonarqube_backend_port: 9000
-
-# Nginx configuration (dynamically set based on backend_service)
-nginx_server_name: "{{ 'jenkins.example.com' if backend_service == 'jenkins' else 'sonar.example.com' }}"
-nginx_listen_port: 80
-nginx_config_file: "{{ backend_service }}.conf"
+# Nginx configuration paths
 nginx_config_path: /etc/nginx/conf.d
+nginx_listen_port: 80
+nginx_https_port: 443
 
-# Backend configuration (dynamically set)
-backend_host: "{{ jenkins_backend_host if backend_service == 'jenkins' else sonarqube_backend_host }}"
-backend_port: "{{ jenkins_backend_port if backend_service == 'jenkins' else sonarqube_backend_port }}"
-
-# Jenkins paths
-jenkins_home: /var/lib/jenkins
-jenkins_war_root: /var/run/jenkins/war
+# SSL configuration
+ssl_cert_dir: /etc/nginx/tls
+ssl_cert_file: "{{ ssl_cert_dir }}/site.crt"
+ssl_key_file: "{{ ssl_cert_dir }}/site.key"
+ssl_dhparam_file: "{{ ssl_cert_dir }}/dhparam.pem"
 
 # Logging
-nginx_access_log: /var/log/nginx/jenkins.access.log
-nginx_error_log: /var/log/nginx/jenkins.error.log
+nginx_access_log: /var/log/nginx/access.log
+nginx_error_log: /var/log/nginx/error.log
 
 # Connection settings
 nginx_keepalive_connections: 32
@@ -41,3 +27,16 @@ nginx_proxy_read_timeout: 90
 # Service configuration
 nginx_service_enabled: yes
 nginx_service_state: started
+
+# Jenkins-specific configuration
+jenkins_home: /var/lib/jenkins
+jenkins_war_root: /var/run/jenkins/war
+
+# Default site_backends (will be overridden by group_vars/all.yml)
+site_backends:
+  - server_name: "jenkins.example.com"
+    ip: "192.168.201.14"
+    port: "8080"
+  - server_name: "sonar.example.com"
+    ip: "192.168.201.16"
+    port: "9000"
