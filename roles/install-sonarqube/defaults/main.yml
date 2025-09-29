@@ -18,7 +18,7 @@ java_package: java-17-openjdk-devel
 postgresql_version: "13"
 postgresql_db_name: sonarqube
 postgresql_db_user: sonar
-postgresql_db_password: sonar123
+postgresql_db_password: "{{ vault_postgresql_db_password | default('sonar123') }}"
 postgresql_service_name: postgresql
 
 # SonarQube service configuration
@@ -47,4 +47,4 @@ sonarqube_web_context: ""
 # Database connection
 sonarqube_db_url: "jdbc:postgresql://localhost/{{ postgresql_db_name }}"
 sonarqube_db_username: "{{ postgresql_db_user }}"
-sonarqube_db_password: "{{ postgresql_db_password }}"
+sonarqube_db_password: "{{ vault_sonarqube_db_password | default(postgresql_db_password) }}"

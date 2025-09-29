@@ -1,14 +1,14 @@
 # Ansible Inventory for Jenkins Automation Project
-# Rocky Linux 9 hosts with vagrant credentials
+# Rocky Linux 9 hosts - credentials managed via vault
 
 [jenkins]
-192.168.201.14 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+192.168.201.14
 
 [nginx]
-192.168.201.15 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+192.168.201.15
 
 [sonarqube]
-192.168.201.16 ansible_user=vagrant ansible_password=vagrant ansible_become_password=vagrant
+192.168.201.16
 
 # Group variables for all hosts
 [all:vars]

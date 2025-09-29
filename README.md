@@ -165,6 +165,33 @@ After deployment, Jenkins will be accessible via:
 - **Security Headers**: HSTS, X-Frame-Options, CSP
 - **Ciphers**: Strong cipher suites only
 - **Redirect**: Automatic HTTP → HTTPS redirect
+- **Ansible Vault**: Encrypted sensitive data storage
+
+## 🔐 Vault Management
+
+This project uses Ansible Vault to securely store sensitive information like passwords, API keys, and certificates.
+
+### Quick Vault Commands
+```bash
+# View vault status
+make vault-status
+
+# Edit encrypted vault file
+make vault-edit
+
+# View vault contents
+make vault-view
+```
+
+### Vault Variables
+Sensitive variables are encrypted in `group_vars/all/vault.yml`:
+- SSH credentials (`vault_ansible_user`, `vault_ansible_password`)
+- Database passwords (`vault_postgresql_db_password`)
+- SSL certificate configuration (`vault_ssl_organization`, `vault_ssl_email`)
+- Application passwords (`vault_jenkins_admin_password`)
+- API tokens (`vault_github_api_token`)
+
+For detailed vault usage, see [VAULT_USAGE.md](VAULT_USAGE.md).
 
 ## 🔍 Validation
 

@@ -10,7 +10,8 @@ RESET := \\033[0m
 
 # Default target
 .DEFAULT_GOAL := help
-
+SHELL := /bin/bash
+VAULT_SCRIPT := ./scripts/vault-manager.sh
 help: ## Show available commands
 	@echo "$(CYAN)Jenkins Ansible Automation - Available Commands$(RESET)"
 	@echo ""
@@ -244,3 +245,28 @@ clean-molecule: ## Clean up Molecule test containers and images
 	@cd molecule/integration && molecule destroy || true
 	@docker system prune -f || true
 	@echo "$(GREEN)✅ Molecule cleanup completed!$(RESET)"
+
+##@ Vault Management
+vault-status: ## Show vault status and file information
+	@echo "$(CYAN)🔐 Checking vault status...$(RESET)"
+	@$(VAULT_SCRIPT) status
+
+vault-edit: ## Edit the encrypted vault file
+	@echo "$(CYAN)🔐 Opening vault for editing...$(RESET)"
+	@$(VAULT_SCRIPT) edit
+
+vault-view: ## View the decrypted vault file contents
+	@echo "$(CYAN)🔐 Viewing vault contents...$(RESET)"
+	@$(VAULT_SCRIPT) view
+
+vault-encrypt: ## Encrypt the vault file
+	@echo "$(CYAN)🔐 Encrypting vault file...$(RESET)"
+	@$(VAULT_SCRIPT) encrypt
+
+vault-decrypt: ## Decrypt the vault file (use with caution)
+	@echo "$(YELLOW)⚠️  Decrypting vault file...$(RESET)"
+	@$(VAULT_SCRIPT) decrypt
+
+vault-rekey: ## Change the vault password
+	@echo "$(CYAN)🔐 Changing vault password...$(RESET)"
+	@$(VAULT_SCRIPT) rekey

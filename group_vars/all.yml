@@ -1,9 +1,0 @@
----
-# Dynamic backend servers configuration
-site_backends:
-  - server_name: "jenkins.example.com"
-    ip: "192.168.201.14"
-    port: "8080"
-  - server_name: "sonar.example.com"
-    ip: "192.168.201.16"
-    port: "9000"

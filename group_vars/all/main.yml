@@ -1,0 +1,36 @@
+---
+# Group variables for all hosts
+# References encrypted vault variables from vault.yml
+
+# Dynamic backend servers configuration
+site_backends:
+  - server_name: "jenkins.example.com"
+    ip: "192.168.201.14"
+    port: "8080"
+  - server_name: "sonar.example.com"
+    ip: "192.168.201.16"
+    port: "9000"
+
+# SSH and authentication (from vault)
+ansible_user: "{{ vault_ansible_user }}"
+ansible_password: "{{ vault_ansible_password }}"
+ansible_become_password: "{{ vault_ansible_become_password }}"
+
+# SSL Certificate configuration (from vault)
+ssl_organization: "{{ vault_ssl_organization }}"
+ssl_email: "{{ vault_ssl_email }}"
+ssl_country: "{{ vault_ssl_country }}"
+ssl_state: "{{ vault_ssl_state }}"
+ssl_city: "{{ vault_ssl_city }}"
+
+# Database configuration (from vault)
+postgresql_db_password: "{{ vault_postgresql_db_password }}"
+sonarqube_db_password: "{{ vault_sonarqube_db_password }}"
+
+# Application configuration (from vault)
+jenkins_admin_password: "{{ vault_jenkins_admin_password }}"
+sonarqube_admin_token: "{{ vault_sonarqube_admin_token }}"
+
+# API tokens (from vault)
+github_api_token: "{{ vault_github_api_token }}"
+docker_registry_password: "{{ vault_docker_registry_password }}"

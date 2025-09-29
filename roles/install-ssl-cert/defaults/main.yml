@@ -8,12 +8,12 @@ ssl_dhparam_file: "{{ ssl_cert_dir }}/dhparam.pem"
 
 # Certificate details
 ssl_common_name: "{{ ansible_hostname }}"
-ssl_country: US
-ssl_state: CA
-ssl_city: San Francisco
-ssl_organization: Site Automation
+ssl_country: "{{ vault_ssl_country | default('US') }}"
+ssl_state: "{{ vault_ssl_state | default('CA') }}"
+ssl_city: "{{ vault_ssl_city | default('San Francisco') }}"
+ssl_organization: "{{ vault_ssl_organization | default('Site Automation') }}"
 ssl_organization_unit: IT Department
-ssl_email: admin@example.com
+ssl_email: "{{ vault_ssl_email | default('admin@example.com') }}"
 
 # Certificate validity
 ssl_cert_days: 365
