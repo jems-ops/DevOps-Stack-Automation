@@ -1,13 +1,7 @@
 ---
-- name: Display dynamic SSL certificate installation information
+- name: Display SSL certificate installation information
   debug:
-    msg: |
-      🔒 Installing SSL Certificates for Dynamic Nginx Proxy
-      📅 Installation time: {{ ansible_date_time.iso8601 }}
-      🖥️  Target host: {{ inventory_hostname }}
-      🏠 Certificate directory: {{ ssl_cert_dir }}
-      🌍 Backends: {{ site_backends | map(attribute='server_name') | join(', ') }}
-      📋 Certificates to generate: {{ site_backends | length }}
+    msg: "Installing SSL certificates for: {{ site_backends | map(attribute='server_name') | join(', ') }}"
 
 - name: Install OpenSSL
   dnf:
@@ -142,37 +136,11 @@
     label: "{{ item.server_name }}"
   ignore_errors: yes
 
-- name: Display dynamic SSL certificate installation completion
+- name: Display SSL certificate completion
   debug:
     msg: |
-      ✅ Dynamic SSL Certificate Installation Complete!
-      
-      🔒 SSL Certificate Details:
-      {% for backend in site_backends %}
-      • {{ backend.server_name }}: {{ ssl_cert_dir }}/{{ backend.server_name }}.crt
-      {% endfor %}
-      • DH Parameters: {{ ssl_dhparam_file }}
-      • Valid for: {{ ssl_cert_days }} days each
-      
-      🌐 Access URLs (HTTPS):
-      {% for backend in site_backends %}
-      • https://{{ backend.server_name }} → {{ backend.ip }}:{{ backend.port }}
-      {% endfor %}
-      
-      🔧 Security Features:
-      • TLS {{ ssl_protocols }}
-      • Strong cipher suites
-      • HSTS enabled
-      • Security headers configured
-      • {{ ssl_dhparam_bits }}-bit DH parameters
-      • HTTP to HTTPS redirects
-      
-      📋 Certificate Information:
-      • {{ site_backends | length }} self-signed certificates generated
-      • Not trusted by browsers (add security exceptions)
-      • Use proper CA certificates for production
-      
-      🔍 Connection Tests:
-      {% for test in https_tests.results %}
-      • {{ test.item.server_name }}: {{ 'Working' if test.status is defined and test.status < 500 else 'Check config/firewall' }}
-      {% endfor %}
+      SSL certificates installed successfully
+      Certificates: {{ site_backends | length }}
+      Directory: {{ ssl_cert_dir }}
+      Validity: {{ ssl_cert_days }} days
+      Note: Self-signed certificates require browser security exceptions

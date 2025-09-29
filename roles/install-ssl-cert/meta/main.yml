@@ -6,7 +6,7 @@ galaxy_info:
   description: Install self-signed SSL certificates for dynamic nginx reverse proxy backends on Rocky Linux 9
   license: MIT
   min_ansible_version: 2.9
-  
+
   platforms:
     - name: EL
       versions:

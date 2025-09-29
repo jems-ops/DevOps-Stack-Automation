@@ -1,0 +1,48 @@
+---
+# Example showing how to use multiple server names (aliases) per backend
+# This demonstrates the enhanced server_name template logic
+
+# Example 1: Single server name (current usage)
+site_backends_single:
+  - server_name: "jenkins.example.com"
+    ip: "192.168.201.14"
+    port: "8080"
+  - server_name: "sonar.example.com"
+    ip: "192.168.201.16"
+    port: "9000"
+
+# Example 2: Multiple server names (aliases) per backend
+site_backends_multiple:
+  - server_name:
+      - "jenkins.example.com"
+      - "jenkins.local"
+      - "ci.example.com"
+      - "build.example.com"
+    ip: "192.168.201.14"
+    port: "8080"
+  - server_name:
+      - "sonar.example.com"
+      - "sonar.local"
+      - "quality.example.com"
+      - "code-quality.example.com"
+    ip: "192.168.201.16"
+    port: "9000"
+
+# Example 3: Mixed - some with single, some with multiple
+site_backends_mixed:
+  - server_name: "jenkins.example.com"  # Single name
+    ip: "192.168.201.14"
+    port: "8080"
+  - server_name:  # Multiple names
+      - "sonar.example.com"
+      - "sonar.local"
+      - "quality.internal"
+    ip: "192.168.201.16"
+    port: "9000"
+
+# The enhanced Jinja2 template logic handles all three cases:
+# {{ backend.server_name | join(' ') if backend.server_name is iterable and backend.server_name is not string else backend.server_name }}
+#
+# This produces:
+# - Single string: "jenkins.example.com"
+# - List of strings: "jenkins.example.com jenkins.local ci.example.com"

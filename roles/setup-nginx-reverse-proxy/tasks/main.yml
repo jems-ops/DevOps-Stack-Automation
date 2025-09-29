@@ -1,12 +1,7 @@
 ---
 - name: Display nginx reverse proxy setup information
   debug:
-    msg: |
-      🌐 Setting up Dynamic Nginx Reverse Proxy
-      📅 Setup time: {{ ansible_date_time.iso8601 }}
-      🖥️  Target host: {{ inventory_hostname }}
-      📊 Backend count: {{ site_backends | length }}
-      🔗 Backends: {{ site_backends | map(attribute='server_name') | join(', ') }}
+    msg: "Configuring nginx for {{ site_backends | length }} backend(s): {{ site_backends | map(attribute='server_name') | join(', ') }}"
 
 - name: Update package cache
   dnf:
@@ -103,27 +98,10 @@
   register: nginx_proxy_tests
   ignore_errors: yes
 
-- name: Display dynamic nginx reverse proxy setup completion
+- name: Display nginx configuration summary
   debug:
     msg: |
-      ✅ Dynamic Nginx Reverse Proxy Setup Complete!
-      
-      📋 Configuration Summary:
-      • Backends configured: {{ site_backends | length }}
-      • Config file: {{ nginx_config_path }}/dynamic-backends.conf
-      • SSL enabled: Yes (HTTPS + HTTP redirect)
-      
-      🌐 Configured Services:
-      {% for backend in site_backends %}
-      • {{ backend.server_name }} → {{ backend.ip }}:{{ backend.port }}
-      {% endfor %}
-      
-      🔒 Access URLs (HTTPS):
-      {% for backend in site_backends %}
-      • https://{{ backend.server_name }}
-      {% endfor %}
-      
-      🔧 Next Steps:
-      1. Ensure DNS/hosts entries are configured for all domains
-      2. Access services via HTTPS URLs above
-      3. HTTP traffic automatically redirects to HTTPS
+      Nginx configured successfully
+      Backends: {{ site_backends | length }}
+      Config: {{ nginx_config_path }}/dynamic-backends.conf
+      SSL: Enabled with HTTPS redirect

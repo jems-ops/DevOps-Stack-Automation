@@ -43,8 +43,7 @@ check_vault_password() {
 edit_vault() {
     print_info "Opening vault file for editing..."
     check_vault_password
-    ansible-vault edit "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE"
-    if [[ $? -eq 0 ]]; then
+    if ansible-vault edit "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE"; then
         print_success "Vault file edited successfully"
     else
         print_error "Failed to edit vault file"
@@ -65,8 +64,7 @@ decrypt_vault() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         check_vault_password
-        ansible-vault decrypt "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE"
-        if [[ $? -eq 0 ]]; then
+        if ansible-vault decrypt "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE"; then
             print_success "Vault file decrypted"
         else
             print_error "Failed to decrypt vault file"
@@ -80,8 +78,7 @@ decrypt_vault() {
 encrypt_vault() {
     print_info "Encrypting vault file..."
     check_vault_password
-    ansible-vault encrypt "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE"
-    if [[ $? -eq 0 ]]; then
+    if ansible-vault encrypt "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE"; then
         print_success "Vault file encrypted"
     else
         print_error "Failed to encrypt vault file"
@@ -92,8 +89,7 @@ encrypt_vault() {
 change_password() {
     print_info "Changing vault password..."
     print_warning "This will require both old and new passwords"
-    ansible-vault rekey "$VAULT_FILE"
-    if [[ $? -eq 0 ]]; then
+    if ansible-vault rekey "$VAULT_FILE"; then
         print_success "Vault password changed"
         print_warning "Remember to update .vault_pass file if needed"
     else
@@ -108,7 +104,7 @@ status() {
     echo "📁 Vault file: $VAULT_FILE"
     echo "🔐 Password file: $VAULT_PASS_FILE"
     echo
-    
+
     if [[ -f "$VAULT_FILE" ]]; then
         if ansible-vault view "$VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE" >/dev/null 2>&1; then
             print_success "Vault file exists and is accessible"
@@ -118,7 +114,7 @@ status() {
     else
         print_error "Vault file not found"
     fi
-    
+
     if [[ -f "$VAULT_PASS_FILE" ]]; then
         print_success "Vault password file exists"
         ls -la "$VAULT_PASS_FILE"

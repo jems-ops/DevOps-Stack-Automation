@@ -85,19 +85,19 @@
   debug:
     msg: |
       ✅ Jenkins Installation Complete!
-      
+
       📋 Access Information:
       • URL: http://{{ inventory_hostname }}:{{ jenkins_port }}
       • Status: {{ 'Running' if jenkins_status_check.status is defined and jenkins_status_check.status in [200, 403] else 'Unknown' }}
       {% if jenkins_admin_password.content is defined %}
       • Initial Admin Password: {{ jenkins_admin_password.content | b64decode | trim }}
       {% endif %}
-      
+
       📊 Service Details:
       • Jenkins Home: {{ jenkins_home }}
       • Java Version: {{ java_package }}
       • Service Status: {{ jenkins_service_state }}
-      
+
       🔧 Next Steps:
       1. Access Jenkins web interface
       2. Complete initial setup wizard (if first install)

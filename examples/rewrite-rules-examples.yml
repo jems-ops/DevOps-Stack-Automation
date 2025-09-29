@@ -1,0 +1,157 @@
+---
+# Nginx Rewrite Rules Examples for Dynamic Backends
+# This file shows various ways to configure rewrite rules for your backends
+
+# Example 1: Global rewrite rule (applied to all backends)
+global_rewrite_example:
+  # This would redirect old API version to new version across all services
+  site_rewrite_rule: "^/api/v1/(.*) /api/v2/$1 permanent"
+
+  site_backends:
+    - server_name: "jenkins.example.com"
+      ip: "192.168.201.14"
+      port: "8080"
+    - server_name: "sonar.example.com"
+      ip: "192.168.201.16"
+      port: "9000"
+
+# Example 2: Per-backend rewrite rules
+per_backend_example:
+  site_backends:
+    - server_name: "jenkins.example.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Remove /jenkins prefix from URLs
+      rewrite_rule: "^/jenkins/(.*) /$1 break"
+
+    - server_name: "sonar.example.com"
+      ip: "192.168.201.16"
+      port: "9000"
+      # Remove /sonar prefix from URLs
+      rewrite_rule: "^/sonar/(.*) /$1 break"
+
+# Example 3: Mixed global and per-backend rules
+mixed_example:
+  # Global rule for all backends
+  site_rewrite_rule: "^/health /status redirect"
+
+  site_backends:
+    - server_name: "jenkins.example.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Specific rule for Jenkins (applied after global rule)
+      rewrite_rule: "^/ci/(.*) /$1 break"
+
+    - server_name: "sonar.example.com"
+      ip: "192.168.201.16"
+      port: "9000"
+      # No specific rule for SonarQube (only global rule applies)
+
+# Example 4: Common rewrite rule patterns
+
+# Pattern 1: Path prefix removal
+path_prefix_removal:
+  site_backends:
+    - server_name: "jenkins.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Remove /jenkins/ prefix: /jenkins/job/test -> /job/test
+      rewrite_rule: "^/jenkins/(.*) /$1 break"
+
+# Pattern 2: Path prefix addition
+path_prefix_addition:
+  site_backends:
+    - server_name: "api.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Add /v2/ prefix: /users -> /v2/users
+      rewrite_rule: "^/(?!v2/)(.*) /v2/$1 break"
+
+# Pattern 3: Permanent redirects (301)
+permanent_redirects:
+  site_backends:
+    - server_name: "old-jenkins.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Permanently redirect to new URL structure
+      rewrite_rule: "^/build/(.*) /job/$1 permanent"
+
+# Pattern 4: Temporary redirects (302)
+temporary_redirects:
+  site_backends:
+    - server_name: "jenkins.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Temporarily redirect for maintenance
+      rewrite_rule: "^/admin/(.*) /maintenance.html redirect"
+
+# Pattern 5: Complex regex patterns
+complex_patterns:
+  site_backends:
+    - server_name: "jenkins.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Match specific patterns: /project-NAME-123 -> /job/NAME/123
+      rewrite_rule: "^/project-([^-]+)-([0-9]+) /job/$1/$2 break"
+
+# Example 5: Environment-specific rewrites
+development_environment:
+  site_backends:
+    - server_name:
+        - "jenkins.dev.company.com"
+        - "jenkins-dev.local"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Add dev prefix to all requests
+      rewrite_rule: "^/(.*) /dev/$1 break"
+
+staging_environment:
+  site_backends:
+    - server_name: "jenkins.staging.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # Add staging prefix
+      rewrite_rule: "^/(.*) /staging/$1 break"
+
+production_environment:
+  site_backends:
+    - server_name: "jenkins.company.com"
+      ip: "192.168.201.14"
+      port: "8080"
+      # No rewrite rule for production (clean URLs)
+
+# Example 6: Service migration scenarios
+service_migration:
+  # Global rule for handling legacy URLs
+  site_rewrite_rule: "^/legacy/(.*) /$1 permanent"
+
+  site_backends:
+    - server_name:
+        - "jenkins.company.com"      # New domain
+        - "old-jenkins.company.com"  # Legacy domain
+      ip: "192.168.201.14"
+      port: "8080"
+      # Specific rule for handling old API endpoints
+      rewrite_rule: "^/api/old/(.*) /api/v2/$1 permanent"
+
+# Common Nginx rewrite rule syntax:
+#
+# Syntax: rewrite regex replacement [flag];
+#
+# Flags:
+# - last       : stop processing, search for new location
+# - break      : stop processing in current location
+# - redirect   : return 302 temporary redirect
+# - permanent  : return 301 permanent redirect
+#
+# Variables available:
+# - $1, $2, etc : captured groups from regex
+# - $args       : query string arguments
+# - $uri        : current URI
+# - $request_uri: original request URI including args
+#
+# Examples:
+# rewrite ^/old-path/(.*) /new-path/$1 permanent;
+# rewrite ^/api/v1/(.*) /api/v2/$1 redirect;
+# rewrite ^/jenkins/(.*) /$1 break;
+# rewrite ^/(.*) /app/$1 last;

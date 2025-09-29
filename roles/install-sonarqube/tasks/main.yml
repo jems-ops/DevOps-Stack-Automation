@@ -186,18 +186,18 @@
   debug:
     msg: |
       ✅ SonarQube Installation Complete!
-      
+
       📋 Access Information:
       • URL: http://{{ inventory_hostname }}:{{ sonarqube_port }}
       • Status: {{ 'Running' if sonarqube_status_check.status is defined and sonarqube_status_check.status == 200 else 'Starting up' }}
       • Default Login: admin/admin
-      
+
       📊 Service Details:
       • SonarQube Home: {{ sonarqube_home }}
       • Version: {{ sonarqube_version }}
       • Database: PostgreSQL
       • Java Version: {{ java_package }}
-      
+
       🔧 Next Steps:
       1. Access SonarQube web interface
       2. Complete initial setup (change default password)

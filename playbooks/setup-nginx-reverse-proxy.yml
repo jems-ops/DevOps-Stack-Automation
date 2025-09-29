@@ -3,37 +3,31 @@
   hosts: nginx
   gather_facts: yes
   become: yes
-  
+
   pre_tasks:
     - name: Display proxy setup information
       debug:
         msg: |
-          🌐 Nginx Reverse Proxy Setup Playbook
-          📅 Execution time: {{ ansible_date_time.iso8601 }}
-          🖥️  Nginx server: {{ inventory_hostname }}
-          🔗 Jenkins backend: 192.168.92.224:8080
-          👤 User: {{ ansible_user }}
-          
+          Setting up nginx reverse proxy
+          Target: {{ inventory_hostname }}
+          Backends: {{ site_backends | length if site_backends is defined else 'legacy config' }}
+
   roles:
     - setup-nginx-reverse-proxy
-    
+
   post_tasks:
     - name: Display completion message
       debug:
         msg: |
-          ✅ Nginx Reverse Proxy Setup Complete!
-          
-          📊 Summary:
-          • Nginx server: {{ inventory_hostname }}
-          • Backend: 192.168.92.224:8080
-          • Configuration: /etc/nginx/conf.d/jenkins.conf
-          
-          🌐 Access Information:
-          • Direct Jenkins: http://192.168.92.224:8080
-          • Via Proxy: http://{{ inventory_hostname }}
-          • Domain: http://jenkins.example.com (configure DNS)
-          
-          🔧 Next Steps:
-          1. Test proxy: curl -I http://{{ inventory_hostname }}
-          2. Configure DNS/hosts for jenkins.example.com
-          3. Install SSL certificate (run install-ssl-cert.yml)
+          Nginx reverse proxy setup complete!
+
+          {% if site_backends is defined %}
+          Access URLs:
+          {% for backend in site_backends %}
+          - https://{{ backend.server_name }}
+          {% endfor %}
+          {% else %}
+          Legacy configuration deployed
+          {% endif %}
+
+          Next: Configure DNS and install SSL certificates

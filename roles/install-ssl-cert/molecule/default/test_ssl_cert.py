@@ -66,7 +66,7 @@ def test_ssl_certificate_key_match(host):
     """Test that SSL certificate and key match"""
     cert_result = host.run("openssl x509 -noout -modulus -in /etc/nginx/tls/jenkins.crt | openssl md5")
     key_result = host.run("openssl rsa -noout -modulus -in /etc/nginx/tls/jenkins.key | openssl md5")
-    
+
     assert cert_result.rc == 0
     assert key_result.rc == 0
     assert cert_result.stdout == key_result.stdout
@@ -134,7 +134,7 @@ def test_https_response(host):
     """Test that HTTPS endpoint responds"""
     import time
     time.sleep(5)  # Wait for services to be ready
-    
+
     # Test HTTPS response (self-signed, so use -k)
     result = host.run("curl -k -s -o /dev/null -w '%{http_code}' https://localhost")
     # Should get some response (200, 502, 503 are acceptable)
@@ -145,7 +145,7 @@ def test_http_redirects_to_https(host):
     """Test that HTTP requests redirect to HTTPS"""
     import time
     time.sleep(5)  # Wait for services to be ready
-    
+
     # Test HTTP redirect
     result = host.run("curl -s -o /dev/null -w '%{http_code}' http://localhost")
     # Should redirect (301) or be unavailable due to SSL-only config

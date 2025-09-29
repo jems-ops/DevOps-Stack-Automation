@@ -17,7 +17,7 @@ We use Molecule with Docker to test all roles and integration scenarios:
 molecule/
 ├── integration/              # End-to-end integration tests
 │   ├── molecule.yml         # 2-server setup (jenkins + nginx)
-│   ├── converge.yml         # Complete workflow deployment  
+│   ├── converge.yml         # Complete workflow deployment
 │   ├── prepare.yml          # Container preparation
 │   └── test_integration.py  # Integration test suite
 │
@@ -69,7 +69,7 @@ make test-molecule-full   # Complete test suite
 
 ### Jenkins Role Tests (`test-jenkins-role`)
 
-**Container**: Rocky Linux 9 with systemd  
+**Container**: Rocky Linux 9 with systemd
 **Tests**:
 - ✅ Java 17 OpenJDK installation
 - ✅ Jenkins package installation from official repository
@@ -88,7 +88,7 @@ def test_jenkins_is_accessible(host):
 
 ### Nginx Proxy Role Tests (`test-nginx-role`)
 
-**Containers**: 
+**Containers**:
 - Rocky Linux 9 (nginx server)
 - Alpine nginx (mock Jenkins backend)
 
@@ -112,7 +112,7 @@ def test_nginx_config_contains_jenkins_upstream(host):
 
 ### SSL Certificate Role Tests (`test-ssl-role`)
 
-**Container**: Rocky Linux 9 with nginx  
+**Container**: Rocky Linux 9 with nginx
 **Tests**:
 - ✅ Self-signed SSL certificate generation
 - ✅ Private key security (600 permissions)
@@ -153,7 +153,7 @@ def test_end_to_end_connectivity(host):
     # Test connectivity to Jenkins backend
     jenkins_result = host.run("curl -s -o /dev/null -w '%{http_code}' http://jenkins-server:8080")
     assert jenkins_result.stdout in ["200", "403"]
-    
+
     # Test HTTPS proxy response
     https_result = host.run("curl -k -s -o /dev/null -w '%{http_code}' https://localhost")
     assert https_result.stdout in ["200", "403"]

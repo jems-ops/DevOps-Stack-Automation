@@ -3,13 +3,33 @@
 # References encrypted vault variables from vault.yml
 
 # Dynamic backend servers configuration
+# server_name can be either a string or a list of server names
 site_backends:
   - server_name: "jenkins.example.com"
     ip: "192.168.201.14"
     port: "8080"
+    # Test per-backend rewrite rule
+    rewrite_rule: "^/test-jenkins/(.*) /$1 break"
   - server_name: "sonar.example.com"
     ip: "192.168.201.16"
     port: "9000"
+
+# Test global rewrite rule
+site_rewrite_rule: "^/health /api/health redirect"
+
+# Example with multiple server names (aliases):
+# site_backends:
+#   - server_name:
+#       - "jenkins.example.com"
+#       - "jenkins.internal"
+#       - "ci.example.com"
+#     ip: "192.168.201.14"
+#     port: "8080"
+#     # Optional per-backend rewrite rule:
+#     # rewrite_rule: "^/jenkins/(.*) /$1 break"
+#
+# Global rewrite rule (applied to all backends):
+# site_rewrite_rule: "^/api/v1/(.*) /api/v2/$1 permanent"
 
 # SSH and authentication (from vault)
 ansible_user: "{{ vault_ansible_user }}"

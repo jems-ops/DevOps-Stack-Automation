@@ -90,10 +90,10 @@ def test_sonarqube_data_directories_exist(host):
     """Test that SonarQube data directories exist"""
     directories = [
         "/opt/sonarqube/data",
-        "/opt/sonarqube/logs", 
+        "/opt/sonarqube/logs",
         "/opt/sonarqube/temp"
     ]
-    
+
     for directory in directories:
         dir_file = host.file(directory)
         assert dir_file.exists
@@ -114,7 +114,7 @@ def test_sonarqube_is_accessible(host):
     # Wait a bit for SonarQube to fully start
     import time
     time.sleep(60)  # SonarQube takes longer to start than Jenkins
-    
+
     # Test HTTP response
     response = host.run("curl -s -o /dev/null -w '%{http_code}' http://localhost:9000")
     # SonarQube should return 200 when ready

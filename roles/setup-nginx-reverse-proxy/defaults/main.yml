@@ -32,11 +32,22 @@ nginx_service_state: started
 jenkins_home: /var/lib/jenkins
 jenkins_war_root: /var/run/jenkins/war
 
+# Rewrite rules configuration
+# Global rewrite rule applied to all backends (optional)
+# site_rewrite_rule: "^/old-path/(.*) /new-path/$1 permanent"
+
+# Per-backend rewrite rules (optional)
+# Can be defined in site_backends with 'rewrite_rule' key
+
 # Default site_backends (will be overridden by group_vars/all.yml)
 site_backends:
   - server_name: "jenkins.example.com"
     ip: "192.168.201.14"
     port: "8080"
+    # Optional per-backend rewrite rule:
+    # rewrite_rule: "^/jenkins/(.*) /$1 break"
   - server_name: "sonar.example.com"
     ip: "192.168.201.16"
     port: "9000"
+    # Optional per-backend rewrite rule:
+    # rewrite_rule: "^/sonar/(.*) /$1 break"

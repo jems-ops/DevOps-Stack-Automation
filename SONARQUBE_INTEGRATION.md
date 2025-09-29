@@ -82,7 +82,7 @@ make deploy-all-services
 
 # This will:
 # 1. Install Jenkins on 192.168.92.224
-# 2. Install SonarQube on 192.168.201.1  
+# 2. Install SonarQube on 192.168.201.1
 # 3. Configure nginx proxy for Jenkins
 # 4. Install SSL certificate
 ```

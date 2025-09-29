@@ -1,0 +1,58 @@
+---
+# Pre-commit configuration for Jenkins Ansible Automation project
+repos:
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\\.md$'
+      - id: end-of-file-fixer
+        exclude: '\\.vault$'
+      - id: check-yaml
+        exclude: 'group_vars/all/vault\\.yml'  # Skip encrypted vault file
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: mixed-line-ending
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  # Shell script linting
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.9.0
+    hooks:
+      - id: shellcheck
+        args: [-e, SC1091]  # Ignore sourcing files that don't exist
+
+  # Simple vault security checks
+  - repo: local
+    hooks:
+      # Check that vault files are encrypted
+      - id: check-vault-encrypted
+        name: Check vault files are encrypted
+        entry: scripts/check-vault-encrypted.sh
+        language: script
+        files: 'vault\\.yml$'
+        pass_filenames: false
+
+      # Check vault password file permissions
+      - id: check-vault-permissions
+        name: Check vault password file permissions
+        entry: scripts/check-vault-permissions.sh
+        language: script
+        pass_filenames: false
+
+# Global exclusions
+exclude: |
+  (?x)^(
+    \\.vault_pass|
+    \\.cache/|
+    \\.pytest_cache/|
+    __pycache__/|
+    \\.molecule/|
+    molecule/.*/\\.molecule/|
+    \\.secrets\\.baseline
+  )$

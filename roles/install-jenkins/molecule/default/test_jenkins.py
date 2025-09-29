@@ -60,7 +60,7 @@ def test_jenkins_is_accessible(host):
     # Wait a bit for Jenkins to fully start
     import time
     time.sleep(30)
-    
+
     # Test HTTP response
     response = host.run("curl -s -o /dev/null -w '%{http_code}' http://localhost:8080")
     # Jenkins should return 403 (setup required) or 200 (ready)
@@ -80,7 +80,7 @@ def test_jenkins_initial_admin_password_exists(host):
     # This file should exist after Jenkins first run
     import time
     time.sleep(10)  # Give Jenkins time to create the file
-    
+
     password_file = host.file("/var/lib/jenkins/secrets/initialAdminPassword")
     # File might not exist if Jenkins is already configured, so we just check if directory exists
     secrets_dir = host.file("/var/lib/jenkins/secrets")

@@ -36,8 +36,6 @@ platforms:
     published_ports:
       - "80:80/tcp"
       - "443:443/tcp"
-    networks:
-      - name: jenkins-integration-net
     groups:
       - nginx
 

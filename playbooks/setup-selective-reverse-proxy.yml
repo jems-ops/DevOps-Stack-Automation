@@ -1,0 +1,54 @@
+---
+- name: Setup Nginx Reverse Proxy for Specific Backend(s)
+  hosts: nginx
+  gather_facts: yes
+  become: yes
+
+  vars:
+    # Filter backends based on server_name parameter
+    # If target_server_name is defined, filter to only that backend
+    # If not defined, deploy all backends from group_vars
+    filtered_backends: >-
+      {{
+        site_backends | selectattr('server_name', 'equalto', target_server_name) | list
+        if target_server_name is defined
+        else site_backends
+      }}
+
+  pre_tasks:
+    - name: Validate target_server_name parameter
+      fail:
+        msg: |
+          Backend '{{ target_server_name }}' not found!
+          Available: {{ site_backends | map(attribute='server_name') | join(', ') }}
+          Usage: ansible-playbook ... -e target_server_name="jenkins.example.com"
+      when:
+        - target_server_name is defined
+        - filtered_backends | length == 0
+
+    - name: Display setup information
+      debug:
+        msg: |
+          Setting up reverse proxy for: {{ target_server_name | default('all backends') }}
+          Target: {{ inventory_hostname }}
+          Backends: {{ filtered_backends | length }}
+
+    - name: Override site_backends with filtered selection
+      set_fact:
+        site_backends: "{{ filtered_backends }}"
+
+  roles:
+    - setup-nginx-reverse-proxy
+
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: |
+          Reverse proxy setup complete!
+
+          Access URLs:
+          {% for backend in site_backends %}
+          - https://{{ backend.server_name }}
+          {% endfor %}
+
+          Next: Configure DNS to point domains to {{ inventory_hostname }}

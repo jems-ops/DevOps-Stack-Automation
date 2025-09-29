@@ -1,0 +1,58 @@
+---
+- name: Setup Nginx Reverse Proxy for Jenkins Only
+  hosts: nginx
+  gather_facts: yes
+  become: yes
+
+  vars:
+    # Override site_backends to include only Jenkins
+    site_backends:
+      - server_name: "jenkins.example.com"
+        ip: "192.168.201.14"
+        port: "8080"
+        # Jenkins-specific rewrite rule (optional)
+        rewrite_rule: "^/jenkins/(.*) /$1 break"
+
+  pre_tasks:
+    - name: Display Jenkins-specific proxy setup information
+      debug:
+        msg: |
+          🌐 Jenkins-Specific Nginx Reverse Proxy Setup
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Nginx server: {{ inventory_hostname }}
+          🔗 Jenkins backend: {{ site_backends[0].ip }}:{{ site_backends[0].port }}
+          🏷️  Domain: {{ site_backends[0].server_name }}
+          👤 User: {{ ansible_user }}
+
+  roles:
+    - setup-nginx-reverse-proxy
+
+  post_tasks:
+    - name: Display Jenkins reverse proxy completion message
+      debug:
+        msg: |
+          ✅ Jenkins Nginx Reverse Proxy Setup Complete!
+
+          📊 Summary:
+          • Nginx server: {{ inventory_hostname }}
+          • Jenkins backend: {{ site_backends[0].ip }}:{{ site_backends[0].port }}
+          • Configuration: /etc/nginx/conf.d/dynamic-backends.conf
+          • Domain: {{ site_backends[0].server_name }}
+
+          🌐 Access Information:
+          • Direct Jenkins: http://{{ site_backends[0].ip }}:{{ site_backends[0].port }}
+          • Via HTTPS Proxy: https://{{ site_backends[0].server_name }}
+          • Via HTTP Proxy: http://{{ site_backends[0].server_name }} (redirects to HTTPS)
+
+          🔒 Security Features:
+          • SSL/TLS enabled
+          • HTTP to HTTPS redirect
+          • HSTS headers
+          • Security headers configured
+
+          🔧 Next Steps:
+          1. Test proxy: curl -I https://{{ site_backends[0].server_name }}
+          2. Configure DNS/hosts: {{ site_backends[0].server_name }} → {{ inventory_hostname }}
+          3. Access Jenkins: https://{{ site_backends[0].server_name }}
+
+          🎉 Jenkins is now accessible via HTTPS reverse proxy!

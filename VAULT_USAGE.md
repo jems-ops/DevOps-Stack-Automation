@@ -27,7 +27,7 @@ The following sensitive variables are stored in the encrypted `vault.yml`:
 
 ### Authentication
 - `vault_ansible_user` - SSH username
-- `vault_ansible_password` - SSH password  
+- `vault_ansible_password` - SSH password
 - `vault_ansible_become_password` - sudo password
 
 ### Database Credentials
@@ -82,7 +82,7 @@ make vault-status
 # Edit vault file
 make vault-edit
 
-# View vault contents  
+# View vault contents
 make vault-view
 
 # Encrypt vault file

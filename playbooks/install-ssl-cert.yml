@@ -3,48 +3,27 @@
   hosts: nginx
   gather_facts: yes
   become: yes
-  
+
   pre_tasks:
-    - name: Display dynamic SSL installation information
+    - name: Display SSL installation information
       debug:
         msg: |
-          🔒 Dynamic SSL Certificate Installation Playbook
-          📅 Execution time: {{ ansible_date_time.iso8601 }}
-          🖥️  Nginx server: {{ inventory_hostname }}
-          🏠 Certificate directory: /etc/nginx/tls
-          🌍 Backends: {{ site_backends | map(attribute='server_name') | join(', ') }}
-          📋 Certificates to generate: {{ site_backends | length }}
-          👤 User: {{ ansible_user }}
-          
+          Installing SSL certificates for: {{ site_backends | map(attribute='server_name') | join(', ') }}
+          Target: {{ inventory_hostname }}
+          Certificates: {{ site_backends | length }}
+
   roles:
     - install-ssl-cert
-    
+
   post_tasks:
-    - name: Display dynamic SSL completion message
+    - name: Display SSL completion message
       debug:
         msg: |
-          ✅ Dynamic SSL Certificate Installation Complete!
-          
-          📊 Summary:
-          • SSL enabled on: {{ inventory_hostname }}
-          • Backends configured: {{ site_backends | length }}
+          SSL certificates installed successfully!
+
+          HTTPS URLs:
           {% for backend in site_backends %}
-          • {{ backend.server_name }}: /etc/nginx/tls/{{ backend.server_name }}.crt
+          - https://{{ backend.server_name }}
           {% endfor %}
-          
-          🔒 Security Features:
-          • Self-signed SSL certificates
-          • TLS 1.2 and 1.3 support
-          • Strong cipher suites
-          • HSTS enabled
-          • HTTP → HTTPS redirect
-          • Per-backend certificates
-          
-          🌐 Access Information (HTTPS):
-          {% for backend in site_backends %}
-          • https://{{ backend.server_name }} → {{ backend.ip }}:{{ backend.port }}
-          {% endfor %}
-          
-          ⚠️  Note: Self-signed certificates require browser security exceptions
-          
-          🎉 All backends are now accessible via HTTPS reverse proxy!
+
+          Note: Self-signed certificates require browser security exceptions

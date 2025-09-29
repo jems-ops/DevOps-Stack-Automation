@@ -94,7 +94,7 @@ def test_nginx_proxy_response(host):
     """Test that nginx proxy responds correctly"""
     import time
     time.sleep(5)  # Wait for services to be ready
-    
+
     # Test that nginx responds
     result = host.run("curl -s -o /dev/null -w '%{http_code}' http://localhost")
     # Should get response from backend (even if it's just a mock)
