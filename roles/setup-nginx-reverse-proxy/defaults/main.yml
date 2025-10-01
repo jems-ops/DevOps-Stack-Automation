@@ -51,3 +51,22 @@ site_backends:
     port: "9000"
     # Optional per-backend rewrite rule:
     # rewrite_rule: "^/sonar/(.*) /$1 break"
+
+setup_nginx_reverse_proxy_sites:
+  - name: jenkins
+    server_name:
+      - jenkins.local.com
+    backend_host: "192.168.201.14"
+    backend_port: "8080"
+
+  - name: sonar
+    server_name:
+      - sonar.local.com
+    backend_host: "192.168.201.16"
+    backend_port: "9000"
+
+  - name: nginx
+    server_name:
+      - sonar.local.com
+    backend_host: "192.168.201.16"
+    backend_port: "9000"
