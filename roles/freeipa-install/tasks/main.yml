@@ -1,0 +1,57 @@
+---
+# Role: freeipa-install
+# Installs FreeIPA server packages and optionally bootstraps an IPA server (disabled by default).
+
+- name: Ensure package cache is up to date
+  ansible.builtin.dnf:
+    update_cache: yes
+
+- name: Install FreeIPA server packages
+  ansible.builtin.dnf:
+    name:
+      - freeipa-server
+      - freeipa-server-dns
+      - bind
+      - bind-dyndb-ldap
+    state: present
+
+- name: Configure firewall for FreeIPA services (common ports)
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - 53/udp
+    - 53/tcp
+    - 80/tcp
+    - 443/tcp
+    - 389/tcp
+    - 636/tcp
+    - 88/tcp
+    - 88/udp
+    - 464/tcp
+    - 464/udp
+  ignore_errors: yes
+
+- name: Optionally bootstrap FreeIPA server (disabled by default)
+  ansible.builtin.command: >-
+    ipa-server-install
+    --unattended
+    --realm {{ freeipa_realm }}
+    --domain {{ freeipa_domain }}
+    --hostname {{ freeipa_hostname | default(ansible_fqdn) }}
+    --ds-password {{ freeipa_ds_password }}
+    --admin-password {{ freeipa_admin_password }}
+    {{ '--setup-dns' if freeipa_setup_dns | bool else '' }}
+    {{ '--auto-forwarders' if freeipa_dns_auto_forwarders | bool else '' }}
+  when: freeipa_setup_server | default(false) | bool
+  args:
+    creates: /etc/ipa/default.conf
+
+- name: Ensure httpd is enabled and started (FreeIPA UI)
+  ansible.builtin.systemd:
+    name: httpd
+    enabled: yes
+    state: started
+  ignore_errors: yes

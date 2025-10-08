@@ -10,6 +10,9 @@
 [sonarqube]
 192.168.201.16
 
+[freeipa]
+192.168.201.13
+
 # Group variables for all hosts
 [all:vars]
 ansible_become=yes

@@ -1,0 +1,37 @@
+---
+- name: Setup Nginx Reverse Proxy for FreeIPA
+  hosts: nginx
+  gather_facts: yes
+  become: yes
+
+  vars:
+    site_backends:
+      - server_name: "freeipa.local"
+        ip: "192.168.201.13"
+        port: "80"
+
+  pre_tasks:
+    - name: Display FreeIPA proxy setup information
+      ansible.builtin.debug:
+        msg: |
+          🔐 FreeIPA Nginx Reverse Proxy Setup
+          🖥️  Nginx server: {{ inventory_hostname }}
+          🔗 FreeIPA backend: {{ site_backends[0].ip }}:{{ site_backends[0].port }}
+          🏷️  Domain: {{ site_backends[0].server_name }}
+
+  roles:
+    - setup-nginx-reverse-proxy
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ✅ FreeIPA Nginx Reverse Proxy Setup Complete!
+
+          Access URLs:
+          • Via HTTPS Proxy: https://{{ site_backends[0].server_name }}
+          • Direct FreeIPA (HTTP): http://{{ site_backends[0].ip }}:{{ site_backends[0].port }}
+
+          Next steps:
+          1) Ensure DNS resolves freeipa.local to your Nginx IP
+          2) Install/extend SSL cert to include freeipa.local (playbooks/install-ssl-cert.yml)
