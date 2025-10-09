@@ -48,10 +48,7 @@
     organization_name: "{{ ssl_organization }}"
     organizational_unit_name: "{{ ssl_organization_unit }}"
     email_address: "{{ ssl_email }}"
-    subject_alt_name:
-      - "DNS:{{ item.item.server_name }}"
-      - "DNS:{{ ansible_hostname }}"
-      - "IP:{{ ansible_default_ipv4.address }}"
+    subject_alt_name: "{{ ['DNS:' ~ item.item.server_name, 'DNS:' ~ ansible_hostname, 'IP:' ~ ansible_default_ipv4.address] + (item.item.extra_sans | default([]) | map('regex_replace', '^(.*)$', 'DNS:\\1') | list) }}"
   when: not item.stat.exists
   loop: "{{ ssl_cert_exists.results }}"
   loop_control:

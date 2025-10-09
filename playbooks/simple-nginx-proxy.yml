@@ -1,0 +1,66 @@
+---
+- name: Simple nginx reverse proxy for FreeIPA (minimal)
+  hosts: nginx
+  become: yes
+  gather_facts: yes
+
+  vars:
+    server_name: "ipa.freeipa.local"
+    backend_ip: "192.168.201.13"
+    upstream_host: "ipa.freeipa.local"
+
+  tasks:
+    - name: Install nginx and openssl
+      ansible.builtin.dnf:
+        name:
+          - nginx
+          - openssl
+        state: present
+        update_cache: yes
+
+    - name: Ensure nginx ssl directory exists
+      ansible.builtin.file:
+        path: /etc/nginx/ssl
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Generate self-signed key if missing
+      ansible.builtin.command: >-
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -subj "/CN={{ server_name }}"
+        -keyout /etc/nginx/ssl/ipa.key
+        -out /etc/nginx/ssl/ipa.crt
+      args:
+        creates: /etc/nginx/ssl/ipa.crt
+
+    - name: Map backend hostname locally (if no DNS)
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ backend_ip }}    ipa.freeipa.local"
+        state: present
+
+    - name: Remove default nginx site (if present)
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/default.conf
+        state: absent
+
+    - name: Deploy exact-style FreeIPA proxy vhost
+      ansible.builtin.template:
+        src: nginx-freeipa-exact.conf.j2
+        dest: /etc/nginx/conf.d/freeipa.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Test nginx config
+      ansible.builtin.command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Restart nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+        enabled: yes
