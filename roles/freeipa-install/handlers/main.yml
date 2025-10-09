@@ -1,7 +1,0 @@
----
-# Handlers for freeipa-install role
-- name: restart httpd
-  ansible.builtin.systemd:
-    name: httpd
-    state: restarted
-  listen: restart httpd
