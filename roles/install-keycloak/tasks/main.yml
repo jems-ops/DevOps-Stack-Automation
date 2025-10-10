@@ -5,7 +5,7 @@
   ansible.builtin.dnf:
     name: java-17-openjdk
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Ensure keycloak group exists
   ansible.builtin.group:
@@ -17,7 +17,7 @@
     name: "{{ keycloak_user }}"
     group: "{{ keycloak_group }}"
     shell: /sbin/nologin
-    system: yes
+    system: true
     create_home: no
 
 - name: Create install dir
@@ -39,7 +39,7 @@
   ansible.builtin.unarchive:
     src: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
     dest: "{{ keycloak_install_dir }}"
-    remote_src: yes
+    remote_src: true
     creates: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
 
 - name: Create /opt/keycloak symlink
@@ -55,18 +55,18 @@
     state: directory
     owner: "{{ keycloak_user }}"
     group: "{{ keycloak_group }}"
-    recurse: yes
+    recurse: true
 
 - name: Open firewall ports for HTTP/HTTPS (if firewalld present)
   ansible.posix.firewalld:
     port: "{{ item }}/tcp"
-    permanent: yes
-    immediate: yes
+    permanent: true
+    immediate: true
     state: enabled
   loop:
     - "{{ keycloak_http_port }}"
     - "{{ keycloak_https_port }}"
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Deploy systemd service for Keycloak
   ansible.builtin.template:
@@ -81,10 +81,10 @@
 
 - name: Reload systemd
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: Enable and start Keycloak
   ansible.builtin.systemd:
     name: keycloak
-    enabled: yes
+    enabled: true
     state: started

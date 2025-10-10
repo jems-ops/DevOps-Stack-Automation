@@ -1,8 +1,8 @@
 ---
 - name: Simple nginx reverse proxy for FreeIPA (minimal)
   hosts: nginx
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
 
   vars:
     server_name: "ipa.freeipa.local"
@@ -16,7 +16,7 @@
           - nginx
           - openssl
         state: present
-        update_cache: yes
+        update_cache: true
 
     - name: Ensure nginx ssl directory exists
       ansible.builtin.file:
@@ -63,4 +63,4 @@
       ansible.builtin.systemd:
         name: nginx
         state: restarted
-        enabled: yes
+        enabled: true

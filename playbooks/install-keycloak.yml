@@ -1,7 +1,7 @@
 ---
 - name: Install Keycloak (minimal)
   hosts: keycloak
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
   roles:
     - install-keycloak
