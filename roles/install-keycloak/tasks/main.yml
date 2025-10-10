@@ -18,7 +18,7 @@
     group: "{{ keycloak_group }}"
     shell: /sbin/nologin
     system: true
-    create_home: no
+    create_home: false
 
 - name: Create install dir
   ansible.builtin.file:
@@ -60,13 +60,13 @@
 - name: Open firewall ports for HTTP/HTTPS (if firewalld present)
   ansible.posix.firewalld:
     port: "{{ item }}/tcp"
-    permanent: true
-    immediate: true
+    permanent: yes
+    immediate: yes
     state: enabled
   loop:
     - "{{ keycloak_http_port }}"
     - "{{ keycloak_https_port }}"
-  ignore_errors: true
+  ignore_errors: yes
 
 - name: Deploy systemd service for Keycloak
   ansible.builtin.template:
@@ -76,12 +76,12 @@
     group: root
     mode: '0644'
   notify:
-    - reload systemd
     - restart keycloak
+    - reload firewalld
 
 - name: Reload systemd
   ansible.builtin.systemd:
-    daemon_reload: true
+    daemon_reload: yes
 
 - name: Enable and start Keycloak
   ansible.builtin.systemd:
