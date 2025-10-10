@@ -1,0 +1,14 @@
+---
+# Keycloak defaults
+keycloak_version: "22.0.5"
+keycloak_download_url: "https://github.com/keycloak/keycloak/releases/download/{{ keycloak_version }}/keycloak-{{ keycloak_version }}.tar.gz"
+keycloak_install_dir: "/opt"
+keycloak_home: "{{ keycloak_install_dir }}/keycloak"
+keycloak_user: "keycloak"
+keycloak_group: "keycloak"
+keycloak_http_port: 8080
+keycloak_https_port: 8443
+keycloak_hostname_strict: false
+keycloak_jvm_opts: "-Xms512m -Xmx1024m"
+# If behind proxy/SSL-terminating LB, you may set additional start options in keycloak_extra_opts
+keycloak_extra_opts: ""

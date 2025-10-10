@@ -1,0 +1,90 @@
+---
+# Install Java, create user/group, install Keycloak, open firewall, configure systemd
+
+- name: Install Java 17 (OpenJDK)
+  ansible.builtin.dnf:
+    name: java-17-openjdk
+    state: present
+    update_cache: yes
+
+- name: Ensure keycloak group exists
+  ansible.builtin.group:
+    name: "{{ keycloak_group }}"
+    state: present
+
+- name: Ensure keycloak user exists
+  ansible.builtin.user:
+    name: "{{ keycloak_user }}"
+    group: "{{ keycloak_group }}"
+    shell: /sbin/nologin
+    system: yes
+    create_home: no
+
+- name: Create install dir
+  ansible.builtin.file:
+    path: "{{ keycloak_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Download Keycloak tarball
+  ansible.builtin.get_url:
+    url: "{{ keycloak_download_url }}"
+    dest: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+    mode: '0644'
+  register: dl_keycloak
+
+- name: Unarchive Keycloak
+  ansible.builtin.unarchive:
+    src: "/tmp/keycloak-{{ keycloak_version }}.tar.gz"
+    dest: "{{ keycloak_install_dir }}"
+    remote_src: yes
+    creates: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+
+- name: Create /opt/keycloak symlink
+  ansible.builtin.file:
+    src: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+    dest: "{{ keycloak_home }}"
+    state: link
+  notify: restart keycloak
+
+- name: Ensure ownership of keycloak directory
+  ansible.builtin.file:
+    path: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
+    state: directory
+    owner: "{{ keycloak_user }}"
+    group: "{{ keycloak_group }}"
+    recurse: yes
+
+- name: Open firewall ports for HTTP/HTTPS (if firewalld present)
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop:
+    - "{{ keycloak_http_port }}"
+    - "{{ keycloak_https_port }}"
+  ignore_errors: yes
+
+- name: Deploy systemd service for Keycloak
+  ansible.builtin.template:
+    src: keycloak.service.j2
+    dest: /etc/systemd/system/keycloak.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart keycloak
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Enable and start Keycloak
+  ansible.builtin.systemd:
+    name: keycloak
+    enabled: yes
+    state: started

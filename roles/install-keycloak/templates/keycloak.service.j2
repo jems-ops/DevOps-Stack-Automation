@@ -1,0 +1,18 @@
+[Unit]
+Description=Keycloak Service (Quarkus)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ keycloak_user }}
+Group={{ keycloak_group }}
+Environment="JAVA_OPTS={{ keycloak_jvm_opts }}"
+Environment="KEYCLOAK_HOME={{ keycloak_home }}"
+WorkingDirectory={{ keycloak_home }}
+ExecStart={{ keycloak_home }}/bin/kc.sh start --http-port={{ keycloak_http_port }} {% if not keycloak_hostname_strict %}--hostname-strict=false{% endif %} {{ keycloak_extra_opts }}
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
