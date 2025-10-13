@@ -1,0 +1,23 @@
+  <securityRealm class="org.jenkinsci.plugins.saml.SamlSecurityRealm" plugin="saml@2.2.2">
+    <idpMetadataConfiguration>
+      <xml>{{ saml_descriptor.content | replace('<', '&lt;') | replace('>', '&gt;') }}</xml>
+      <period>1440</period>
+    </idpMetadataConfiguration>
+    <displayNameAttributeName>{{ jenkins.saml.full_name_attribute }}</displayNameAttributeName>
+    <groupsAttributeName>{{ jenkins.saml.groups_attribute }}</groupsAttributeName>
+    <maximumAuthenticationLifetime>{{ jenkins.saml.maximum_authentication_lifetime }}</maximumAuthenticationLifetime>
+    <usernameAttributeName>{{ jenkins.saml.username_attribute }}</usernameAttributeName>
+    <emailAttributeName>{{ jenkins.saml.email_attribute }}</emailAttributeName>
+    <logoutUrl>{{ jenkins.saml.logout_url }}</logoutUrl>
+    <usernameCaseConversion>none</usernameCaseConversion>
+    <dataBindingMethod>HTTP_POST</dataBindingMethod>
+    <forceAuthn>{{ jenkins.saml.force_authentication | lower }}</forceAuthn>
+    <spEntityId>{{ jenkins.saml.sp_entity_id }}</spEntityId>
+    <advancedConfiguration>
+      <forceAuthn>{{ jenkins.saml.force_authentication | lower }}</forceAuthn>
+      <spEntityId>{{ jenkins.saml.sp_entity_id }}</spEntityId>
+      <authnRequestsSigned>false</authnRequestsSigned>
+      <wantAssertionsSigned>false</wantAssertionsSigned>
+      <signatureAlgorithm>RSA_SHA256</signatureAlgorithm>
+    </advancedConfiguration>
+  </securityRealm>

@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  role_name: jenkins-keycloak-saml
+  author: Jenkins DevOps Team
+  description: "Configure SAML SSO integration between Jenkins and Keycloak"
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - 20.04
+        - 22.04
+  galaxy_tags:
+    - jenkins
+    - keycloak
+    - saml
+    - sso
+    - authentication
+    - devops
+    - ci-cd
+
+dependencies: []
+
+collections:
+  - ansible.builtin

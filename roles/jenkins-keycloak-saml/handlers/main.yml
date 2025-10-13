@@ -1,0 +1,24 @@
+---
+# Handlers for Jenkins-Keycloak SAML Integration
+
+- name: restart jenkins
+  ansible.builtin.systemd:
+    name: jenkins
+    state: restarted
+  become: yes
+
+- name: restart keycloak
+  ansible.builtin.systemd:
+    name: keycloak
+    state: restarted
+  become: yes
+
+- name: reload jenkins configuration
+  ansible.builtin.uri:
+    url: "{{ jenkins.base_url }}/reload"
+    method: POST
+    user: "{{ jenkins_admin_user | default('admin') }}"
+    password: "{{ jenkins_admin_password | default('admin') }}"
+    force_basic_auth: yes
+    status_code: [200, 302]
+  ignore_errors: yes

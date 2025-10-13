@@ -1,0 +1,151 @@
+---
+# Jenkins-Keycloak SAML Integration Default Variables
+
+# Jenkins Configuration
+jenkins:
+  base_url: "http://{{ ansible_fqdn }}:8080"
+  home: "/var/lib/jenkins"
+  config_file: "config.xml"
+  user: "jenkins"
+  group: "jenkins"
+
+  # SAML Configuration
+  saml:
+    enabled: true
+    display_name: "Keycloak SAML"
+    groups_attribute: "groups"
+    maximum_authentication_lifetime: 7776000  # 90 days
+    username_attribute: "username"
+    email_attribute: "email"
+    full_name_attribute: "displayName"
+    logout_url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml"
+    force_authentication: false
+    sp_entity_id: "jenkins-saml"
+
+# Keycloak Configuration
+keycloak:
+  protocol: "http"
+  host: "{{ ansible_fqdn }}"
+  port: 8080
+  base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
+  realm: "jenkins"
+  admin_user: "admin"
+  admin_password: "{{ vault_keycloak_admin_password }}"
+
+  # SAML Client Configuration
+  saml_client:
+    client_id: "jenkins-saml"
+    protocol: "saml"
+    enabled: true
+    front_channel_logout: true
+    redirect_uris:
+      - "{{ jenkins.base_url }}/securityRealm/finishLogin"
+      - "{{ jenkins.base_url }}/securityRealm/finishLogin/*"
+    web_origins:
+      - "{{ jenkins.base_url }}"
+    base_url: "{{ jenkins.base_url }}"
+    root_url: "{{ jenkins.base_url }}"
+    admin_url: "{{ jenkins.base_url }}"
+
+    # SAML Attributes
+    attributes:
+      saml_authnstatement: "true"
+      saml_server_signature: "true"
+      saml_signature_algorithm: "RSA_SHA256"
+      saml_client_signature: "false"
+      saml_assertion_signature: "true"
+      saml_encrypt: "false"
+      saml_force_post_binding: "true"
+      saml_name_id_format: "username"
+      saml_signing_certificate: ""
+      saml_signing_private_key: ""
+
+    # Protocol Mappers
+    protocol_mappers:
+      - name: "username"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        config:
+          attribute_name: "username"
+          attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+          user_attribute: "username"
+
+      - name: "email"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        config:
+          attribute_name: "email"
+          attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+          user_attribute: "email"
+
+      - name: "firstName"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        config:
+          attribute_name: "firstName"
+          attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+          user_attribute: "firstName"
+
+      - name: "lastName"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        config:
+          attribute_name: "lastName"
+          attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+          user_attribute: "lastName"
+
+      - name: "displayName"
+        protocol: "saml"
+        protocol_mapper: "saml-javascript-mapper"
+        config:
+          attribute_name: "displayName"
+          attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+          single: "true"
+          script: |
+            var firstName = user.getFirstName() || '';
+            var lastName = user.getLastName() || '';
+            var displayName = '';
+            if (firstName && lastName) {
+              displayName = firstName + ' ' + lastName;
+            } else if (firstName) {
+              displayName = firstName;
+            } else if (lastName) {
+              displayName = lastName;
+            } else {
+              displayName = user.getUsername();
+            }
+            displayName;
+
+      - name: "groups"
+        protocol: "saml"
+        protocol_mapper: "saml-group-membership-mapper"
+        config:
+          attribute_name: "groups"
+          attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+          single: "false"
+          full_path: "false"
+
+# Groups Configuration
+groups:
+  jenkins_admins:
+    name: "jenkins-admins"
+    description: "Jenkins Administrators"
+  jenkins_users:
+    name: "jenkins-users"
+    description: "Jenkins Users"
+
+# Test User Configuration (optional)
+test_user:
+  enabled: false
+  username: "jenkins-demo"
+  email: "jenkins-demo@example.com"
+  first_name: "Jenkins"
+  last_name: "Demo"
+  password: "JenkinsDemo123!"
+  groups:
+    - "jenkins-users"
+
+# Debug Configuration
+debug:
+  enabled: false
+  log_level: "info"

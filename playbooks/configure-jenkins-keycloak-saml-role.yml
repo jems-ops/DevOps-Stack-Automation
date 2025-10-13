@@ -1,0 +1,128 @@
+---
+- name: Configure Jenkins-Keycloak SAML Integration
+  hosts: jenkins_servers
+  become: yes
+  vars:
+    # Keycloak Configuration
+    keycloak:
+      protocol: "http"
+      host: "192.168.201.12"  # Update with your Keycloak server IP/hostname
+      port: 8080
+      realm: "jenkins"
+      admin_user: "admin"
+      admin_password: "{{ vault_keycloak_admin_password | default('admin') }}"
+
+      saml_client:
+        client_id: "jenkins-saml"
+        attributes:
+          saml_force_post_binding: "true"
+          saml_server_signature: "true"
+          saml_signature_algorithm: "RSA_SHA256"
+          saml_assertion_signature: "true"
+
+    # Jenkins Configuration
+    jenkins:
+      base_url: "http://192.168.201.13:8080"  # Update with your Jenkins server URL
+      home: "/var/lib/jenkins"
+      saml:
+        display_name: "Keycloak SAML SSO"
+        sp_entity_id: "jenkins-saml"
+        username_attribute: "username"
+        email_attribute: "email"
+        full_name_attribute: "displayName"
+        groups_attribute: "groups"
+        force_authentication: false
+        maximum_authentication_lifetime: 7776000  # 90 days
+
+    # Groups Configuration
+    groups:
+      jenkins_admins:
+        name: "jenkins-admins"
+        description: "Jenkins Administrators with full access"
+      jenkins_users:
+        name: "jenkins-users"
+        description: "Jenkins Users with basic access"
+
+    # Test User Configuration (optional - enable for testing)
+    test_user:
+      enabled: true  # Set to false to disable test user creation
+      username: "jenkins-demo"
+      email: "jenkins-demo@example.com"
+      first_name: "Jenkins"
+      last_name: "Demo"
+      password: "JenkinsDemo123!"
+      groups:
+        - "jenkins-users"
+
+    # Debug Configuration
+    debug:
+      enabled: true
+      log_level: "info"
+
+  pre_tasks:
+    - name: Display integration setup information
+      ansible.builtin.debug:
+        msg:
+          - "🔐 Jenkins-Keycloak SAML Integration Setup"
+          - "🏗️  Jenkins Server: {{ jenkins.base_url }}"
+          - "🔑 Keycloak Server: {{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
+          - "🏛️  Target Realm: {{ keycloak.realm }}"
+          - "👤 SAML Client: {{ keycloak.saml_client.client_id }}"
+          - ""
+          - "📋 Prerequisites Check:"
+          - "  ✓ Jenkins SAML plugin must be installed"
+          - "  ✓ Keycloak server must be running and accessible"
+          - "  ✓ Target realm must exist in Keycloak"
+          - ""
+
+    - name: Check Jenkins SAML plugin installation
+      ansible.builtin.uri:
+        url: "{{ jenkins.base_url }}/pluginManager/api/json?depth=1"
+        method: GET
+        return_content: yes
+        status_code: 200
+      register: jenkins_plugins
+      ignore_errors: yes
+
+    - name: Verify SAML plugin is installed
+      ansible.builtin.assert:
+        that:
+          - "'saml' in jenkins_plugins.content"
+        fail_msg: |
+          Jenkins SAML plugin is not installed. Please install it first:
+          1. Go to Jenkins → Manage Jenkins → Manage Plugins
+          2. Install 'SAML Plugin' (org.jenkinsci.plugins.saml)
+          3. Restart Jenkins
+        success_msg: "Jenkins SAML plugin is installed"
+      when: jenkins_plugins is succeeded
+
+  roles:
+    - jenkins-keycloak-saml
+
+  post_tasks:
+    - name: Display completion summary
+      ansible.builtin.debug:
+        msg:
+          - "🎉 Jenkins-Keycloak SAML integration completed successfully!"
+          - ""
+          - "🌐 Access Information:"
+          - "  Jenkins: {{ jenkins.base_url }}"
+          - "  Keycloak Admin: {{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}/admin/"
+          - ""
+          - "🔐 Testing Instructions:"
+          - "  1. Open {{ jenkins.base_url }}/login"
+          - "  2. Look for 'Log in via SAML' or similar button"
+          - "  3. Click it to test SAML authentication"
+          - "{% if test_user.enabled %}"
+          - "  4. Test with demo user: {{ test_user.username }} / {{ test_user.password }}"
+          - "{% endif %}"
+          - ""
+          - "👥 Group Management:"
+          - "  - Add users to '{{ groups.jenkins_admins.name }}' for admin access"
+          - "  - Add users to '{{ groups.jenkins_users.name }}' for basic access"
+          - ""
+          - "⚙️  Next Steps:"
+          - "  1. Configure Jenkins authorization strategy to use SAML groups"
+          - "  2. Test user login and verify group mappings"
+          - "  3. Add more users/groups in Keycloak as needed"
+          - "  4. Configure Jenkins project permissions based on groups"

@@ -1,0 +1,73 @@
+---
+# Create Test User in Keycloak
+
+- name: Check if test user already exists
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users?username={{ test_user.username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+    status_code: 200
+  register: existing_test_users
+
+- name: Delete existing test user if found
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users/{{ existing_test_users.json[0].id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+    status_code: [204]
+  when: existing_test_users.json | length > 0
+
+- name: Create Jenkins test user
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      username: "{{ test_user.username }}"
+      email: "{{ test_user.email }}"
+      firstName: "{{ test_user.first_name }}"
+      lastName: "{{ test_user.last_name }}"
+      enabled: true
+      emailVerified: true
+      credentials:
+        - type: "password"
+          value: "{{ test_user.password }}"
+          temporary: false
+    status_code: [201]
+
+- name: Get test user ID
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users?username={{ test_user.username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+    status_code: 200
+  register: created_test_user
+
+- name: Set test user ID fact
+  ansible.builtin.set_fact:
+    test_user_id: "{{ created_test_user.json[0].id }}"
+
+- name: Add test user to Jenkins groups
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users/{{ test_user_id }}/groups/{{ jenkins_users_group_id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+    status_code: [204]
+  when: jenkins_users_group_id is defined
+
+- name: Display test user information
+  ansible.builtin.debug:
+    msg:
+      - "Created Jenkins test user:"
+      - "  Username: {{ test_user.username }}"
+      - "  Email: {{ test_user.email }}"
+      - "  Name: {{ test_user.first_name }} {{ test_user.last_name }}"
+      - "  Password: {{ test_user.password }}"
+      - "  Groups: {{ test_user.groups | join(', ') }}"

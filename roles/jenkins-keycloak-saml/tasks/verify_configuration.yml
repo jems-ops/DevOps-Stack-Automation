@@ -1,0 +1,74 @@
+---
+# Verify Jenkins-Keycloak SAML Configuration
+
+- name: Wait for Jenkins to be fully ready
+  ansible.builtin.uri:
+    url: "{{ jenkins.base_url }}/login"
+    method: GET
+    status_code: 200
+  register: jenkins_login_check
+  until: jenkins_login_check.status == 200
+  retries: 15
+  delay: 20
+
+- name: Check if Jenkins SAML login option is available
+  ansible.builtin.uri:
+    url: "{{ jenkins.base_url }}/login"
+    method: GET
+    return_content: yes
+    status_code: 200
+  register: jenkins_login_page
+
+- name: Verify SAML login option exists
+  ansible.builtin.assert:
+    that:
+      - "'saml' in jenkins_login_page.content.lower()"
+    fail_msg: "SAML login option not found on Jenkins login page"
+    success_msg: "SAML login option found on Jenkins login page"
+
+- name: Verify Keycloak SAML metadata is accessible
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml/descriptor"
+    method: GET
+    status_code: 200
+  register: keycloak_metadata_check
+
+- name: Display configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Jenkins-Keycloak SAML Integration Summary ==="
+      - ""
+      - "✅ Jenkins Configuration:"
+      - "   - URL: {{ jenkins.base_url }}"
+      - "   - SAML Plugin: Configured"
+      - "   - Login Page: SAML option available"
+      - ""
+      - "✅ Keycloak Configuration:"
+      - "   - URL: {{ keycloak.base_url }}"
+      - "   - Realm: {{ keycloak.realm }}"
+      - "   - SAML Client ID: {{ keycloak.saml_client.client_id }}"
+      - "   - Metadata: Accessible"
+      - ""
+      - "✅ Protocol Mappers:"
+      - "{% for mapper in keycloak.saml_client.protocol_mappers %}"
+      - "   - {{ mapper.name }}: {{ mapper.config.attribute_name }}"
+      - "{% endfor %}"
+      - ""
+      - "✅ Groups:"
+      - "   - {{ groups.jenkins_admins.name }} (Admins)"
+      - "   - {{ groups.jenkins_users.name }} (Users)"
+      - ""
+      - "🌐 Access URLs:"
+      - "   - Jenkins: {{ jenkins.base_url }}"
+      - "   - Keycloak Admin: {{ keycloak.base_url }}/admin/"
+      - ""
+      - "🔐 SAML Integration Ready!"
+      - "   - Click 'Log in via SAML' or similar on Jenkins login page"
+      - "   - Users will be redirected to Keycloak for authentication"
+      - ""
+      - "{% if test_user.enabled %}"
+      - "👤 Test User Available:"
+      - "   - Username: {{ test_user.username }}"
+      - "   - Password: {{ test_user.password }}"
+      - "   - Groups: {{ test_user.groups | join(', ') }}"
+      - "{% endif %}"

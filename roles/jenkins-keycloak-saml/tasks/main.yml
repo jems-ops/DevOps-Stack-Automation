@@ -1,0 +1,61 @@
+---
+# Main tasks for Jenkins-Keycloak SAML Integration
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - jenkins.base_url is defined
+      - keycloak.host is defined
+      - keycloak.realm is defined
+      - keycloak.admin_user is defined
+      - keycloak.admin_password is defined
+    fail_msg: "Required variables are not defined. Check defaults/main.yml for requirements."
+    success_msg: "All required variables are defined"
+
+- name: Display Jenkins-Keycloak SAML integration information
+  ansible.builtin.debug:
+    msg:
+      - "🔐 Jenkins-Keycloak SAML Integration"
+      - "🏗️  Jenkins: {{ jenkins.base_url }}"
+      - "🔑 Keycloak: {{ keycloak.base_url }}"
+      - "🏛️  Realm: {{ keycloak.realm }}"
+      - "👤 SAML Client: {{ keycloak.saml_client.client_id }}"
+
+- name: Get Keycloak access token
+  include_tasks: get_keycloak_token.yml
+  tags: ['keycloak', 'token']
+
+- name: Create Keycloak SAML client for Jenkins
+  include_tasks: create_keycloak_saml_client.yml
+  tags: ['keycloak', 'saml', 'client']
+
+- name: Configure protocol mappers
+  include_tasks: configure_protocol_mappers.yml
+  tags: ['keycloak', 'saml', 'mappers']
+
+- name: Configure groups
+  include_tasks: configure_groups.yml
+  when: groups is defined
+  tags: ['keycloak', 'groups']
+
+- name: Create test user
+  include_tasks: create_test_user.yml
+  when: test_user.enabled | default(false)
+  tags: ['keycloak', 'test_user']
+
+- name: Get Keycloak certificate
+  include_tasks: get_keycloak_certificate.yml
+  tags: ['keycloak', 'certificate']
+
+- name: Configure Jenkins SAML authentication
+  include_tasks: configure_jenkins_saml.yml
+  tags: ['jenkins', 'saml']
+
+- name: Debug logging
+  include_tasks: debug_logging.yml
+  when: debug.enabled | default(false)
+  tags: ['debug']
+
+- name: Verify configuration
+  include_tasks: verify_configuration.yml
+  tags: ['verify']
