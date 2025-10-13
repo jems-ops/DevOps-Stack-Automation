@@ -1,0 +1,54 @@
+---
+# Jenkins-Keycloak SSO Integration Role Defaults
+
+# Keycloak Configuration
+keycloak_admin_url: "http://keycloak.example.com:8080"
+keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME | default('admin') }}"
+keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD | default('admin123') }}"
+
+# Realm Configuration
+sso_realm_name: "jenkins"
+sso_realm_display_name: "Jenkins SSO"
+
+# Jenkins Client Configuration
+jenkins_client_id: "jenkins"
+jenkins_client_secret: "{{ vault_jenkins_oidc_client_secret | default('jenkins-client-secret-change-me') }}"
+jenkins_client_name: "Jenkins CI/CD"
+jenkins_client_description: "Jenkins Continuous Integration Server"
+
+# Jenkins URLs (will be auto-detected from inventory)
+jenkins_base_url: "https://jenkins.example.com"
+jenkins_proxy_url: "https://jenkins.example.com"  # If using nginx proxy
+
+# Jenkins OIDC Plugin Configuration
+jenkins_oidc_plugin_id: "oic-auth"
+jenkins_oidc_plugin_version: "latest"
+
+# User and Group Configuration
+sso_create_test_users: true
+sso_admin_group: "jenkins-admins"
+sso_user_group: "jenkins-users"
+
+# Test Users (only created if sso_create_test_users is true)
+sso_test_users:
+  - username: "jenkins-admin"
+    email: "admin@jenkins.local"
+    firstName: "Jenkins"
+    lastName: "Administrator"
+    password: "admin123"
+    groups: ["{{ sso_admin_group }}"]
+
+  - username: "jenkins-user"
+    email: "user@jenkins.local"
+    firstName: "Jenkins"
+    lastName: "User"
+    password: "user123"
+    groups: ["{{ sso_user_group }}"]
+
+# Jenkins Security Configuration
+jenkins_disable_signup: true
+jenkins_full_read_permission: false
+
+# Retry and timeout settings
+keycloak_api_timeout: 30
+keycloak_api_retries: 3

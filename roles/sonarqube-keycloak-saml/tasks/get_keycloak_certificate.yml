@@ -1,0 +1,21 @@
+---
+# Get Keycloak Certificate
+
+- name: Get Keycloak SAML descriptor
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml/descriptor"
+    method: GET
+    status_code: [200]
+  register: saml_descriptor
+
+- name: Extract certificate from SAML descriptor
+  ansible.builtin.set_fact:
+    keycloak_certificate: "{{ saml_descriptor.content | regex_search('<ds:X509Certificate>(.*?)</ds:X509Certificate>', '\\1') | first }}"
+
+- name: Verify certificate was extracted
+  ansible.builtin.assert:
+    that:
+      - keycloak_certificate is defined
+      - keycloak_certificate | length > 0
+    fail_msg: "Failed to extract Keycloak certificate from SAML descriptor"
+    success_msg: "Successfully extracted Keycloak certificate"

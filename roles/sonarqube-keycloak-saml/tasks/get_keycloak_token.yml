@@ -1,0 +1,29 @@
+---
+# Get Keycloak Access Token
+
+- name: Get Keycloak admin access token
+  ansible.builtin.uri:
+    url: "{{ keycloak.base_url }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      username: "{{ keycloak.admin_user }}"
+      password: "{{ keycloak.admin_password }}"
+      grant_type: "password"
+      client_id: "admin-cli"
+    status_code: [200]
+  register: keycloak_token_response
+  no_log: true
+
+- name: Set Keycloak access token fact
+  ansible.builtin.set_fact:
+    keycloak_access_token: "{{ keycloak_token_response.json.access_token }}"
+  no_log: true
+
+- name: Verify token is valid
+  ansible.builtin.assert:
+    that:
+      - keycloak_access_token is defined
+      - keycloak_access_token | length > 0
+    fail_msg: "Failed to obtain valid Keycloak access token"
+    success_msg: "Successfully obtained Keycloak access token"

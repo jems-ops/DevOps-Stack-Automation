@@ -1,0 +1,92 @@
+---
+- name: Configure Jenkins Realm in Keycloak using Red Hat Middleware
+  hosts: keycloak
+  become: false
+  vars:
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+    jenkins_realm: jenkins
+    jenkins_client_secret: "{{ vault_jenkins_oidc_client_secret }}"
+  collections:
+    - middleware_automation.keycloak
+  tasks:
+    - name: Wait for Keycloak to be ready
+      uri:
+        url: "http://127.0.0.1:8080/"
+        method: GET
+      retries: 5
+      delay: 10
+
+    - name: Configure Jenkins realm and client using Keycloak collection
+      middleware_automation.keycloak.keycloak_realm:
+        auth_keycloak_url: http://127.0.0.1:8080
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        realm: "{{ jenkins_realm }}"
+        clients:
+          - client_id: jenkins
+            name: "Jenkins CI/CD"
+            enabled: true
+            public_client: false
+            protocol: openid-connect
+            client_authenticator_type: client-secret
+            secret: "{{ jenkins_client_secret }}"
+            standard_flow_enabled: true
+            implicit_flow_enabled: false
+            direct_access_grants_enabled: true
+            service_accounts_enabled: false
+            redirect_uris:
+              - "http://192.168.201.14:8080/*"
+              - "https://jenkins.example.com/*"
+              - "http://192.168.201.14:8080/securityRealm/finishLogin"
+              - "https://jenkins.example.com/securityRealm/finishLogin"
+            web_origins:
+              - "http://192.168.201.14:8080"
+              - "https://jenkins.example.com"
+              - "+"
+            roles:
+              - jenkins-admins
+              - jenkins-users
+            users:
+              - username: jenkins-admin
+                password: admin123
+                email: admin@jenkins.local
+                first_name: Jenkins
+                last_name: Administrator
+                client_roles:
+                  - client: jenkins
+                    role: jenkins-admins
+                    realm: "{{ jenkins_realm }}"
+              - username: jenkins-user
+                password: user123
+                email: user@jenkins.local
+                first_name: Jenkins
+                last_name: User
+                client_roles:
+                  - client: jenkins
+                    role: jenkins-users
+                    realm: "{{ jenkins_realm }}"
+
+    - name: Verify realm configuration
+      uri:
+        url: "http://127.0.0.1:8080/realms/{{ jenkins_realm }}/.well-known/openid_configuration"
+        method: GET
+        timeout: 30
+      register: oidc_verification
+      retries: 3
+      delay: 5
+
+    - name: Display realm configuration result
+      debug:
+        msg: |
+          🎉 Keycloak Jenkins Realm Configuration Complete!
+
+          📋 Realm Details:
+          • Realm: {{ jenkins_realm }}
+          • Client: jenkins
+          • OIDC Endpoints: ✅ Available
+          • Well-known URL: http://127.0.0.1:8080/realms/{{ jenkins_realm }}/.well-known/openid_configuration
+
+          👥 Test Users Created:
+          • jenkins-admin (jenkins-admins)
+          • jenkins-user (jenkins-users)
+      when: oidc_verification.status == 200

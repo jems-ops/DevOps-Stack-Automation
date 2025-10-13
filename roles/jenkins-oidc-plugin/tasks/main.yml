@@ -1,0 +1,163 @@
+---
+# Jenkins OIDC Plugin Installation Tasks
+
+- name: Display plugin installation information
+  debug:
+    msg: |
+      🔌 Installing Jenkins OIDC Plugin
+      📅 Execution time: {{ ansible_date_time.iso8601 }}
+      🖥️  Jenkins server: {{ inventory_hostname }}
+      📦 Plugin: {{ jenkins_oidc_plugin_id }}
+
+- name: Check if Jenkins is running
+  uri:
+    url: "http://{{ inventory_hostname }}:8080/login"
+    method: GET
+    timeout: 30
+    status_code: [200, 403]
+  register: jenkins_status
+  retries: 3
+  delay: 5
+
+- name: Fail if Jenkins is not accessible
+  fail:
+    msg: "Jenkins server is not accessible at http://{{ inventory_hostname }}:8080"
+  when: jenkins_status.status not in [200, 403]
+
+- name: Create temporary directory for plugin installation
+  tempfile:
+    state: directory
+    suffix: jenkins_plugin
+  register: temp_plugin_dir
+
+- name: Download Jenkins CLI jar
+  get_url:
+    url: "http://{{ inventory_hostname }}:8080/jnlpJars/jenkins-cli.jar"
+    dest: "{{ temp_plugin_dir.path }}/jenkins-cli.jar"
+    mode: '0644'
+    timeout: 60
+  register: cli_download
+  retries: 3
+  delay: 5
+
+- name: Check if OIDC plugin is already installed
+  uri:
+    url: "http://{{ inventory_hostname }}:8080/pluginManager/api/json?tree=plugins[shortName,version,enabled]"
+    method: GET
+    timeout: 30
+  register: installed_plugins
+  ignore_errors: yes
+
+- name: Parse installed plugins
+  set_fact:
+    oidc_plugin_installed: "{{ (installed_plugins.json.plugins | selectattr('shortName', 'equalto', jenkins_oidc_plugin_id) | list | length > 0) if installed_plugins.status == 200 else false }}"
+
+- name: Display plugin status
+  debug:
+    msg: |
+      📦 Plugin Status Check:
+      • OIDC Plugin ({{ jenkins_oidc_plugin_id }}): {{ 'Already Installed' if oidc_plugin_installed else 'Not Found - Will Install' }}
+
+- name: Download OIDC plugin directly if not installed
+  get_url:
+    url: "https://updates.jenkins.io/download/plugins/{{ jenkins_oidc_plugin_id }}/{{ jenkins_oidc_plugin_version }}/{{ jenkins_oidc_plugin_id }}.hpi"
+    dest: "{{ temp_plugin_dir.path }}/{{ jenkins_oidc_plugin_id }}.hpi"
+    mode: '0644'
+    timeout: 120
+  when: not oidc_plugin_installed
+  register: plugin_download
+
+- name: Install OIDC plugin using Jenkins CLI
+  command: >
+    java -jar {{ temp_plugin_dir.path }}/jenkins-cli.jar
+    -s http://{{ inventory_hostname }}:8080
+    install-plugin {{ temp_plugin_dir.path }}/{{ jenkins_oidc_plugin_id }}.hpi
+  when: not oidc_plugin_installed and plugin_download.changed
+  register: plugin_install_result
+  ignore_errors: yes
+
+- name: "Alternative: Copy plugin directly to Jenkins plugins directory"
+  copy:
+    src: "{{ temp_plugin_dir.path }}/{{ jenkins_oidc_plugin_id }}.hpi"
+    dest: "/var/lib/jenkins/plugins/{{ jenkins_oidc_plugin_id }}.hpi"
+    owner: jenkins
+    group: jenkins
+    mode: '0644'
+    remote_src: yes
+  become: yes
+  when: not oidc_plugin_installed and (plugin_install_result is failed or plugin_install_result is skipped)
+  register: plugin_copy_result
+
+- name: Create plugin metadata file
+  copy:
+    content: ""
+    dest: "/var/lib/jenkins/plugins/{{ jenkins_oidc_plugin_id }}.hpi.pinned"
+    owner: jenkins
+    group: jenkins
+    mode: '0644'
+  become: yes
+  when: plugin_copy_result.changed
+
+- name: Restart Jenkins service after plugin installation
+  command: /bin/systemctl restart jenkins
+  become: yes
+  when: plugin_copy_result.changed or (plugin_install_result.changed and plugin_install_result is succeeded)
+  register: jenkins_restart_result
+
+- name: Wait for Jenkins to restart
+  wait_for:
+    port: 8080
+    host: "{{ inventory_hostname }}"
+    timeout: 180
+    delay: 30
+  when: jenkins_restart_result.changed
+
+- name: Verify Jenkins is back online after restart
+  uri:
+    url: "http://{{ inventory_hostname }}:8080/login"
+    method: GET
+    timeout: 30
+    status_code: [200, 403]
+  register: jenkins_online_check
+  retries: 12
+  delay: 15
+  when: jenkins_restart_result.changed
+
+- name: Verify OIDC plugin installation
+  uri:
+    url: "http://{{ inventory_hostname }}:8080/pluginManager/api/json?tree=plugins[shortName,version,enabled]"
+    method: GET
+    timeout: 30
+  register: plugin_verification
+  retries: 5
+  delay: 10
+  when: jenkins_online_check.status in [200, 403] or not jenkins_restart_result.changed
+
+- name: Check plugin installation success
+  set_fact:
+    oidc_plugin_verified: "{{ (plugin_verification.json.plugins | selectattr('shortName', 'equalto', jenkins_oidc_plugin_id) | list | length > 0) if plugin_verification.status == 200 else false }}"
+  when: plugin_verification.status is defined
+
+- name: Display installation result
+  debug:
+    msg: |
+      📦 Plugin Installation Complete!
+
+      Status: {{ 'SUCCESS - Plugin Installed' if oidc_plugin_verified | default(false) else 'ALREADY INSTALLED' if oidc_plugin_installed else 'MANUAL CHECK REQUIRED' }}
+      Plugin: {{ jenkins_oidc_plugin_id }}
+      Version: {{ jenkins_oidc_plugin_version }}
+
+      {% if oidc_plugin_verified | default(false) %}
+      ✅ OIDC Plugin is now available in Jenkins
+      🔧 You can now configure OpenID Connect authentication in Jenkins Security settings
+      {% elif oidc_plugin_installed %}
+      ℹ️  OIDC Plugin was already installed
+      {% else %}
+      ⚠️  Plugin installation may require manual verification
+      {% endif %}
+
+- name: Clean up temporary files
+  file:
+    path: "{{ temp_plugin_dir.path }}"
+    state: absent
+  ignore_errors: yes

@@ -1,0 +1,64 @@
+---
+# Verify SAML Configuration
+
+- name: Wait for SonarQube to be ready
+  ansible.builtin.uri:
+    url: "{{ sonarqube.base_url }}/api/system/status"
+    method: GET
+    status_code: [200]
+  register: sonarqube_status
+  until: sonarqube_status.json.status == "UP"
+  retries: 30
+  delay: 10
+
+- name: Verify SonarQube SAML initiation endpoint
+  ansible.builtin.uri:
+    url: "{{ sonarqube.base_url }}/sessions/init/saml"
+    method: HEAD
+    follow_redirects: none
+    status_code: [302]
+  register: saml_init_test
+
+- name: Check that SAML initiation redirects to Keycloak
+  ansible.builtin.assert:
+    that:
+      - saml_init_test.location is defined
+      - keycloak.base_url in saml_init_test.location
+      - keycloak.realm in saml_init_test.location
+      - "'protocol/saml' in saml_init_test.location"
+    fail_msg: "SAML initiation does not redirect to Keycloak properly"
+    success_msg: "SAML initiation correctly redirects to Keycloak"
+
+- name: Display configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "=== SonarQube-Keycloak SAML Integration Summary ==="
+      - ""
+      - "✅ SonarQube Configuration:"
+      - "   - URL: {{ sonarqube.base_url }}"
+      - "   - SAML Enabled: {{ sonarqube.saml.enabled }}"
+      - "   - Force Authentication: {{ sonarqube.saml.force_authentication }}"
+      - ""
+      - "✅ Keycloak Configuration:"
+      - "   - URL: {{ keycloak.base_url }}"
+      - "   - Realm: {{ keycloak.realm }}"
+      - "   - SAML Client ID: {{ keycloak.saml_client.client_id }}"
+      - "   - HTTP POST Binding: {{ keycloak.saml_client.attributes.saml_force_post_binding }}"
+      - ""
+      - "✅ Protocol Mappers:"
+      - "{% for mapper in keycloak.saml_client.protocol_mappers %}"
+      - "   - {{ mapper.name }}: {{ mapper.config.attribute_name }}"
+      - "{% endfor %}"
+      - ""
+      - "✅ Groups:"
+      - "   - {{ groups.sonar_users.name }} group created"
+      - ""
+      - "🔗 Access SonarQube: {{ sonarqube.base_url }}"
+      - "🔑 Click 'Log in with Keycloak SAML' to test SSO"
+      - ""
+      - "{% if test_user.enabled %}"
+      - "👤 Test User Created:"
+      - "   - Username: {{ test_user.username }}"
+      - "   - Password: {{ test_user.password }}"
+      - "   - Group: {{ groups.sonar_users.name }}"
+      - "{% endif %}"

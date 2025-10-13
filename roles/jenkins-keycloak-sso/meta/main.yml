@@ -1,0 +1,37 @@
+---
+# Jenkins-Keycloak SSO Integration Role Metadata
+
+galaxy_info:
+  author: Jenkins Automation Team
+  description: Configure Single Sign-On between Jenkins and Keycloak using OpenID Connect
+  company: Internal
+  license: MIT
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - 20.04
+        - 22.04
+
+  galaxy_tags:
+    - jenkins
+    - keycloak
+    - sso
+    - oidc
+    - authentication
+    - security
+
+dependencies:
+  - role: install-jenkins
+    when: jenkins_ensure_installed | default(false)
+  - role: install-keycloak
+    when: keycloak_ensure_installed | default(false)
+
+collections:
+  - community.general
+  - ansible.posix

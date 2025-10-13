@@ -1,0 +1,205 @@
+---
+- name: Configure Keycloak User Federation with FreeIPA LDAP
+  hosts: localhost
+  connection: local
+  vars:
+    keycloak_server: "{{ groups['keycloak'][0] }}"
+    freeipa_server: "{{ groups['freeipa'][0] }}"
+    freeipa_domain: freeipa.local
+    sonar_realm: sonar
+  tasks:
+    - name: Display Keycloak-FreeIPA integration information
+      debug:
+        msg: |
+          🔧 Configuring Keycloak User Federation with FreeIPA
+          🏛️  Keycloak Server: {{ keycloak_server }}:8080
+          🏛️  FreeIPA Server: {{ freeipa_server }}
+          🌐 FreeIPA Domain: {{ freeipa_domain }}
+          🎯 Target Realm: {{ sonar_realm }}
+
+    - name: Check if sonar realm exists in Keycloak
+      uri:
+        url: "http://{{ keycloak_server }}:8080/admin/realms/{{ sonar_realm }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token | default('') }}"
+        status_code: [200, 401, 404]
+      register: realm_check
+      ignore_errors: true
+
+    - name: Get Keycloak admin token
+      uri:
+        url: "http://{{ keycloak_server }}:8080/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: admin
+          password: admin123
+          grant_type: password
+          client_id: admin-cli
+      register: token_response
+
+    - name: Set Keycloak admin token
+      set_fact:
+        keycloak_token: "{{ token_response.json.access_token }}"
+
+    - name: Create sonar realm if it doesn't exist
+      uri:
+        url: "http://{{ keycloak_server }}:8080/admin/realms"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ keycloak_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          id: "{{ sonar_realm }}"
+          realm: "{{ sonar_realm }}"
+          displayName: "SonarQube Realm"
+          enabled: true
+          registrationAllowed: false
+          loginWithEmailAllowed: true
+          duplicateEmailsAllowed: false
+          resetPasswordAllowed: true
+          editUsernameAllowed: false
+          bruteForceProtected: true
+        status_code: [201, 409]
+      when: realm_check.status == 404
+
+    - name: Configure FreeIPA LDAP User Federation
+      uri:
+        url: "http://{{ keycloak_server }}:8080/admin/realms/{{ sonar_realm }}/components"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ keycloak_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "FreeIPA LDAP"
+          providerId: "ldap"
+          providerType: "org.keycloak.storage.UserStorageProvider"
+          parentId: "{{ sonar_realm }}"
+          config:
+            enabled: ["true"]
+            priority: ["0"]
+            fullSyncPeriod: ["604800"]
+            changedSyncPeriod: ["86400"]
+            cachePolicy: ["DEFAULT"]
+            batchSizeForSync: ["1000"]
+            editMode: ["READ_ONLY"]
+            syncRegistrations: ["false"]
+            vendor: ["rhds"]
+            usernameLDAPAttribute: ["uid"]
+            rdnLDAPAttribute: ["uid"]
+            uuidLDAPAttribute: ["nsuniqueid"]
+            userObjectClasses: ["inetOrgPerson, organizationalPerson"]
+            connectionUrl: ["ldap://{{ freeipa_server }}:389"]
+            usersDn: ["cn=users,cn=accounts,dc=freeipa,dc=local"]
+            authType: ["simple"]
+            bindDn: ["cn=Directory Manager"]
+            bindCredential: ["DirectoryManager123"]
+            searchScope: ["1"]
+            validatePasswordPolicy: ["false"]
+            trustEmail: ["false"]
+            useTruststoreSpi: ["ldapsOnly"]
+            connectionPooling: ["true"]
+            pagination: ["true"]
+            allowKerberosAuthentication: ["false"]
+            serverPrincipal: ["HTTP/{{ freeipa_server }}@FREEIPA.LOCAL"]
+            keyTab: [""]
+            kerberosRealm: ["FREEIPA.LOCAL"]
+            debug: ["false"]
+            usePasswordModifyExtendedOp: ["false"]
+        status_code: [201, 409]
+      register: ldap_federation
+
+    - name: Get LDAP component ID for mapper configuration
+      uri:
+        url: "http://{{ keycloak_server }}:8080/admin/realms/{{ sonar_realm }}/components"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token }}"
+      register: components
+
+    - name: Extract LDAP component ID
+      set_fact:
+        ldap_component_id: "{{ item.id }}"
+      loop: "{{ components.json }}"
+      when: item.name == "FreeIPA LDAP"
+
+    - name: Configure Group LDAP Mapper
+      uri:
+        url: "http://{{ keycloak_server }}:8080/admin/realms/{{ sonar_realm }}/components"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ keycloak_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "group-ldap-mapper"
+          providerId: "group-ldap-mapper"
+          providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+          parentId: "{{ ldap_component_id }}"
+          config:
+            groups.dn: ["cn=groups,cn=accounts,dc=freeipa,dc=local"]
+            group.name.ldap.attribute: ["cn"]
+            group.object.classes: ["groupOfNames"]
+            preserve.group.inheritance: ["true"]
+            ignore.missing.groups: ["false"]
+            membership.ldap.attribute: ["member"]
+            membership.attribute.type: ["DN"]
+            membership.user.ldap.attribute: ["uid"]
+            groups.ldap.filter: [""]
+            mode: ["READ_ONLY"]
+            user.roles.retrieve.strategy: ["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"]
+            mapped.group.attributes: [""]
+            drop.non.existing.groups.during.sync: ["false"]
+        status_code: [201, 409]
+      when: ldap_component_id is defined
+
+    - name: Sync users from FreeIPA LDAP
+      uri:
+        url: "http://{{ keycloak_server }}:8080/admin/realms/{{ sonar_realm }}/user-storage/{{ ldap_component_id }}/sync?action=triggerFullSync"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ keycloak_token }}"
+        status_code: [200, 202]
+      when: ldap_component_id is defined
+      register: user_sync
+
+    - name: Display user sync results
+      debug:
+        msg: "User sync result: {{ user_sync.json }}"
+      when: user_sync is defined and user_sync.json is defined
+
+    - name: Display FreeIPA-Keycloak integration summary
+      debug:
+        msg: |
+          ✅ Keycloak-FreeIPA Integration Complete!
+
+          📋 Configuration Details:
+          • Keycloak Server: {{ keycloak_server }}:8080
+          • FreeIPA Server: {{ freeipa_server }}
+          • Target Realm: {{ sonar_realm }}
+          • LDAP URL: ldap://{{ freeipa_server }}:389
+          • Base DN: dc=freeipa,dc=local
+
+          👥 LDAP Federation:
+          • User Base: cn=users,cn=accounts,dc=freeipa,dc=local
+          • Group Base: cn=groups,cn=accounts,dc=freeipa,dc=local
+          • Sync Mode: READ_ONLY
+          • Group Mapping: Enabled
+
+          🌐 Access:
+          • Keycloak Admin: http://{{ keycloak_server }}:8080
+          • Realm: {{ sonar_realm }}
+          • Users synced from FreeIPA LDAP
+
+          🔧 Next Steps:
+          1. Verify users are synced in Keycloak {{ sonar_realm }} realm
+          2. Create SAML client for SonarQube
+          3. Configure SonarQube SAML authentication
+          4. Test SSO authentication flow
+
+          📝 Note:
+          Using Directory Manager credentials for LDAP binding.
+          In production, create a dedicated service account with appropriate permissions.

@@ -1,0 +1,88 @@
+---
+- name: Update SonarQube OIDC to Use Sonar Realm
+  hosts: sonarqube
+  become: true
+  vars:
+    sonarqube_client_secret: "sonarqube-sso-secret-2024-secure"
+    keycloak_server: "{{ groups['keycloak'][0] }}"
+    sonar_realm: sonar  # Using dedicated sonar realm
+  tasks:
+    - name: Display update information
+      debug:
+        msg: |
+          🔧 Updating SonarQube OIDC to Use Dedicated Sonar Realm
+          🏛️  New Keycloak Realm: {{ sonar_realm }}
+          🔗 New Issuer: http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}
+
+    - name: Stop SonarQube service
+      systemd:
+        name: sonarqube
+        state: stopped
+
+    - name: Update SonarQube OIDC configuration with correct realm
+      blockinfile:
+        path: /opt/sonarqube/conf/sonar.properties
+        marker: "# {mark} ANSIBLE MANAGED OIDC CONFIGURATION"
+        block: |
+          # OpenID Connect (OIDC) Configuration for Keycloak
+          sonar.auth.oidc.enabled=true
+          sonar.auth.oidc.issuerUri=http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}
+          sonar.auth.oidc.clientId.secured=sonarqube
+          sonar.auth.oidc.clientSecret.secured={{ sonarqube_client_secret }}
+          sonar.auth.oidc.loginButtonText=Login with Keycloak
+
+          # User attributes mapping
+          sonar.auth.oidc.emailAttribute=email
+          sonar.auth.oidc.nameAttribute=name
+          sonar.auth.oidc.loginAttribute=preferred_username
+
+          # Group synchronization
+          sonar.auth.oidc.groupsSync=true
+          sonar.auth.oidc.groupsSync.claimName=groups
+        backup: yes
+
+    - name: Start SonarQube service
+      systemd:
+        name: sonarqube
+        state: started
+        enabled: yes
+
+    - name: Wait for SonarQube to be ready
+      uri:
+        url: "http://localhost:9000/"
+        method: GET
+        timeout: 30
+      register: sonarqube_ready
+      retries: 15
+      delay: 10
+      until: sonarqube_ready.status == 200
+
+    - name: Test SonarQube OIDC login page
+      uri:
+        url: "http://localhost:9000/sessions/new"
+        method: GET
+        timeout: 30
+      register: login_page_check
+
+    - name: Display completion message
+      debug:
+        msg: |
+          ✅ SonarQube OIDC Configuration Updated!
+
+          📋 Updated Configuration:
+          • OIDC Enabled: ✅
+          • Keycloak Realm: {{ sonar_realm }} (dedicated realm)
+          • Issuer URI: http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}
+          • Client ID: sonarqube
+          • Login Button: "Login with Keycloak"
+
+          🌐 Access Points:
+          • SonarQube: http://{{ inventory_hostname }}:9000
+          • Keycloak Admin: http://{{ keycloak_server }}:8080/admin/
+          • Login Page Status: {{ login_page_check.status }}
+
+          🔧 Next Steps:
+          1. Access SonarQube at http://{{ inventory_hostname }}:9000
+          2. Look for "Login with Keycloak" button
+          3. Create test users in Keycloak admin console in 'sonar' realm
+          4. Test authentication flow

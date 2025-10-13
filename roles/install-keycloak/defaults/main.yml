@@ -11,4 +11,8 @@ keycloak_https_port: 8443
 keycloak_hostname_strict: false
 keycloak_jvm_opts: "-Xms512m -Xmx1024m"
 # If behind proxy/SSL-terminating LB, you may set additional start options in keycloak_extra_opts
-keycloak_extra_opts: ""
+keycloak_extra_opts: "--http-enabled=true --hostname-strict=false --hostname-strict-https=false"
+
+# Keycloak admin credentials (should be defined in vault)
+keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME | default('admin') }}"
+keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD | default('') }}"

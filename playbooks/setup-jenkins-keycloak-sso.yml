@@ -1,0 +1,77 @@
+---
+- name: Setup Jenkins-Keycloak Single Sign-On Integration
+  hosts: localhost
+  gather_facts: true
+  become: false
+  connection: local
+  vars:
+    ansible_become: false
+
+  pre_tasks:
+    - name: Display SSO setup information
+      debug:
+        msg: |
+          🔐 Jenkins-Keycloak SSO Integration Setup
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Jenkins server: {{ groups['jenkins'][0] }}:8080
+          🔑 Keycloak server: {{ groups['keycloak'][0] }}:8080
+          🌐 Nginx proxy: {{ groups['nginx'][0] }}
+          👤 User: {{ ansible_user }}
+
+    - name: Verify required groups exist in inventory
+      fail:
+        msg: "Required inventory group '{{ item }}' is missing"
+      when: groups[item] is not defined or groups[item] | length == 0
+      loop:
+        - jenkins
+        - keycloak
+        - nginx
+
+    - name: Display prerequisites check
+      debug:
+        msg: |
+          📋 Prerequisites Check:
+          ✅ Jenkins group: {{ groups['jenkins'] | length }} host(s)
+          ✅ Keycloak group: {{ groups['keycloak'] | length }} host(s)
+          ✅ Nginx group: {{ groups['nginx'] | length }} host(s)
+
+  roles:
+    - role: jenkins-keycloak-sso
+      vars:
+        # Override default URLs if needed
+        jenkins_base_url: "http://{{ groups['jenkins'][0] }}:8080"
+        jenkins_proxy_url: "http://{{ groups['nginx'][0] }}"
+        keycloak_admin_url: "http://{{ groups['keycloak'][0] }}:8080"
+
+        # Enable test user creation
+        sso_create_test_users: true
+
+        # Security settings
+        jenkins_full_read_permission: false
+        jenkins_disable_signup: true
+
+  post_tasks:
+    - name: Display completion message and next steps
+      debug:
+        msg: |
+          ✅ Jenkins-Keycloak SSO Setup Complete!
+
+          🌐 Access Points:
+          • Jenkins Direct: http://{{ groups['jenkins'][0] }}:8080
+          • Jenkins via Proxy: http://{{ groups['nginx'][0] }}
+          • Keycloak Admin: http://{{ groups['keycloak'][0] }}:8080/admin/
+
+          👥 Test Accounts:
+          • jenkins-admin / admin123 (Administrator)
+          • jenkins-user / user123 (User)
+
+          🔧 Next Steps:
+          1. Test SSO login at Jenkins
+          2. Configure additional users in Keycloak
+          3. Set up role-based permissions
+          4. Configure HTTPS if desired
+
+          📚 Documentation:
+          • Keycloak Realm: jenkins
+          • Client ID: jenkins
+          • Groups: jenkins-admins, jenkins-users

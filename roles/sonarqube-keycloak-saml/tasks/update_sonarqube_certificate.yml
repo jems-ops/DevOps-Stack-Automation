@@ -1,0 +1,11 @@
+---
+# Update SonarQube Certificate
+
+- name: Configure SAML certificate in SonarQube
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.certificate.secured="
+    line: "sonar.auth.saml.certificate.secured={{ keycloak_certificate }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube

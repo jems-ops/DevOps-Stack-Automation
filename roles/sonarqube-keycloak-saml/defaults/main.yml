@@ -1,0 +1,131 @@
+---
+# SonarQube-Keycloak SAML Integration Role Defaults
+
+# SonarQube Configuration
+sonarqube:
+  host: "192.168.201.16"
+  port: 9000
+  protocol: "http"
+  base_url: "{{ sonarqube.protocol }}://{{ sonarqube.host }}:{{ sonarqube.port }}"
+  config_path: "/opt/sonarqube/conf/sonar.properties"
+  service_name: "sonarqube"
+
+  # SAML Configuration
+  saml:
+    enabled: true
+    application_id: "{{ sonarqube.base_url }}"
+    provider_name: "Keycloak SAML"
+    provider_id: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}"
+    login_url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml"
+    sp_entity_id: "{{ sonarqube.base_url }}"
+
+    # User Attribute Mappings
+    user:
+      login: "username"
+      name: "name"
+      email: "email"
+      sign_up_enabled: true
+      default_group: "sonar-users"
+
+    # Group Mappings
+    group:
+      name: "groups"
+
+    # Force Authentication
+    force_authentication: false
+
+# Keycloak Configuration
+keycloak:
+  host: "192.168.201.12"
+  port: 8080
+  protocol: "http"
+  base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
+  realm: "sonar"
+  admin_user: "admin"
+  admin_password: "admin123"
+
+  # SAML Client Configuration
+  saml_client:
+    client_id: "{{ sonarqube.base_url }}"
+    enabled: true
+    protocol: "saml"
+    front_channel_logout: true
+    redirect_uris:
+      - "{{ sonarqube.base_url }}/*"
+    web_origins:
+      - "{{ sonarqube.base_url }}"
+    base_url: "{{ sonarqube.base_url }}"
+    root_url: "{{ sonarqube.base_url }}"
+    admin_url: "{{ sonarqube.base_url }}"
+
+    # SAML Attributes
+    attributes:
+      saml_authnstatement: "true"
+      saml_server_signature: "false"
+      saml_signature_algorithm: "RSA_SHA256"
+      saml_client_signature: "false"
+      saml_assertion_signature: "true"
+      saml_encrypt: "false"
+      saml_force_post_binding: "true"
+      saml_name_id_format: "username"
+      saml_signing_certificate: ""
+      saml_signing_private_key: ""
+
+    # Protocol Mappers
+    protocol_mappers:
+      - name: "username"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          user_attribute: "username"
+          attribute_name: "username"
+
+      - name: "email"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          user_attribute: "email"
+          attribute_name: "email"
+
+      - name: "name"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          user_attribute: "username"
+          attribute_name: "name"
+
+      - name: "groups"
+        protocol: "saml"
+        protocol_mapper: "saml-group-membership-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          attribute_name: "groups"
+          single: "false"
+          full_path: "false"
+
+# Groups Configuration
+groups:
+  sonar_users:
+    name: "sonar-users"
+    description: "SonarQube Users Group"
+
+# Test User Configuration (optional)
+test_user:
+  enabled: false
+  username: "testuser"
+  password: "testpass123"
+  email: "testuser@example.com"
+  first_name: "Test"
+  last_name: "User"
+  groups:
+    - "{{ groups.sonar_users.name }}"
+
+# Logging
+debug_logging: false

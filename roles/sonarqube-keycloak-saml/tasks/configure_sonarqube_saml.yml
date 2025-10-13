@@ -1,0 +1,128 @@
+---
+# Configure SonarQube SAML Settings
+
+- name: Configure SonarQube base URL
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.core.serverBaseURL="
+    line: "sonar.core.serverBaseURL={{ sonarqube.base_url }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure force authentication
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.forceAuthentication="
+    line: "sonar.forceAuthentication={{ sonarqube.saml.force_authentication | lower }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Enable SAML authentication
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.enabled="
+    line: "sonar.auth.saml.enabled={{ sonarqube.saml.enabled | lower }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML application ID
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.applicationId="
+    line: "sonar.auth.saml.applicationId={{ sonarqube.saml.application_id }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML provider name
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.providerName="
+    line: "sonar.auth.saml.providerName={{ sonarqube.saml.provider_name }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML provider ID
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.providerId="
+    line: "sonar.auth.saml.providerId={{ sonarqube.saml.provider_id }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML login URL
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.loginUrl="
+    line: "sonar.auth.saml.loginUrl={{ sonarqube.saml.login_url }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML SP entity ID
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.sp.entityId="
+    line: "sonar.auth.saml.sp.entityId={{ sonarqube.saml.sp_entity_id }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML user login attribute
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.user.login="
+    line: "sonar.auth.saml.user.login={{ sonarqube.saml.user.login }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML user name attribute
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.user.name="
+    line: "sonar.auth.saml.user.name={{ sonarqube.saml.user.name }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML user email attribute
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.user.email="
+    line: "sonar.auth.saml.user.email={{ sonarqube.saml.user.email }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML user sign up
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.user.signUpEnabled="
+    line: "sonar.auth.saml.user.signUpEnabled={{ sonarqube.saml.user.sign_up_enabled | lower }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML user default group
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.user.defaultGroup="
+    line: "sonar.auth.saml.user.defaultGroup={{ sonarqube.saml.user.default_group }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube
+
+- name: Configure SAML group name attribute
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^#?sonar.auth.saml.group.name="
+    line: "sonar.auth.saml.group.name={{ sonarqube.saml.group.name }}"
+    backup: true
+  become: true
+  notify: restart_sonarqube

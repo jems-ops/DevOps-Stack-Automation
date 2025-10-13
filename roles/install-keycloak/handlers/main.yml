@@ -3,7 +3,7 @@
   ansible.builtin.systemd:
     daemon_reload: yes
 
-- name: restart keycloak service
+- name: restart keycloak
   ansible.builtin.systemd:
     name: keycloak
     state: restarted

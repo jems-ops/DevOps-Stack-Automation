@@ -1,0 +1,164 @@
+---
+- name: Configure SonarQube-Keycloak SSO Integration
+  hosts: localhost
+  become: false
+  vars:
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+    sonarqube_client_secret: "{{ vault_sonarqube_oidc_client_secret | default('sonarqube-sso-secret-2024-secure') }}"
+    sonarqube_realm: jenkins  # Using existing jenkins realm
+    sonarqube_base_url: "http://192.168.201.16:9000"
+    sonarqube_proxy_url: "https://sonar.local"  # If using nginx proxy
+  collections:
+    - middleware_automation.keycloak
+  tasks:
+    - name: Display SonarQube SSO setup information
+      debug:
+        msg: |
+          🔧 SonarQube-Keycloak SSO Integration Setup
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🏗️  SonarQube server: {{ sonarqube_base_url }}
+          🔑 Keycloak server: {{ groups['keycloak'][0] }}:8080
+          🌐 Nginx proxy: {{ groups['nginx'][0] if groups['nginx'] is defined else 'Not configured' }}
+          🏛️  Realm: {{ sonarqube_realm }}
+
+    - name: Verify Keycloak is accessible
+      uri:
+        url: "http://{{ groups['keycloak'][0] }}:8080/"
+        method: GET
+        timeout: 30
+      register: keycloak_health_check
+      retries: 3
+      delay: 5
+
+    - name: Verify SonarQube is accessible
+      uri:
+        url: "{{ sonarqube_base_url }}/"
+        method: GET
+        timeout: 30
+      register: sonarqube_health_check
+      retries: 3
+      delay: 5
+
+    - name: Create SonarQube client in Keycloak
+      middleware_automation.keycloak.keycloak_client:
+        auth_keycloak_url: "http://{{ groups['keycloak'][0] }}:8080"
+        auth_realm: master
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        realm: "{{ sonarqube_realm }}"
+        client_id: sonarqube
+        name: "SonarQube Code Quality"
+        enabled: true
+        public_client: false
+        protocol: openid-connect
+        client_authenticator_type: client-secret
+        secret: "{{ sonarqube_client_secret }}"
+        standard_flow_enabled: true
+        implicit_flow_enabled: false
+        direct_access_grants_enabled: true
+        service_accounts_enabled: false
+        redirect_uris:
+          - "{{ sonarqube_base_url }}/*"
+          - "{{ sonarqube_base_url }}/oauth2/callback/oidc"
+          - "{{ sonarqube_proxy_url }}/*"
+          - "{{ sonarqube_proxy_url }}/oauth2/callback/oidc"
+        web_origins:
+          - "{{ sonarqube_base_url }}"
+          - "{{ sonarqube_proxy_url }}"
+          - "+"
+        attributes:
+          "oidc.ciba.grant.enabled": "false"
+          "oauth2.device.authorization.grant.enabled": "false"
+          "backchannel.logout.session.required": "true"
+
+    - name: Note about users and groups
+      debug:
+        msg: |
+          📝 Note: SonarQube users and groups will be created automatically
+          when users first log in via OIDC. You can create additional
+          users in Keycloak admin console if needed.
+
+          Default test users in existing jenkins realm:
+          • jenkins-admin / admin123
+          • jenkins-user / user123
+
+- name: Configure SonarQube OIDC Settings
+  hosts: sonarqube
+  become: true
+  vars:
+    sonarqube_client_secret: "{{ vault_sonarqube_oidc_client_secret | default('sonarqube-sso-secret-2024-secure') }}"
+    keycloak_server: "{{ groups['keycloak'][0] }}"
+    sonarqube_realm: jenkins
+  tasks:
+    - name: Stop SonarQube service
+      systemd:
+        name: sonarqube
+        state: stopped
+
+    - name: Configure SonarQube OIDC authentication
+      blockinfile:
+        path: /opt/sonarqube/conf/sonar.properties
+        marker: "# {mark} ANSIBLE MANAGED OIDC CONFIGURATION"
+        block: |
+          # OpenID Connect (OIDC) Configuration for Keycloak
+          sonar.auth.oidc.enabled=true
+          sonar.auth.oidc.providerConfiguration=http://{{ keycloak_server }}:8080/realms/{{ sonarqube_realm }}/.well-known/openid_configuration
+          sonar.auth.oidc.clientId.secured=sonarqube
+          sonar.auth.oidc.clientSecret.secured={{ sonarqube_client_secret }}
+          sonar.auth.oidc.issuerUri=http://{{ keycloak_server }}:8080/realms/{{ sonarqube_realm }}
+          sonar.auth.oidc.loginButtonText=Login with Keycloak
+          sonar.auth.oidc.groupsSync=true
+          sonar.auth.oidc.groupsSync.claimName=groups
+
+          # User provisioning
+          sonar.auth.oidc.emailAttribute=email
+          sonar.auth.oidc.nameAttribute=name
+          sonar.auth.oidc.loginAttribute=preferred_username
+
+          # Group mapping (optional)
+          sonar.auth.oidc.groupsSync.groupMappings=sonarqube-admins:sonar-administrators,sonarqube-users:sonar-users
+        backup: yes
+
+    - name: Start SonarQube service
+      systemd:
+        name: sonarqube
+        state: started
+        enabled: yes
+
+    - name: Wait for SonarQube to be ready
+      uri:
+        url: "http://localhost:9000/"
+        method: GET
+        timeout: 30
+      register: sonarqube_ready
+      retries: 15
+      delay: 10
+      until: sonarqube_ready.status == 200
+
+- name: Display SSO Setup Results
+  hosts: localhost
+  tasks:
+    - name: Display setup completion
+      debug:
+        msg: |
+          ✅ SonarQube-Keycloak SSO Setup Complete!
+
+          📋 Configuration Summary:
+          🏛️  Keycloak Realm: {{ sonarqube_realm }}
+          👤 SonarQube Client ID: sonarqube
+          🔗 OIDC Provider URL: http://{{ groups['keycloak'][0] }}:8080/realms/{{ sonarqube_realm }}/.well-known/openid_configuration
+
+          🌐 Access Information:
+          • SonarQube (Direct): {{ sonarqube_base_url }}
+          • SonarQube (Proxy): {{ sonarqube_proxy_url }}
+          • Keycloak Admin: http://{{ groups['keycloak'][0] }}:8080/admin/
+
+          👥 Test Users:
+          • sonar-admin / admin123 (sonarqube-admins)
+          • sonar-user / user123 (sonarqube-users)
+
+          🔧 Next Steps:
+          1. Access SonarQube and verify "Login with Keycloak" button appears
+          2. Test authentication with the created test users
+          3. Verify group mappings and permissions work correctly
+          4. Configure additional users and groups as needed

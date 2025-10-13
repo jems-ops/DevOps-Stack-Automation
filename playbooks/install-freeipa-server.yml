@@ -1,0 +1,198 @@
+---
+- name: Install and Configure FreeIPA Server
+  hosts: freeipa
+  become: true
+  vars:
+    freeipa_domain: example.local
+    freeipa_realm: EXAMPLE.LOCAL
+    freeipa_admin_password: FreeIPA123!
+    freeipa_ds_password: DirectoryServer123!
+    freeipa_hostname: "ipa.{{ freeipa_domain }}"
+  tasks:
+    - name: Display FreeIPA installation information
+      debug:
+        msg: |
+          🔧 Installing FreeIPA Server
+          🏛️  Domain: {{ freeipa_domain }}
+          🌐 Realm: {{ freeipa_realm }}
+          🖥️  Hostname: {{ freeipa_hostname }}
+          📍 Server IP: {{ inventory_hostname }}
+
+    - name: Set hostname for FreeIPA server
+      hostname:
+        name: "{{ freeipa_hostname }}"
+
+    - name: Update /etc/hosts with FreeIPA hostname
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ inventory_hostname }} {{ freeipa_hostname }} ipa"
+        regexp: "^{{ inventory_hostname }}"
+        backup: yes
+
+    - name: Install required packages for FreeIPA
+      dnf:
+        name:
+          - ipa-server
+          - ipa-server-dns
+          - bind
+          - bind-dyndb-ldap
+        state: present
+
+    - name: Configure firewall for FreeIPA services
+      firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - freeipa-ldap
+        - freeipa-ldaps
+        - freeipa-replication
+        - dns
+        - ntp
+        - http
+        - https
+        - kerberos
+        - kpasswd
+
+    - name: Check if FreeIPA is already installed
+      stat:
+        path: /etc/ipa/default.conf
+      register: freeipa_installed
+
+    - name: Install FreeIPA server with DNS
+      command: >
+        ipa-server-install
+        --realm {{ freeipa_realm }}
+        --domain {{ freeipa_domain }}
+        --ds-password {{ freeipa_ds_password }}
+        --admin-password {{ freeipa_admin_password }}
+        --hostname {{ freeipa_hostname }}
+        --ip-address {{ inventory_hostname }}
+        --setup-dns
+        --auto-forwarders
+        --auto-reverse
+        --unattended
+      when: not freeipa_installed.stat.exists
+      register: freeipa_install
+      timeout: 1800  # 30 minutes timeout
+
+    - name: Wait for FreeIPA services to be ready
+      wait_for:
+        port: 443
+        host: "{{ inventory_hostname }}"
+        timeout: 300
+      when: freeipa_install is changed
+
+    - name: Create Keycloak service account for LDAP binding
+      ipa_user:
+        name: keycloak-bind
+        givenname: Keycloak
+        sn: Service
+        mail: keycloak@{{ freeipa_domain }}
+        password: KeycloakBind123!
+        ipa_host: "{{ freeipa_hostname }}"
+        ipa_user: admin
+        ipa_pass: "{{ freeipa_admin_password }}"
+        state: present
+
+    - name: Create SonarQube groups
+      ipa_group:
+        name: "{{ item }}"
+        description: "{{ item.replace('-', ' ').title() }} group for SonarQube"
+        ipa_host: "{{ freeipa_hostname }}"
+        ipa_user: admin
+        ipa_pass: "{{ freeipa_admin_password }}"
+        state: present
+      loop:
+        - sonar-admins
+        - sonar-users
+        - sonar-developers
+
+    - name: Create test users for SonarQube
+      ipa_user:
+        name: "{{ item.name }}"
+        givenname: "{{ item.givenname }}"
+        sn: "{{ item.sn }}"
+        mail: "{{ item.name }}@{{ freeipa_domain }}"
+        password: "{{ item.password }}"
+        ipa_host: "{{ freeipa_hostname }}"
+        ipa_user: admin
+        ipa_pass: "{{ freeipa_admin_password }}"
+        state: present
+      loop:
+        - name: sonar-admin
+          givenname: SonarQube
+          sn: Administrator
+          password: SonarAdmin123!
+        - name: sonar-user
+          givenname: SonarQube
+          sn: User
+          password: SonarUser123!
+        - name: sonar-dev
+          givenname: SonarQube
+          sn: Developer
+          password: SonarDev123!
+
+    - name: Add users to appropriate groups
+      ipa_group:
+        name: "{{ item.group }}"
+        user: "{{ item.users }}"
+        action: member
+        ipa_host: "{{ freeipa_hostname }}"
+        ipa_user: admin
+        ipa_pass: "{{ freeipa_admin_password }}"
+        state: present
+      loop:
+        - group: sonar-admins
+          users:
+            - sonar-admin
+        - group: sonar-users
+          users:
+            - sonar-user
+            - sonar-dev
+        - group: sonar-developers
+          users:
+            - sonar-dev
+
+    - name: Display FreeIPA configuration
+      debug:
+        msg: |
+          ✅ FreeIPA Server Installation Complete!
+
+          📋 Server Configuration:
+          • Domain: {{ freeipa_domain }}
+          • Realm: {{ freeipa_realm }}
+          • Hostname: {{ freeipa_hostname }}
+          • Admin Username: admin
+          • Admin Password: {{ freeipa_admin_password }}
+
+          👥 Created Groups:
+          • sonar-admins (SonarQube Administrators)
+          • sonar-users (SonarQube Users)
+          • sonar-developers (SonarQube Developers)
+
+          👤 Created Users:
+          • sonar-admin (SonarAdmin123!) → sonar-admins
+          • sonar-user (SonarUser123!) → sonar-users
+          • sonar-dev (SonarDev123!) → sonar-users, sonar-developers
+          • keycloak-bind (KeycloakBind123!) → Service account for Keycloak
+
+          🌐 Access:
+          • Web UI: https://{{ freeipa_hostname }} or https://{{ inventory_hostname }}
+          • LDAP Server: {{ inventory_hostname }}:389 (StartTLS) / 636 (LDAPS)
+          • Kerberos: {{ freeipa_realm }}
+
+          🔧 Next Steps:
+          1. Configure Keycloak to connect to FreeIPA LDAP
+          2. Set up SAML client for SonarQube
+          3. Test SSO authentication flow
+
+    - name: Display DNS configuration note
+      debug:
+        msg: |
+          📝 DNS Configuration Note:
+          Add the following to your local machines' /etc/hosts:
+          {{ inventory_hostname }} {{ freeipa_hostname }} ipa
+
+          Or configure your DNS to point {{ freeipa_hostname }} to {{ inventory_hostname }}

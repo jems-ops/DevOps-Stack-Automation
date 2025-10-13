@@ -1,0 +1,54 @@
+---
+# Configure SonarQube-Keycloak SAML Integration using Role
+# This playbook demonstrates how to use the sonarqube-keycloak-saml role
+
+- name: Configure SonarQube-Keycloak SAML Integration
+  hosts: sonarqube
+  become: true
+  gather_facts: true
+
+  vars:
+    # You can override defaults here or use group_vars/host_vars
+    # sonarqube:
+    #   host: "{{ ansible_default_ipv4.address }}"
+    #   port: 9000
+
+    # keycloak:
+    #   host: "192.168.201.12"
+    #   admin_password: "{{ vault_keycloak_admin_password }}"
+
+    # Enable test user creation
+    test_user:
+      enabled: true
+      username: "demo.user"
+      password: "demo123!"
+      email: "demo@example.com"
+      first_name: "Demo"
+      last_name: "User"
+
+    # Enable debug logging for troubleshooting
+    debug_logging: false
+
+  roles:
+    - role: sonarqube-keycloak-saml
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg:
+          - "🎉 SonarQube-Keycloak SAML integration completed successfully!"
+          - ""
+          - "Next steps:"
+          - "1. Navigate to {{ sonarqube.base_url | default('http://' + ansible_default_ipv4.address + ':9000') }}"
+          - "2. Click 'Log in with Keycloak SAML'"
+          - "{% if test_user.enabled | default(false) %}"
+          - "3. Test with demo user: {{ test_user.username }}/{{ test_user.password }}"
+          - "{% endif %}"
+          - ""
+          - "For troubleshooting:"
+          - "- Check SonarQube logs: sudo tail -f /opt/sonarqube/logs/web.log"
+          - "- Verify SAML initiation: curl -I {{ sonarqube.base_url | default('http://' + ansible_default_ipv4.address + ':9000') }}/sessions/init/saml"
+
+# Example tags usage:
+# ansible-playbook -i inventory configure-sonarqube-keycloak-saml-role.yml --tags "validate,sonarqube,keycloak"
+# ansible-playbook -i inventory configure-sonarqube-keycloak-saml-role.yml --tags "verify" --check

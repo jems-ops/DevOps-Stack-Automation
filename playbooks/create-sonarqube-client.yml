@@ -1,0 +1,65 @@
+---
+- name: Create SonarQube Client in Keycloak
+  hosts: keycloak
+  become: false
+  vars:
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+    sonarqube_client_secret: "{{ vault_sonarqube_oidc_client_secret }}"
+    sonarqube_realm: jenkins
+  collections:
+    - middleware_automation.keycloak
+  tasks:
+    - name: Display setup information
+      debug:
+        msg: |
+          🔧 Creating SonarQube Client in Keycloak
+          🏛️  Realm: {{ sonarqube_realm }}
+          👤 Client ID: sonarqube
+
+    - name: Create SonarQube client in Keycloak
+      middleware_automation.keycloak.keycloak_client:
+        auth_keycloak_url: http://127.0.0.1:8080
+        auth_realm: master
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        realm: "{{ sonarqube_realm }}"
+        client_id: sonarqube
+        name: "SonarQube Code Quality"
+        enabled: true
+        public_client: false
+        protocol: openid-connect
+        client_authenticator_type: client-secret
+        secret: "{{ sonarqube_client_secret }}"
+        standard_flow_enabled: true
+        implicit_flow_enabled: false
+        direct_access_grants_enabled: true
+        service_accounts_enabled: false
+        redirect_uris:
+          - "http://192.168.201.16:9000/*"
+          - "http://192.168.201.16:9000/oauth2/callback/oidc"
+          - "https://sonar.local/*"
+          - "https://sonar.local/oauth2/callback/oidc"
+        web_origins:
+          - "http://192.168.201.16:9000"
+          - "https://sonar.local"
+          - "+"
+
+    - name: Verify OIDC configuration
+      uri:
+        url: "http://127.0.0.1:8080/realms/{{ sonarqube_realm }}/.well-known/openid_configuration"
+        method: GET
+        timeout: 30
+      register: oidc_check
+      retries: 3
+      delay: 5
+
+    - name: Display success message
+      debug:
+        msg: |
+          ✅ SonarQube Client Created Successfully!
+
+          📋 Configuration:
+          • Realm: {{ sonarqube_realm }}
+          • Client: sonarqube
+          • OIDC Well-known: {{ oidc_check.status == 200 }}
+          • Provider URL: http://127.0.0.1:8080/realms/{{ sonarqube_realm }}/.well-known/openid_configuration

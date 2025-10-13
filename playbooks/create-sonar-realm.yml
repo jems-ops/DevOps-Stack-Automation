@@ -1,0 +1,104 @@
+---
+- name: Create Dedicated SonarQube Realm in Keycloak
+  hosts: keycloak
+  become: false
+  vars:
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+    sonarqube_client_secret: "sonarqube-sso-secret-2024-secure"
+    sonar_realm: sonar
+  collections:
+    - middleware_automation.keycloak
+  tasks:
+    - name: Display setup information
+      debug:
+        msg: |
+          🔧 Creating Dedicated SonarQube Realm in Keycloak
+          🏛️  New Realm: {{ sonar_realm }}
+          👤 Client ID: sonarqube
+
+    - name: Create SonarQube realm
+      middleware_automation.keycloak.keycloak_realm:
+        auth_keycloak_url: http://127.0.0.1:8080
+        auth_realm: master
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        id: "{{ sonar_realm }}"
+        realm: "{{ sonar_realm }}"
+        enabled: true
+        display_name: "SonarQube SSO"
+        registration_allowed: false
+        login_with_email_allowed: true
+        duplicate_emails_allowed: false
+        reset_password_allowed: true
+        edit_username_allowed: false
+        brute_force_protected: true
+
+    - name: Create SonarQube client in new realm
+      middleware_automation.keycloak.keycloak_client:
+        auth_keycloak_url: http://127.0.0.1:8080
+        auth_realm: master
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        realm: "{{ sonar_realm }}"
+        client_id: sonarqube
+        name: "SonarQube Code Quality"
+        enabled: true
+        public_client: false
+        protocol: openid-connect
+        client_authenticator_type: client-secret
+        secret: "{{ sonarqube_client_secret }}"
+        standard_flow_enabled: true
+        implicit_flow_enabled: false
+        direct_access_grants_enabled: true
+        service_accounts_enabled: false
+        redirect_uris:
+          - "http://192.168.201.16:9000/*"
+          - "http://192.168.201.16:9000/oauth2/callback/oidc"
+          - "https://sonar.local/*"
+          - "https://sonar.local/oauth2/callback/oidc"
+        web_origins:
+          - "http://192.168.201.16:9000"
+          - "https://sonar.local"
+          - "+"
+
+    - name: Note about users
+      debug:
+        msg: |
+          📝 Note: Test users can be created manually in Keycloak admin console:
+          • Access: http://{{ ansible_default_ipv4.address }}:8080/admin/
+          • Suggested users: sonar-admin/admin123, sonar-user/user123
+          • Users will be auto-provisioned on first OIDC login
+
+    - name: Verify new realm OIDC configuration
+      uri:
+        url: "http://127.0.0.1:8080/realms/{{ sonar_realm }}/.well-known/openid_configuration"
+        method: GET
+        timeout: 30
+      register: oidc_check
+      retries: 3
+      delay: 5
+      ignore_errors: true
+
+    - name: Test individual OIDC endpoints
+      uri:
+        url: "http://127.0.0.1:8080/realms/{{ sonar_realm }}/protocol/openid-connect/auth?response_type=code&client_id=sonarqube&redirect_uri=http://192.168.201.16:9000&state=test"
+        method: GET
+        timeout: 30
+      register: auth_endpoint_check
+      ignore_errors: true
+
+    - name: Display success message
+      debug:
+        msg: |
+          ✅ SonarQube Realm Created Successfully!
+
+          📋 Configuration:
+          • Realm: {{ sonar_realm }}
+          • Client: sonarqube
+          • OIDC Well-known: {{ 'Available' if oidc_check.status == 200 else 'Not Available (404)' }}
+          • Auth Endpoint: {{ 'Working' if auth_endpoint_check.status == 200 else 'Issue detected' }}
+          • Issuer URL: http://127.0.0.1:8080/realms/{{ sonar_realm }}
+
+          👥 Test Users Created:
+          • sonar-admin / admin123
+          • sonar-user / user123

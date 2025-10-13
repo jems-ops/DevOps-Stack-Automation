@@ -1,0 +1,148 @@
+---
+- name: Configure SonarQube SAML Authentication with Keycloak
+  hosts: sonarqube
+  become: true
+  vars:
+    keycloak_server: "{{ groups['keycloak'][0] }}"
+    sonar_realm: sonar
+    saml_client_id: sonarqube-saml
+  tasks:
+    - name: Display SonarQube SAML configuration information
+      debug:
+        msg: |
+          🔧 Configuring SonarQube SAML Authentication
+          🏛️  Keycloak Server: {{ keycloak_server }}:8080
+          🎯 Realm: {{ sonar_realm }}
+          👤 SAML Client ID: {{ saml_client_id }}
+          📡 SonarQube Server: {{ inventory_hostname }}:9000
+
+    - name: Check current SonarQube status
+      systemd:
+        name: sonarqube
+      register: sonarqube_status
+
+    - name: Stop SonarQube service
+      systemd:
+        name: sonarqube
+        state: stopped
+      when: sonarqube_status.status.ActiveState == "active"
+
+    - name: Backup current sonar.properties
+      copy:
+        src: /opt/sonarqube/conf/sonar.properties
+        dest: "/opt/sonarqube/conf/sonar.properties.backup.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+
+    - name: Remove old OIDC configuration from sonar.properties
+      replace:
+        path: /opt/sonarqube/conf/sonar.properties
+        regexp: '^sonar\.auth\.oidc\..*$'
+        replace: ''
+
+    - name: Remove old OIDC configuration block markers
+      replace:
+        path: /opt/sonarqube/conf/sonar.properties
+        regexp: '^#.*ANSIBLE MANAGED OIDC.*$'
+        replace: ''
+
+    - name: Configure SonarQube SAML authentication
+      blockinfile:
+        path: /opt/sonarqube/conf/sonar.properties
+        marker: "# {mark} ANSIBLE MANAGED SAML CONFIGURATION"
+        block: |
+          # SAML Authentication Configuration for Keycloak
+          sonar.auth.saml.enabled=true
+          sonar.auth.saml.applicationId={{ saml_client_id }}
+          sonar.auth.saml.providerName=Keycloak SAML
+          sonar.auth.saml.providerId=keycloak
+          sonar.auth.saml.loginUrl=http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}/protocol/saml
+          sonar.auth.saml.certificate.secured=
+          sonar.auth.saml.user.login=http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name
+          sonar.auth.saml.user.name=http://schemas.microsoft.com/ws/2008/06/identity/claims/name
+          sonar.auth.saml.user.email=http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress
+          sonar.auth.saml.group.name=groups
+          sonar.auth.saml.sp.privateKey.secured=
+          sonar.auth.saml.sp.certificate.secured=
+        backup: yes
+
+    - name: Ensure force authentication is enabled
+      lineinfile:
+        path: /opt/sonarqube/conf/sonar.properties
+        regexp: '^sonar\.forceAuthentication='
+        line: 'sonar.forceAuthentication=true'
+        backup: yes
+
+    - name: Get Keycloak SAML IdP certificate for verification
+      uri:
+        url: "http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}/protocol/saml/descriptor"
+        method: GET
+        return_content: yes
+      register: idp_metadata
+      delegate_to: localhost
+      become: false
+
+    - name: Extract certificate from IdP metadata (if available)
+      set_fact:
+        idp_certificate: "{{ (idp_metadata.content | regex_search('<ds:X509Certificate>(.*?)</ds:X509Certificate>', '\\1'))[0] | default('') }}"
+      when: idp_metadata.content is defined and idp_metadata.content
+
+    - name: Display extracted certificate info
+      debug:
+        msg: |
+          IdP Certificate extracted: {{ 'Yes' if idp_certificate else 'No' }}
+          Certificate length: {{ idp_certificate | length if idp_certificate else 0 }} chars
+
+    - name: Start SonarQube service
+      systemd:
+        name: sonarqube
+        state: started
+        enabled: yes
+
+    - name: Wait for SonarQube to be ready
+      uri:
+        url: "http://localhost:9000/"
+        method: GET
+        timeout: 30
+      register: sonarqube_ready
+      retries: 20
+      delay: 15
+      until: sonarqube_ready.status == 200
+
+    - name: Display SonarQube SAML configuration summary
+      debug:
+        msg: |
+          ✅ SonarQube SAML Configuration Complete!
+
+          📋 Configuration Applied:
+          • SAML Enabled: ✅
+          • Provider Name: Keycloak SAML
+          • Provider ID: keycloak
+          • Application ID: {{ saml_client_id }}
+          • Login URL: http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}/protocol/saml
+          • Force Authentication: Enabled
+
+          🏷️  Attribute Mappings:
+          • Username: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name
+          • Display Name: http://schemas.microsoft.com/ws/2008/06/identity/claims/name
+          • Email: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress
+          • Groups: groups
+
+          🌐 Access SonarQube:
+          • Direct: http://localhost:9000
+          • External: http://{{ inventory_hostname }}:9000
+
+          🔧 SAML Endpoints:
+          • IdP Login URL: http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}/protocol/saml
+          • IdP Metadata: http://{{ keycloak_server }}:8080/realms/{{ sonar_realm }}/protocol/saml/descriptor
+          • SP ACS URL: http://{{ inventory_hostname }}:9000/oauth2/callback/saml
+
+          📝 Manual Configuration Notes:
+          1. If certificate validation is required, add the IdP certificate to sonar.auth.saml.certificate.secured
+          2. For production, consider configuring SP private key and certificate
+          3. Verify attribute mappings match your Keycloak SAML client configuration
+
+          🧪 Testing:
+          1. Access http://{{ inventory_hostname }}:9000
+          2. Look for "Log in with Keycloak SAML" button
+          3. Test login with FreeIPA users through Keycloak
+          4. Verify user provisioning and group mapping

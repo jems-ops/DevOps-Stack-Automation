@@ -1,0 +1,147 @@
+---
+- name: Configure FreeIPA Users and Groups for SonarQube SSO
+  hosts: freeipa
+  become: true
+  vars:
+    freeipa_domain: freeipa.local
+    freeipa_realm: FREEIPA.LOCAL
+    freeipa_admin_password: admin123
+    freeipa_hostname: ipa.freeipa.local
+  tasks:
+    - name: Display FreeIPA configuration information
+      debug:
+        msg: |
+          🔧 Configuring FreeIPA Users and Groups for SonarQube
+          🏛️  Domain: {{ freeipa_domain }}
+          🌐 Realm: {{ freeipa_realm }}
+          🖥️  Hostname: {{ freeipa_hostname }}
+          📍 Server IP: {{ inventory_hostname }}
+
+    - name: Get Kerberos ticket for admin
+      shell: echo "{{ freeipa_admin_password }}" | kinit admin
+      no_log: false
+
+    - name: Create SonarQube groups via CLI
+      command: "ipa group-add {{ item.name }} --desc='{{ item.desc }}'"
+      loop:
+        - name: sonar-admins
+          desc: "SonarQube Administrators"
+        - name: sonar-users
+          desc: "SonarQube Users"
+        - name: sonar-developers
+          desc: "SonarQube Developers"
+      register: group_creation
+      failed_when:
+        - group_creation.rc != 0
+        - "'already exists' not in group_creation.stderr"
+      ignore_errors: true
+
+    - name: Create Keycloak service account
+      shell: |
+        echo -e "KeycloakBind123!\nKeycloakBind123!" | ipa user-add keycloak-bind \
+          --first=Keycloak \
+          --last=Service \
+          --email=keycloak@{{ freeipa_domain }} \
+          --password
+      register: keycloak_user_creation
+      failed_when:
+        - keycloak_user_creation.rc != 0
+        - "'already exists' not in keycloak_user_creation.stderr"
+      ignore_errors: true
+
+    - name: Create test users for SonarQube
+      shell: |
+        echo -e "{{ item.password }}\n{{ item.password }}" | ipa user-add {{ item.name }} \
+          --first={{ item.first }} \
+          --last={{ item.last }} \
+          --email={{ item.name }}@{{ freeipa_domain }} \
+          --password
+      loop:
+        - name: sonar-admin
+          first: SonarQube
+          last: Administrator
+          password: "SonarAdmin123!"
+        - name: sonar-user
+          first: SonarQube
+          last: User
+          password: "SonarUser123!"
+        - name: sonar-dev
+          first: SonarQube
+          last: Developer
+          password: "SonarDev123!"
+      register: user_creation
+      failed_when:
+        - user_creation.rc != 0
+        - "'already exists' not in user_creation.stderr"
+      ignore_errors: true
+
+    - name: Add users to groups
+      command: "ipa group-add-member {{ item.group }} --users={{ item.user }}"
+      loop:
+        - group: sonar-admins
+          user: sonar-admin
+        - group: sonar-users
+          user: sonar-user
+        - group: sonar-users
+          user: sonar-dev
+        - group: sonar-developers
+          user: sonar-dev
+      register: group_membership
+      failed_when:
+        - group_membership.rc != 0
+        - "'already a member' not in group_membership.stderr"
+      ignore_errors: true
+
+    - name: Verify FreeIPA users and groups
+      command: "{{ item }}"
+      loop:
+        - "ipa user-find --all | grep -A 5 -E '(sonar-admin|sonar-user|sonar-dev|keycloak-bind)'"
+        - "ipa group-find --all | grep -A 3 -E '(sonar-admins|sonar-users|sonar-developers)'"
+      register: verification
+      ignore_errors: true
+
+    - name: Display verification results
+      debug:
+        msg: "{{ item.stdout_lines }}"
+      loop: "{{ verification.results }}"
+      when: item.stdout_lines is defined
+
+    - name: Display FreeIPA configuration summary
+      debug:
+        msg: |
+          ✅ FreeIPA SonarQube Configuration Complete!
+
+          📋 Existing FreeIPA Server:
+          • Domain: {{ freeipa_domain }}
+          • Realm: {{ freeipa_realm }}
+          • Hostname: {{ freeipa_hostname }}
+          • Admin Password: {{ freeipa_admin_password }}
+
+          👥 Created/Configured Groups:
+          • sonar-admins (SonarQube Administrators)
+          • sonar-users (SonarQube Users)
+          • sonar-developers (SonarQube Developers)
+
+          👤 Created/Configured Users:
+          • sonar-admin (SonarAdmin123!) → sonar-admins
+          • sonar-user (SonarUser123!) → sonar-users
+          • sonar-dev (SonarDev123!) → sonar-users, sonar-developers
+          • keycloak-bind (KeycloakBind123!) → Service account for Keycloak LDAP binding
+
+          🌐 FreeIPA Access:
+          • Web UI: https://{{ freeipa_hostname }} or https://{{ inventory_hostname }}
+          • LDAP Server: {{ inventory_hostname }}:389 (StartTLS) / 636 (LDAPS)
+          • Base DN: dc=freeipa,dc=local
+
+          🔧 LDAP Connection Details for Keycloak:
+          • LDAP URL: ldap://{{ inventory_hostname }}:389
+          • Bind DN: uid=keycloak-bind,cn=users,cn=accounts,dc=freeipa,dc=local
+          • Bind Password: KeycloakBind123!
+          • User Base DN: cn=users,cn=accounts,dc=freeipa,dc=local
+          • Group Base DN: cn=groups,cn=accounts,dc=freeipa,dc=local
+
+          📝 Next Steps:
+          1. Configure Keycloak User Federation with FreeIPA LDAP
+          2. Create SAML client for SonarQube in Keycloak
+          3. Configure SonarQube SAML authentication
+          4. Test end-to-end SSO flow

@@ -1,0 +1,21 @@
+---
+# SonarQube-Keycloak SAML Integration Handlers
+
+- name: restart_sonarqube
+  ansible.builtin.systemd:
+    name: "{{ sonarqube.service_name }}"
+    state: restarted
+    enabled: true
+  become: true
+  listen: restart_sonarqube
+
+- name: wait_for_sonarqube
+  ansible.builtin.uri:
+    url: "{{ sonarqube.base_url }}/api/system/status"
+    method: GET
+    status_code: [200]
+  register: sonarqube_status_check
+  until: sonarqube_status_check.json.status == "UP"
+  retries: 30
+  delay: 10
+  listen: wait_for_sonarqube

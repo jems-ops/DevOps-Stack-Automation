@@ -1,0 +1,73 @@
+---
+- name: Create Jenkins Realm in Keycloak
+  hosts: keycloak
+  become: false
+  vars:
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+  collections:
+    - middleware_automation.keycloak
+  tasks:
+    - name: Create Jenkins realm
+      middleware_automation.keycloak.keycloak_realm:
+        auth_keycloak_url: http://127.0.0.1:8080
+        auth_realm: master
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        realm: jenkins
+        enabled: true
+        display_name: "Jenkins SSO"
+        registration_allowed: false
+        login_with_email_allowed: true
+        duplicate_emails_allowed: false
+        reset_password_allowed: true
+        edit_username_allowed: false
+        brute_force_protected: true
+
+    - name: Create Jenkins client
+      middleware_automation.keycloak.keycloak_client:
+        auth_keycloak_url: http://127.0.0.1:8080
+        auth_realm: master
+        auth_username: admin
+        auth_password: "{{ keycloak_admin_password }}"
+        realm: jenkins
+        client_id: jenkins
+        name: "Jenkins CI/CD"
+        enabled: true
+        public_client: false
+        protocol: openid-connect
+        client_authenticator_type: client-secret
+        secret: "{{ vault_jenkins_oidc_client_secret }}"
+        standard_flow_enabled: true
+        implicit_flow_enabled: false
+        direct_access_grants_enabled: true
+        service_accounts_enabled: false
+        redirect_uris:
+          - "http://192.168.201.14:8080/*"
+          - "https://jenkins.example.com/*"
+          - "http://192.168.201.14:8080/securityRealm/finishLogin"
+          - "https://jenkins.example.com/securityRealm/finishLogin"
+        web_origins:
+          - "http://192.168.201.14:8080"
+          - "https://jenkins.example.com"
+          - "+"
+
+    - name: Verify realm OIDC configuration
+      uri:
+        url: "http://127.0.0.1:8080/realms/jenkins/.well-known/openid_configuration"
+        method: GET
+        timeout: 30
+      register: oidc_check
+      retries: 3
+      delay: 5
+
+    - name: Display success message
+      debug:
+        msg: |
+          ✅ Jenkins Realm Created Successfully!
+
+          📋 Configuration:
+          • Realm: jenkins
+          • Client: jenkins
+          • OIDC Well-known: {{ oidc_check.status == 200 }}
+          • Endpoint: http://127.0.0.1:8080/realms/jenkins/.well-known/openid_configuration
+      when: oidc_check is defined

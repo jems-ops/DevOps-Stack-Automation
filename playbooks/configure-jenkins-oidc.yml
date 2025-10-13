@@ -1,0 +1,133 @@
+---
+- name: Configure Jenkins OIDC Authentication
+  hosts: jenkins
+  gather_facts: true
+  become: true
+
+  vars:
+    # Keycloak Configuration
+    keycloak_admin_url: "http://192.168.201.12:8080"
+    sso_realm_name: "jenkins"
+
+    # Jenkins Client Configuration
+    jenkins_client_id: "jenkins"
+    jenkins_client_secret: "{{ vault_jenkins_oidc_client_secret | default('jenkins-sso-secret-2024-secure') }}"
+
+    # Jenkins URLs
+    jenkins_base_url: "https://jenkins.example.com"
+    jenkins_proxy_url: "https://jenkins.example.com"
+
+    # Security settings
+    jenkins_full_read_permission: false
+
+  pre_tasks:
+    - name: Display OIDC configuration information
+      debug:
+        msg: |
+          🔧 Jenkins OIDC Configuration
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Jenkins server: {{ inventory_hostname }}
+          🔑 Keycloak server: {{ keycloak_admin_url }}
+          🏛️  Realm: {{ sso_realm_name }}
+          👤 Client ID: {{ jenkins_client_id }}
+
+    - name: Verify Jenkins is accessible
+      uri:
+        url: "http://{{ inventory_hostname }}:8080/"
+        method: GET
+        status_code: [200, 403]
+        timeout: 30
+      register: jenkins_check
+      retries: 3
+      delay: 5
+
+    - name: Display Jenkins status
+      debug:
+        msg: |
+          📊 Jenkins Status:
+          ✅ Server: {{ inventory_hostname }}:8080
+          ✅ Status: {{ 'Online' if jenkins_check.status in [200, 403] else 'Offline' }}
+          ✅ Ready for OIDC configuration
+
+  tasks:
+    - name: Stop Jenkins service for configuration
+      command: /bin/systemctl stop jenkins
+      register: jenkins_stop_result
+
+    - name: Wait for Jenkins to stop
+      wait_for:
+        port: 8080
+        host: "{{ inventory_hostname }}"
+        state: stopped
+        timeout: 60
+
+    - name: Backup existing Jenkins config
+      copy:
+        src: /var/lib/jenkins/config.xml
+        dest: "/var/lib/jenkins/config.xml.backup.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+        owner: jenkins
+        group: jenkins
+        mode: '0644'
+
+    - name: Deploy Jenkins OIDC security configuration
+      template:
+        src: jenkins-security-config.xml.j2
+        dest: /var/lib/jenkins/config.xml
+        owner: jenkins
+        group: jenkins
+        mode: '0644'
+        backup: yes
+
+    - name: Start Jenkins service
+      command: /bin/systemctl start jenkins
+      register: jenkins_start_result
+
+    - name: Enable Jenkins service
+      command: /bin/systemctl enable jenkins
+
+    - name: Wait for Jenkins to be ready
+      uri:
+        url: "http://{{ inventory_hostname }}:8080/login"
+        method: GET
+        timeout: 30
+        status_code: [200, 403]
+      register: jenkins_ready_check
+      retries: 15
+      delay: 10
+      until: jenkins_ready_check.status in [200, 403]
+
+    - name: Verify OIDC configuration is active
+      uri:
+        url: "http://{{ inventory_hostname }}:8080/"
+        method: GET
+        timeout: 30
+        status_code: [200, 403]
+      register: oidc_verification
+
+  post_tasks:
+    - name: Display configuration completion
+      debug:
+        msg: |
+          ✅ Jenkins OIDC Configuration Complete!
+
+          📋 Configuration Summary:
+          • Jenkins Server: {{ inventory_hostname }}:8080
+          • Keycloak Server: {{ keycloak_admin_url }}
+          • Realm: {{ sso_realm_name }}
+          • Client ID: {{ jenkins_client_id }}
+
+          🔧 OIDC Endpoints Configured:
+          • Authorization: {{ keycloak_admin_url }}/realms/{{ sso_realm_name }}/protocol/openid-connect/auth
+          • Token: {{ keycloak_admin_url }}/realms/{{ sso_realm_name }}/protocol/openid-connect/token
+          • User Info: {{ keycloak_admin_url }}/realms/{{ sso_realm_name }}/protocol/openid-connect/userinfo
+
+          🧪 Test Login:
+          1. Access: http://{{ inventory_hostname }}:8080
+          2. Look for "Login with OpenID Connect" button
+          3. Test credentials:
+             • Admin: jenkins-admin / admin123
+             • User: jenkins-user / user123
+
+          ⚠️ Note: Manual endpoints configured (not well-known URL)
+          📝 Config backed up to: /var/lib/jenkins/config.xml.backup.{{ ansible_date_time.epoch }}

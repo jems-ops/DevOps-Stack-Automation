@@ -1,0 +1,32 @@
+---
+# Jenkins OIDC Plugin Installation Role Metadata
+
+galaxy_info:
+  author: Jenkins Automation Team
+  description: Install OpenID Connect Authentication plugin for Jenkins
+  company: Internal
+  license: MIT
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - 20.04
+        - 22.04
+
+  galaxy_tags:
+    - jenkins
+    - plugin
+    - oidc
+    - authentication
+    - openid-connect
+
+dependencies: []
+
+collections:
+  - community.general
+  - ansible.posix

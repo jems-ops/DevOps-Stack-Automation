@@ -51,6 +51,11 @@ site_backends:
     port: "9000"
     # Optional per-backend rewrite rule:
     # rewrite_rule: "^/sonar/(.*) /$1 break"
+  - server_name: "keycloak.example.com"
+    ip: "192.168.201.12"
+    port: "8080"
+    # Optional per-backend rewrite rule:
+    # rewrite_rule: "^/keycloak/(.*) /$1 break"
 
 setup_nginx_reverse_proxy_sites:
   - name: jenkins
@@ -70,3 +75,9 @@ setup_nginx_reverse_proxy_sites:
       - sonar.local.com
     backend_host: "192.168.201.16"
     backend_port: "9000"
+
+  - name: keycloak
+    server_name:
+      - keycloak.local.com
+    backend_host: "192.168.201.12"
+    backend_port: "8080"

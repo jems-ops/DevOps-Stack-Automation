@@ -1,0 +1,72 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<hudson>
+  <disabledAdministrativeMonitors/>
+  <version>2.516.3</version>
+  <installState class="jenkins.install.InstallState$5">
+    <isSetupComplete>true</isSetupComplete>
+    <name>RUNNING</name>
+  </installState>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="hudson.security.FullControlOnceLoggedInAuthorizationStrategy">
+    <denyAnonymousReadAccess>{{ jenkins_full_read_permission | lower }}</denyAnonymousReadAccess>
+  </authorizationStrategy>
+  <securityRealm class="org.jenkinsci.plugins.oic.OicSecurityRealm" plugin="oic-auth@4.609.v9de140f63d01">
+    <clientId>{{ jenkins_client_id }}</clientId>
+    <clientSecret>{{ jenkins_client_secret }}</clientSecret>
+    <userNameField>preferred_username</userNameField>
+    <tokenFieldToCheckKey>aud</tokenFieldToCheckKey>
+    <tokenFieldToCheckValue>{{ jenkins_client_id }}</tokenFieldToCheckValue>
+    <fullNameFieldName>name</fullNameFieldName>
+    <emailFieldName>email</emailFieldName>
+    <groupsFieldName>groups</groupsFieldName>
+    <disableSslVerification>false</disableSslVerification>
+    <logoutFromOpenidProvider>true</logoutFromOpenidProvider>
+    <escapeHatchEnabled>true</escapeHatchEnabled>
+    <escapeHatchUsername>jimi</escapeHatchUsername>
+    <escapeHatchSecret>{AQAAABAAAAAgdDT+6tVsjHDHAcKiK4c+FI+g47FmfSH/P8Ba0kc1QaKYBKthMjg5LswzQ2IYSP38}</escapeHatchSecret>
+    <escapeHatchGroup></escapeHatchGroup>
+    <serverConfiguration>
+      <tokenServerUrl>{{ keycloak_admin_url }}/realms/{{ sso_realm_name }}/protocol/openid-connect/token</tokenServerUrl>
+      <authorizationServerUrl>{{ keycloak_admin_url }}/realms/{{ sso_realm_name }}/protocol/openid-connect/auth</authorizationServerUrl>
+      <scopes>openid profile email</scopes>
+      <userInfoServerUrl>{{ keycloak_admin_url }}/realms/{{ sso_realm_name }}/protocol/openid-connect/userinfo</userInfoServerUrl>
+      <useRefreshTokens>false</useRefreshTokens>
+      <issuer>migrated</issuer>
+    </serverConfiguration>
+    <rootURLFromRequest>false</rootURLFromRequest>
+    <sendScopesInTokenRequest>false</sendScopesInTokenRequest>
+    <tokenExpirationCheckDisabled>false</tokenExpirationCheckDisabled>
+    <allowTokenAccessWithoutOicSession>false</allowTokenAccessWithoutOicSession>
+    <properties/></securityRealm>
+  </securityRealm>
+  <disableRememberMe>false</disableRememberMe>
+  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+  <workspaceDir>${JENKINS_HOME}/workspace/${ITEM_FULLNAME}</workspaceDir>
+  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
+  <markupFormatter class="hudson.markup.EscapedMarkupFormatter"/>
+  <jdks/>
+  <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
+  <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
+  <clouds/>
+  <quietPeriod>5</quietPeriod>
+  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>all</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+    </hudson.model.AllView>
+  </views>
+  <primaryView>all</primaryView>
+  <slaveAgentPort>50000</slaveAgentPort>
+  <label></label>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
+    <excludeClientIPFromCrumb>false</excludeClientIPFromCrumb>
+  </crumbIssuer>
+  <nodeProperties/>
+  <globalNodeProperties/>
+</hudson>

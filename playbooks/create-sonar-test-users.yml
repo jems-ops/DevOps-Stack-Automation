@@ -1,0 +1,75 @@
+---
+- name: Create Test Users in Keycloak Sonar Realm
+  hosts: keycloak
+  become: false
+  vars:
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+    sonar_realm: sonar
+  tasks:
+    - name: Get admin access token
+      uri:
+        url: "http://127.0.0.1:8080/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: admin
+          password: "{{ keycloak_admin_password }}"
+          grant_type: password
+          client_id: admin-cli
+      register: token_response
+
+    - name: Create sonar-admin user
+      uri:
+        url: "http://127.0.0.1:8080/admin/realms/{{ sonar_realm }}/users"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_response.json.access_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          username: sonar-admin
+          email: admin@sonar.local
+          firstName: SonarQube
+          lastName: Administrator
+          enabled: true
+          credentials:
+            - type: password
+              value: admin123
+              temporary: false
+        status_code: [201, 409]  # 409 if user already exists
+      register: admin_user_result
+
+    - name: Create sonar-user user
+      uri:
+        url: "http://127.0.0.1:8080/admin/realms/{{ sonar_realm }}/users"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_response.json.access_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          username: sonar-user
+          email: user@sonar.local
+          firstName: SonarQube
+          lastName: User
+          enabled: true
+          credentials:
+            - type: password
+              value: user123
+              temporary: false
+        status_code: [201, 409]  # 409 if user already exists
+      register: user_result
+
+    - name: Display user creation results
+      debug:
+        msg: |
+          ✅ Test Users Creation Complete!
+
+          👥 Users Created in '{{ sonar_realm }}' realm:
+          • sonar-admin / admin123 - Status: {{ 'Created' if admin_user_result.status == 201 else 'Already exists' }}
+          • sonar-user / user123 - Status: {{ 'Created' if user_result.status == 201 else 'Already exists' }}
+
+          🌐 Access Keycloak Admin:
+          • URL: http://{{ ansible_default_ipv4.address }}:8080/admin/
+          • Realm: {{ sonar_realm }}
+          • Login: admin / {{ keycloak_admin_password }}
