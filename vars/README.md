@@ -1,26 +1,29 @@
 # Variables Directory
 
-This directory contains variable files for Ansible playbooks.
+This directory is reserved for project-wide variable files when needed.
 
-## Files
+## Current Approach
 
-### `sonarqube-keycloak-saml.yml`
-Variables for SonarQube-Keycloak SAML integration playbook.
+**Role Defaults**: Variables are now defined in role `defaults/main.yml` files for:
+- ✅ Better encapsulation
+- ✅ Role reusability
+- ✅ Clear variable precedence
+- ✅ Easy overrides in playbooks
 
-**Usage:**
+## Variable Override Examples
+
+**In Playbooks:**
 ```yaml
-vars_files:
-  - "../vars/sonarqube-keycloak-saml.yml"
+vars:
+  sonarqube:
+    host: "192.168.201.11"  # Override auto-detection
+  keycloak:
+    host: "192.168.201.12"
+    admin_password: "{{ vault_keycloak_admin_password }}"
 ```
 
-**Key Variables to Customize:**
-- `keycloak.host` - Your Keycloak server IP/hostname
-- `keycloak.admin_password` - Keycloak admin password
-- `sonarqube.host` - Your SonarQube server IP/hostname
-- `test_user.enabled` - Enable/disable test user creation
-
-**Vault Variables:**
-Use Ansible Vault for sensitive data:
+**Using Ansible Vault:**
 ```bash
-ansible-vault create vault_keycloak_admin_password
+ansible-vault create group_vars/all/vault.yml
+# Add: vault_keycloak_admin_password: "your-secure-password"
 ```

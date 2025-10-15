@@ -1,14 +1,15 @@
 ---
-- name: SonarQube-Keycloak SAML Integration (with vars file)
+- name: SonarQube-Keycloak SAML Integration (Example with Overrides)
   hosts: sonarqube
   become: true
   gather_facts: true
 
-  vars_files:
-    - "../vars/sonarqube-keycloak-saml.yml"
-
   vars:
-    # Override variables here if needed
+    # Example: Override specific configuration
+    sonarqube:
+      host: "192.168.201.11"  # Force specific IP instead of auto-detection
+    keycloak:
+      host: "192.168.201.12"
     debug_logging: false
 
   roles:

@@ -3,7 +3,7 @@
 
 # SonarQube Configuration
 sonarqube:
-  host: "192.168.201.16"
+  host: "{{ ansible_default_ipv4.address }}"
   port: 9000
   protocol: "http"
   config_path: "/opt/sonarqube/conf/sonar.properties"
@@ -41,7 +41,7 @@ keycloak:
   protocol: "http"
   realm: "sonar"
   admin_user: "admin"
-  admin_password: "admin123"
+  admin_password: "{{ vault_keycloak_admin_password | default('admin123') }}"
   base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
 
   # SAML Client Configuration
@@ -118,14 +118,14 @@ groups:
 
 # Test User Configuration (optional)
 test_user:
-  enabled: false
-  username: "testuser"
-  password: "testpass123"
-  email: "testuser@example.com"
-  first_name: "Test"
+  enabled: true
+  username: "demo.user"
+  password: "demo123!"
+  email: "demo@example.com"
+  first_name: "Demo"
   last_name: "User"
   groups:
-    - "{{ groups.sonar_users.name }}"
+    - "sonar-users"
 
 # Logging
 debug_logging: false

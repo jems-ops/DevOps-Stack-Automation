@@ -4,8 +4,11 @@
   become: true
   gather_facts: true
 
-  vars_files:
-    - "../vars/sonarqube-keycloak-saml.yml"
+  vars:
+    # Override any defaults here if needed
+    # Example: Force specific SonarQube host
+    # sonarqube:
+    #   host: "192.168.201.11"
 
   roles:
     - sonarqube-keycloak-saml
