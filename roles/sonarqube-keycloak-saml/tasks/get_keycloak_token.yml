@@ -6,6 +6,7 @@
     url: "{{ keycloak.base_url }}/realms/master/protocol/openid-connect/token"
     method: POST
     body_format: form-urlencoded
+    return_content: true
     body:
       username: "{{ keycloak.admin_user }}"
       password: "{{ keycloak.admin_password }}"

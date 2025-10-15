@@ -1,15 +1,11 @@
 ---
-- name: SonarQube-Keycloak SAML Integration (with vars file)
+- name: SonarQube-Keycloak SAML Integration
   hosts: sonarqube
   become: true
   gather_facts: true
 
   vars_files:
     - "../vars/sonarqube-keycloak-saml.yml"
-
-  vars:
-    # Override variables here if needed
-    debug_logging: false
 
   roles:
     - sonarqube-keycloak-saml

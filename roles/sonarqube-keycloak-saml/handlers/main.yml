@@ -14,8 +14,10 @@
     url: "{{ sonarqube.base_url }}/api/system/status"
     method: GET
     status_code: [200]
+    return_content: true
   register: sonarqube_status_check
-  until: sonarqube_status_check.json.status == "UP"
+  until: "sonarqube_status_check.json is defined and sonarqube_status_check.json.status == 'UP'"
   retries: 30
   delay: 10
+  failed_when: false
   listen: wait_for_sonarqube

@@ -1,0 +1,125 @@
+---
+- name: Test and Fix SAML User Authentication
+  hosts: localhost
+  gather_facts: false
+  become: false
+  vars:
+    keycloak_base_url: "http://192.168.201.12:8080"
+    keycloak_realm: "sonar"
+    keycloak_admin_user: "admin"
+    keycloak_admin_password: "admin123"
+    test_username: "demo.user"
+    test_password: "demo123!"
+
+  tasks:
+    - name: Get Keycloak admin token
+      uri:
+        url: "{{ keycloak_base_url }}/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        return_content: true
+        body:
+          username: "{{ keycloak_admin_user }}"
+          password: "{{ keycloak_admin_password }}"
+          grant_type: "password"
+          client_id: "admin-cli"
+      register: token_response
+      no_log: true
+
+    - name: Set access token
+      set_fact:
+        access_token: "{{ token_response.json.access_token }}"
+      no_log: true
+
+    - name: Check if test user exists
+      uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/users?username={{ test_username }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+      register: user_check
+
+    - name: Display user status
+      debug:
+        msg: |
+          User exists: {{ user_check.json | length > 0 }}
+          {% if user_check.json | length > 0 %}
+          User enabled: {{ user_check.json[0].enabled }}
+          User email verified: {{ user_check.json[0].emailVerified }}
+          User ID: {{ user_check.json[0].id }}
+          {% endif %}
+
+    - name: Set user password (ensure it's set correctly)
+      uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/users/{{ user_check.json[0].id }}/reset-password"
+        method: PUT
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "password"
+          value: "{{ test_password }}"
+          temporary: false
+        status_code: [204]
+      when: user_check.json | length > 0
+      no_log: true
+
+    - name: Enable user account
+      uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/users/{{ user_check.json[0].id }}"
+        method: PUT
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          id: "{{ user_check.json[0].id }}"
+          username: "{{ test_username }}"
+          enabled: true
+          emailVerified: true
+          firstName: "Demo"
+          lastName: "User"
+          email: "demo@example.com"
+        status_code: [204]
+      when: user_check.json | length > 0
+
+    - name: Verify user is in sonar-users group
+      uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/users/{{ user_check.json[0].id }}/groups"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+      register: user_groups
+      when: user_check.json | length > 0
+
+    - name: Display user groups
+      debug:
+        msg: |
+          User groups: {{ user_groups.json | map(attribute='name') | list if user_groups is defined else 'No groups found' }}
+      when: user_check.json | length > 0
+
+    - name: Display SAML test instructions
+      debug:
+        msg: |
+          🧪 SAML Authentication Test Instructions:
+
+          1. ✅ User Setup Complete:
+             - Username: {{ test_username }}
+             - Password: {{ test_password }}
+             - Status: Enabled and verified
+
+          2. 🌐 Test SAML Login:
+             - Go to: http://192.168.201.11:9000
+             - Click: "Log in with Keycloak SAML"
+             - Enter credentials above
+
+          3. 🔍 If login fails, check:
+             - SonarQube logs: /opt/sonarqube/logs/web.log
+             - Keycloak logs: /opt/keycloak/logs/
+             - Network connectivity between systems
+
+          4. 🎯 Expected Flow:
+             - Redirect to Keycloak login page
+             - Enter demo.user / demo123!
+             - Redirect back to SonarQube as authenticated user

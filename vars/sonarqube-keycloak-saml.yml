@@ -1,0 +1,131 @@
+---
+# SonarQube-Keycloak SAML Integration Variables
+# Customize these variables for your environment
+
+# SonarQube Configuration
+sonarqube:
+  host: "192.168.201.11"
+  port: 9000
+  protocol: "http"
+  config_path: "/opt/sonarqube/conf/sonar.properties"
+  service_name: "sonarqube"
+  base_url: "http://192.168.201.11:9000"
+
+  # SAML Configuration
+  saml:
+    enabled: true
+    force_authentication: false
+    application_id: "http://192.168.201.11:9000"
+    provider_name: "Keycloak SAML"
+    provider_id: "http://192.168.201.12:8080/realms/sonar"
+    login_url: "http://192.168.201.12:8080/realms/sonar/protocol/saml"
+    sp_entity_id: "http://192.168.201.11:9000"
+
+    # User Attribute Mappings
+    user:
+      login: "username"
+      name: "name"
+      email: "email"
+      sign_up_enabled: true
+      default_group: "sonar-users"
+
+    # Group Mappings
+    group:
+      name: "groups"
+
+# Keycloak Configuration
+keycloak:
+  host: "192.168.201.12"
+  port: 8080
+  protocol: "http"
+  realm: "sonar"
+  admin_user: "admin"
+  admin_password: "{{ vault_keycloak_admin_password | default('admin123') }}"
+  base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
+
+  # SAML Client Configuration
+  saml_client:
+    client_id: "http://192.168.201.11:9000"
+    enabled: true
+    protocol: "saml"
+    front_channel_logout: true
+    redirect_uris:
+      - "http://192.168.201.11:9000/*"
+      - "http://192.168.201.11:9000/oauth2/callback/saml"
+    web_origins:
+      - "http://192.168.201.11:9000"
+    base_url: "http://192.168.201.11:9000"
+    root_url: "http://192.168.201.11:9000"
+    admin_url: "http://192.168.201.11:9000/oauth2/callback/saml"
+
+    # SAML Attributes
+    attributes:
+      saml_authnstatement: "true"
+      saml_server_signature: "false"
+      saml_signature_algorithm: "RSA_SHA256"
+      saml_client_signature: "false"
+      saml_assertion_signature: "true"
+      saml_encrypt: "false"
+      saml_force_post_binding: "true"
+      saml_name_id_format: "username"
+      saml_signing_certificate: ""
+      saml_signing_private_key: ""
+
+    # Protocol Mappers
+    protocol_mappers:
+      - name: "username"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          user_attribute: "username"
+          attribute_name: "username"
+
+      - name: "email"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          user_attribute: "email"
+          attribute_name: "email"
+
+      - name: "name"
+        protocol: "saml"
+        protocol_mapper: "saml-user-property-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          user_attribute: "username"
+          attribute_name: "name"
+
+      - name: "groups"
+        protocol: "saml"
+        protocol_mapper: "saml-group-membership-mapper"
+        consent_required: false
+        config:
+          attribute_nameformat: "Basic"
+          attribute_name: "groups"
+          single: "false"
+          full_path: "false"
+
+# Groups Configuration
+groups:
+  sonar_users:
+    name: "sonar-users"
+    description: "SonarQube Users Group"
+
+# Test User Configuration (optional)
+test_user:
+  enabled: true
+  username: "demo.user"
+  password: "demo123!"
+  email: "demo@example.com"
+  first_name: "Demo"
+  last_name: "User"
+  groups:
+    - "sonar-users"
+
+# Debug logging (optional)
+debug_logging: false
