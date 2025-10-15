@@ -1,29 +1,84 @@
 ---
 - name: Configure Jenkins-Keycloak SAML Integration
-  hosts: jenkins_servers
+  hosts: jenkins
   become: yes
   vars:
-    # Keycloak Configuration
+    # Keycloak Configuration Variables (override role defaults)
+    keycloak_protocol: "http"
+    keycloak_host: "192.168.201.12"  # Keycloak server from inventory
+    keycloak_port: 8080
+
     keycloak:
-      protocol: "http"
-      host: "192.168.201.12"  # Update with your Keycloak server IP/hostname
-      port: 8080
+      protocol: "{{ keycloak_protocol }}"
+      host: "{{ keycloak_host }}"
+      port: "{{ keycloak_port }}"
+      base_url: "{{ keycloak_protocol }}://{{ keycloak_host }}:{{ keycloak_port }}"
       realm: "jenkins"
       admin_user: "admin"
-      admin_password: "{{ vault_keycloak_admin_password | default('admin') }}"
+      admin_password: "{{ vault_keycloak_admin_password | default('admin123') }}"
 
       saml_client:
         client_id: "jenkins-saml"
+        protocol: "saml"
+        enabled: true
+        front_channel_logout: true
+        redirect_uris:
+          - "{{ jenkins.base_url }}/securityRealm/finishLogin"
+          - "{{ jenkins.base_url }}/securityRealm/finishLogin/*"
+        web_origins:
+          - "{{ jenkins.base_url }}"
+        base_url: "{{ jenkins.base_url }}"
+        root_url: "{{ jenkins.base_url }}"
+        admin_url: "{{ jenkins.base_url }}"
         attributes:
-          saml_force_post_binding: "true"
+          saml_authnstatement: "true"
           saml_server_signature: "true"
           saml_signature_algorithm: "RSA_SHA256"
+          saml_client_signature: "false"
           saml_assertion_signature: "true"
+          saml_encrypt: "false"
+          saml_force_post_binding: "true"
+          saml_name_id_format: "username"
+          saml_signing_certificate: ""
+          saml_signing_private_key: ""
+        protocol_mappers:
+          - name: "username"
+            protocol: "saml"
+            protocol_mapper: "saml-user-property-mapper"
+            config:
+              attribute_name: "username"
+              attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+              user_attribute: "username"
+          - name: "email"
+            protocol: "saml"
+            protocol_mapper: "saml-user-property-mapper"
+            config:
+              attribute_name: "email"
+              attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+              user_attribute: "email"
+          - name: "displayName"
+            protocol: "saml"
+            protocol_mapper: "saml-user-property-mapper"
+            config:
+              attribute_name: "displayName"
+              attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+              user_attribute: "username"
+          - name: "groups"
+            protocol: "saml"
+            protocol_mapper: "saml-group-membership-mapper"
+            config:
+              attribute_name: "groups"
+              attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
+              single: "false"
+              full_path: "false"
 
     # Jenkins Configuration
     jenkins:
-      base_url: "http://192.168.201.13:8080"  # Update with your Jenkins server URL
+      base_url: "http://192.168.201.14:8080"  # Jenkins server from inventory
       home: "/var/lib/jenkins"
+      config_file: "config.xml"
+      user: "jenkins"
+      group: "jenkins"
       saml:
         display_name: "Keycloak SAML SSO"
         sp_entity_id: "jenkins-saml"
@@ -76,25 +131,21 @@
           - ""
 
     - name: Check Jenkins SAML plugin installation
-      ansible.builtin.uri:
-        url: "{{ jenkins.base_url }}/pluginManager/api/json?depth=1"
-        method: GET
-        return_content: yes
-        status_code: 200
-      register: jenkins_plugins
-      ignore_errors: yes
+      ansible.builtin.stat:
+        path: "/var/lib/jenkins/plugins/saml.hpi"
+      register: jenkins_saml_plugin
+      become: yes
 
     - name: Verify SAML plugin is installed
       ansible.builtin.assert:
         that:
-          - "'saml' in jenkins_plugins.content"
+          - jenkins_saml_plugin.stat.exists
         fail_msg: |
           Jenkins SAML plugin is not installed. Please install it first:
-          1. Go to Jenkins → Manage Jenkins → Manage Plugins
-          2. Install 'SAML Plugin' (org.jenkinsci.plugins.saml)
+          1. Download the SAML plugin (.hpi file)
+          2. Copy to /var/lib/jenkins/plugins/
           3. Restart Jenkins
         success_msg: "Jenkins SAML plugin is installed"
-      when: jenkins_plugins is succeeded
 
   roles:
     - jenkins-keycloak-saml
