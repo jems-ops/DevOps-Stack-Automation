@@ -12,7 +12,7 @@
 
 - name: Find existing sonar-users group
   ansible.builtin.set_fact:
-    existing_sonar_users_group: "{{ existing_groups.json | selectattr('name', 'equalto', groups.sonar_users.name) | list }}"
+    existing_sonar_users_group: "{{ existing_groups.json | selectattr('name', 'equalto', 'sonar-users') | list }}"
 
 - name: Create sonar-users group if it doesn't exist
   ansible.builtin.uri:
@@ -23,8 +23,8 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      name: "{{ groups.sonar_users.name }}"
-      path: "/{{ groups.sonar_users.name }}"
+      name: "sonar-users"
+      path: "/sonar-users"
       attributes: {}
       subGroups: []
     status_code: [201]
@@ -41,7 +41,7 @@
 
 - name: Set sonar-users group ID fact
   ansible.builtin.set_fact:
-    sonar_users_group_id: "{{ (updated_groups.json | selectattr('name', 'equalto', groups.sonar_users.name) | list)[0].id }}"
+    sonar_users_group_id: "{{ (updated_groups.json | selectattr('name', 'equalto', 'sonar-users') | list)[0].id }}"
 
 - name: Verify group was created or found
   ansible.builtin.assert:

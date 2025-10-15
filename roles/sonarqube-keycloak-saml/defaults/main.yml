@@ -6,9 +6,9 @@ sonarqube:
   host: "192.168.201.16"
   port: 9000
   protocol: "http"
-  base_url: "{{ sonarqube.protocol }}://{{ sonarqube.host }}:{{ sonarqube.port }}"
   config_path: "/opt/sonarqube/conf/sonar.properties"
   service_name: "sonarqube"
+  base_url: "{{ sonarqube.protocol }}://{{ sonarqube.host }}:{{ sonarqube.port }}"
 
   # SAML Configuration
   saml:
@@ -39,10 +39,10 @@ keycloak:
   host: "192.168.201.12"
   port: 8080
   protocol: "http"
-  base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
   realm: "sonar"
   admin_user: "admin"
   admin_password: "admin123"
+  base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
 
   # SAML Client Configuration
   saml_client:

@@ -9,3 +9,10 @@
     backup: true
   become: true
   notify: restart_sonarqube
+
+- name: Remove old certificate configuration if exists
+  ansible.builtin.lineinfile:
+    path: "{{ sonarqube.config_path }}"
+    regexp: "^sonar.auth.saml.certificate="
+    state: absent
+  become: true

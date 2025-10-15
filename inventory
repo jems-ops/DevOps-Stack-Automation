@@ -7,8 +7,15 @@
 [nginx]
 192.168.201.15
 
-[sonarqube]
+[sonarqube-qa]
+192.168.201.11
+
+[sonarqube-prod]
 192.168.201.16
+
+[sonarqube:children]
+sonarqube-qa
+sonarqube-prod
 
 [freeipa]
 192.168.201.13
