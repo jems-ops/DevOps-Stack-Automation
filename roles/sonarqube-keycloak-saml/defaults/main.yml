@@ -8,16 +8,16 @@ sonarqube:
   protocol: "http"
   config_path: "/opt/sonarqube/conf/sonar.properties"
   service_name: "sonarqube"
-  base_url: "{{ sonarqube.protocol }}://{{ sonarqube.host }}:{{ sonarqube.port }}"
+  base_url: "http://192.168.201.11:9000"
 
   # SAML Configuration
   saml:
     enabled: true
-    application_id: "{{ sonarqube.base_url }}"
+    application_id: "http://192.168.201.11:9000"
     provider_name: "Keycloak SAML"
-    provider_id: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}"
-    login_url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml"
-    sp_entity_id: "{{ sonarqube.base_url }}"
+    provider_id: "http://192.168.201.12:8080/realms/sonar"
+    login_url: "http://192.168.201.12:8080/realms/sonar/protocol/saml"
+    sp_entity_id: "http://192.168.201.11:9000"
 
     # User Attribute Mappings
     user:
@@ -42,21 +42,21 @@ keycloak:
   realm: "sonar"
   admin_user: "admin"
   admin_password: "{{ vault_keycloak_admin_password | default('admin123') }}"
-  base_url: "{{ keycloak.protocol }}://{{ keycloak.host }}:{{ keycloak.port }}"
+  base_url: "http://192.168.201.12:8080"
 
   # SAML Client Configuration
   saml_client:
-    client_id: "{{ sonarqube.base_url }}"
+    client_id: "http://192.168.201.11:9000"
     enabled: true
     protocol: "saml"
     front_channel_logout: true
     redirect_uris:
-      - "{{ sonarqube.base_url }}/*"
+      - "http://192.168.201.11:9000/*"
     web_origins:
-      - "{{ sonarqube.base_url }}"
-    base_url: "{{ sonarqube.base_url }}"
-    root_url: "{{ sonarqube.base_url }}"
-    admin_url: "{{ sonarqube.base_url }}"
+      - "http://192.168.201.11:9000"
+    base_url: "http://192.168.201.11:9000"
+    root_url: "http://192.168.201.11:9000"
+    admin_url: "http://192.168.201.11:9000"
 
     # SAML Attributes
     attributes:
