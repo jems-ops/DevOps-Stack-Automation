@@ -1,0 +1,69 @@
+---
+- name: Display setup information
+  debug:
+    msg: |
+      🔧 Setting up Nginx reverse proxy for SonarQube
+      📍 Server name: {{ sonarqube_server_name }}
+      🔗 Backend: {{ sonarqube_backend_host }}:{{ sonarqube_backend_port }}
+      🔒 SSL: {% if sonarqube_ssl_certificate_path is defined %}Custom certificates{% else %}Self-signed certificates{% endif %}
+
+- name: Ensure nginx is installed
+  package:
+    name: nginx
+    state: present
+
+- name: Create SSL directory
+  file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+
+- name: Generate self-signed certificate if custom certs not provided
+  block:
+    - name: Check if certificate exists
+      stat:
+        path: /etc/nginx/ssl/sonarqube.crt
+      register: cert_exists
+
+    - name: Generate self-signed certificate
+      command: >-
+        openssl req -x509 -nodes -newkey rsa:2048
+        -keyout /etc/nginx/ssl/sonarqube.key
+        -out /etc/nginx/ssl/sonarqube.crt
+        -days 365 -subj "/CN={{ sonarqube_server_name }}"
+      when: not cert_exists.stat.exists
+
+    - name: Set certificate permissions
+      file:
+        path: "{{ item }}"
+        mode: '0600'
+      loop:
+        - /etc/nginx/ssl/sonarqube.crt
+        - /etc/nginx/ssl/sonarqube.key
+      when: not cert_exists.stat.exists
+  when: sonarqube_ssl_certificate_path is not defined
+
+- name: Deploy SonarQube HTTPS vhost configuration
+  template:
+    src: sonarqube-https.conf.j2
+    dest: /etc/nginx/conf.d/sonarqube-https.conf
+    mode: '0644'
+  notify: restart nginx
+
+- name: Deploy SonarQube HTTP redirect configuration
+  template:
+    src: sonarqube-http-redirect.conf.j2
+    dest: /etc/nginx/conf.d/sonarqube-http-redirect.conf
+    mode: '0644'
+  notify: restart nginx
+
+- name: Test nginx configuration
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Ensure nginx is running
+  service:
+    name: nginx
+    state: started
+    enabled: true

@@ -9,12 +9,9 @@
     sonarqube_host_ip: "{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
     sonarqube_host_url: "http://{{ sonarqube_host_ip }}:9000"
 
-    # Keycloak backend host
+    # Keycloak configuration (accessed via DNS name through nginx reverse proxy)
     keycloak_host_ip: "{{ hostvars[groups['keycloak'][0]]['ansible_host'] }}"
     keycloak_hostname: "{{ groups['keycloak'][0] }}"
-
-    # Keycloak accessed via nginx reverse proxy
-    keycloak_proxy_ip: "{{ hostvars[groups['nginx'][0]]['ansible_host'] }}"
     keycloak_server_name: "{{ keycloak_hostname }}"
     keycloak_base_url: "https://{{ keycloak_hostname }}"
 

@@ -36,7 +36,7 @@ sonarqube_keycloak_saml_sonarqube:
 
 # Keycloak Configuration
 sonarqube_keycloak_saml_keycloak:
-  host: "{{ keycloak_proxy_ip }}"
+  host: "{{ keycloak_hostname }}"
   port: 443
   protocol: "https"
   realm: "sonar"

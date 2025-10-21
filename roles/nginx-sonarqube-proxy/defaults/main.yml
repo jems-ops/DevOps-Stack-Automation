@@ -1,0 +1,36 @@
+---
+# nginx-sonarqube-proxy role defaults
+
+# SonarQube server configuration
+sonarqube_server_name: sonar.local
+sonarqube_backend_host: 192.168.201.11
+sonarqube_backend_port: 9000
+
+# SSL configuration
+# Leave undefined to auto-generate self-signed certificates
+# sonarqube_ssl_certificate_path: /path/to/cert.crt
+# sonarqube_ssl_certificate_key_path: /path/to/cert.key
+
+# Nginx upstream configuration
+nginx_keepalive_connections: 32
+nginx_proxy_connect_timeout: 60s
+nginx_proxy_send_timeout: 60s
+nginx_proxy_read_timeout: 60s
+
+# Security headers
+nginx_security_headers:
+  - "Strict-Transport-Security \"max-age=63072000\" always"
+  - "X-Frame-Options \"SAMEORIGIN\" always"
+  - "X-Content-Type-Options \"nosniff\" always"
+
+# SSL protocols
+ssl_protocols: "TLSv1.2 TLSv1.3"
+
+# Backup conflicting configurations
+backup_old_configs: true
+
+# List of potentially conflicting nginx config files to backup and remove
+conflicting_configs:
+  - /etc/nginx/conf.d/dynamic-backends.conf
+  - /etc/nginx/conf.d/sonarqube.conf
+  - /etc/nginx/conf.d/sonarqube-redirect.conf

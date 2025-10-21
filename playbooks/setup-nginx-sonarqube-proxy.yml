@@ -1,0 +1,13 @@
+---
+- name: Setup Nginx Reverse Proxy for SonarQube
+  hosts: nginx
+  become: true
+  gather_facts: true
+
+  vars:
+    sonarqube_server_name: sonar.local
+    sonarqube_backend_host: "{{ hostvars[groups['sonarqube'][0]]['ansible_host'] }}"
+    sonarqube_backend_port: 9000
+
+  roles:
+    - nginx-sonarqube-proxy
