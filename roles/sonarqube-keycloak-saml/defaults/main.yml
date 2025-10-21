@@ -2,7 +2,7 @@
 # SonarQube-Keycloak SAML Integration Role Defaults
 
 # SonarQube Configuration
-sonarqube:
+sonarqube_keycloak_saml_sonarqube:
   host: "{{ sonarqube_host_ip | default(ansible_host) | default(inventory_hostname) }}"
   port: 9000
   protocol: "http"
@@ -15,8 +15,8 @@ sonarqube:
     enabled: true
     application_id: "sonarqube"
     provider_name: "Keycloak SAML"
-    provider_id: "{{ keycloak_base_url | default('http://192.168.201.12:8080') }}/realms/sonar"
-    login_url: "{{ keycloak_base_url | default('http://192.168.201.12:8080') }}/realms/sonar/protocol/saml"
+    provider_id: "{{ keycloak_base_url }}/realms/sonar"
+    login_url: "{{ keycloak_base_url }}/realms/sonar/protocol/saml"
     sp_entity_id: "sonarqube"
 
     # User Attribute Mappings
@@ -35,14 +35,14 @@ sonarqube:
     force_authentication: false
 
 # Keycloak Configuration
-keycloak:
-  host: "{{ keycloak_host_ip | default('192.168.201.12') }}"
+sonarqube_keycloak_saml_keycloak:
+  host: "{{ keycloak_host_ip }}"
   port: 8080
   protocol: "http"
   realm: "sonar"
-  admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME | default('admin') }}"
-  admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD | default('admin123') }}"
-  base_url: "{{ keycloak_base_url | default('http://192.168.201.12:8080') }}"
+  admin_user: "{{ sonarqube_keycloak_saml_keycloak_admin_user | default('admin') }}"
+  admin_password: "{{ sonarqube_keycloak_saml_keycloak_admin_password | default('admin123') }}"
+  base_url: "{{ keycloak_base_url }}"
 
   # SAML Client Configuration
   saml_client:
@@ -111,13 +111,13 @@ keycloak:
           full_path: "false"
 
 # Groups Configuration
-groups:
+sonarqube_keycloak_saml_groups:
   sonar_users:
     name: "sonar-users"
     description: "SonarQube Users Group"
 
 # Test User Configuration (optional)
-test_user:
+sonarqube_keycloak_saml_test_user:
   enabled: true
   username: "demo.user"
   password: "demo123!"
@@ -128,4 +128,11 @@ test_user:
     - "sonar-users"
 
 # Logging
-debug_logging: false
+sonarqube_keycloak_saml_debug_logging: false
+
+# Backward compatibility aliases
+sonarqube: "{{ sonarqube_keycloak_saml_sonarqube }}"
+keycloak: "{{ sonarqube_keycloak_saml_keycloak }}"
+groups: "{{ sonarqube_keycloak_saml_groups }}"
+test_user: "{{ sonarqube_keycloak_saml_test_user }}"
+debug_logging: "{{ sonarqube_keycloak_saml_debug_logging }}"
