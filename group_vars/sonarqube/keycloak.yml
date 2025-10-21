@@ -1,9 +1,11 @@
 ---
 # Shared Keycloak configuration for all SonarQube servers
 
-# Keycloak host facts (resolved from inventory)
+# Keycloak configuration (using reverse proxy)
 keycloak_host_ip: "{{ hostvars[groups['keycloak'][0]]['ansible_host'] | default(groups['keycloak'][0]) }}"
-keycloak_base_url: "http://{{ keycloak_host_ip }}:8080"
+keycloak_proxy_ip: "{{ hostvars[groups['nginx'][0]]['ansible_host'] | default(groups['nginx'][0]) }}"
+keycloak_server_name: "keycloak.local"
+keycloak_base_url: "https://{{ keycloak_server_name }}"
 
 # Keycloak admin credentials (shared)
 sonarqube_keycloak_saml_keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
