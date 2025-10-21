@@ -5,10 +5,8 @@
   gather_facts: true
 
   vars:
-    # Override any defaults here if needed
-    # Example: Force specific SonarQube host
-    # sonarqube:
-    #   host: "192.168.201.11"
+    # All configuration now uses vault variables and is set in defaults/main.yml
+    # No overrides needed - defaults are already configured for HTTPS and vault
 
   roles:
     - sonarqube-keycloak-saml

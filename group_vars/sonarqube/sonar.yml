@@ -1,0 +1,6 @@
+---
+# Shared SonarQube variables for all SonarQube hosts
+
+# Host-specific facts (computed dynamically per host)
+sonarqube_host_ip: "{{ ansible_host | default(inventory_hostname) }}"
+sonarqube_host_url: "http://{{ sonarqube_host_ip }}:9000"

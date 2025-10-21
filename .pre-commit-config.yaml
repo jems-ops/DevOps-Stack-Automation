@@ -27,6 +27,20 @@ repos:
       - id: shellcheck
         args: [-e, SC1091]  # Ignore sourcing files that don't exist
 
+  # Ansible linting
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v6.22.1
+    hooks:
+      - id: ansible-lint
+        name: Ansible Lint
+        files: \.(yaml|yml)$
+        exclude: |
+          (?x)^(
+            group_vars/all/vault\.yml|
+            molecule/.*|
+            .github/.*
+          )$
+
   # Simple vault security checks
   - repo: local
     hooks:

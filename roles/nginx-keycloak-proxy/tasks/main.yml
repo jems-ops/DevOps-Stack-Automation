@@ -1,0 +1,118 @@
+---
+- name: Display setup information
+  debug:
+    msg: |
+      🔧 Setting up Nginx reverse proxy for Keycloak
+      📍 Server name: {{ keycloak_server_name }}
+      🔗 Backend: {{ keycloak_backend_host }}:{{ keycloak_backend_port }}
+      🔒 SSL: {% if keycloak_ssl_certificate_path is defined %}Custom certificates{% else %}Self-signed certificates{% endif %}
+
+- name: Ensure nginx is installed
+  package:
+    name: nginx
+    state: present
+  tags: [nginx, install]
+
+- name: Create SSL directory
+  file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  tags: [nginx, ssl]
+
+- name: Generate self-signed certificate if custom certs not provided
+  block:
+    - name: Check if self-signed certificate exists
+      stat:
+        path: /etc/nginx/ssl/keycloak.crt
+      register: cert_exists
+
+    - name: Generate self-signed certificate
+      command: >-
+        openssl req -x509 -nodes -newkey rsa:2048
+        -keyout /etc/nginx/ssl/keycloak.key
+        -out /etc/nginx/ssl/keycloak.crt
+        -days 365 -subj "/CN={{ keycloak_server_name }}"
+      when: not cert_exists.stat.exists
+
+    - name: Set certificate file permissions
+      file:
+        path: "{{ item }}"
+        mode: '0600'
+        owner: root
+        group: root
+      loop:
+        - /etc/nginx/ssl/keycloak.crt
+        - /etc/nginx/ssl/keycloak.key
+      when: not cert_exists.stat.exists
+  when: keycloak_ssl_certificate_path is not defined or keycloak_ssl_certificate_key_path is not defined
+  tags: [nginx, ssl]
+
+- name: Backup and remove conflicting nginx configurations
+  block:
+    - name: Find existing conflicting configurations
+      stat:
+        path: "{{ item }}"
+      register: config_files
+      loop: "{{ conflicting_configs }}"
+
+    - name: Backup existing configurations
+      copy:
+        src: "{{ item.item }}"
+        dest: "{{ item.item }}.bak.{{ ansible_date_time.epoch }}"
+        remote_src: true
+        mode: preserve
+      when: item.stat.exists and backup_old_configs
+      loop: "{{ config_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Remove conflicting configurations
+      file:
+        path: "{{ item.item }}"
+        state: absent
+      when: item.stat.exists
+      loop: "{{ config_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+  tags: [nginx, cleanup]
+
+- name: Deploy Keycloak HTTPS vhost configuration
+  template:
+    src: keycloak-https.conf.j2
+    dest: /etc/nginx/conf.d/keycloak-https.conf
+    mode: '0644'
+    backup: true
+  notify: restart nginx
+  tags: [nginx, config]
+
+- name: Deploy Keycloak HTTP redirect configuration
+  template:
+    src: keycloak-http-redirect.conf.j2
+    dest: /etc/nginx/conf.d/keycloak-http-redirect.conf
+    mode: '0644'
+    backup: true
+  notify: restart nginx
+  tags: [nginx, config]
+
+- name: Test nginx configuration
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+  failed_when: nginx_test.rc != 0
+  tags: [nginx, test]
+
+- name: Display nginx test results
+  debug:
+    msg: "✅ Nginx configuration test passed"
+  when: nginx_test.rc == 0
+  tags: [nginx, test]
+
+- name: Ensure nginx is running and enabled
+  service:
+    name: nginx
+    state: started
+    enabled: true
+  tags: [nginx, service]

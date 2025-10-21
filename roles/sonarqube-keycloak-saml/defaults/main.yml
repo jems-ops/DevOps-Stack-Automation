@@ -3,21 +3,21 @@
 
 # SonarQube Configuration
 sonarqube:
-  host: "192.168.201.11"
+  host: "{{ sonarqube_host_ip | default(ansible_host) | default(inventory_hostname) }}"
   port: 9000
   protocol: "http"
   config_path: "/opt/sonarqube/conf/sonar.properties"
   service_name: "sonarqube"
-  base_url: "http://192.168.201.11:9000"
+  base_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
 
   # SAML Configuration
   saml:
     enabled: true
-    application_id: "http://192.168.201.11:9000"
+    application_id: "sonarqube"
     provider_name: "Keycloak SAML"
-    provider_id: "http://192.168.201.12:8080/realms/sonar"
-    login_url: "http://192.168.201.12:8080/realms/sonar/protocol/saml"
-    sp_entity_id: "http://192.168.201.11:9000"
+    provider_id: "{{ keycloak_base_url | default('http://192.168.201.12:8080') }}/realms/sonar"
+    login_url: "{{ keycloak_base_url | default('http://192.168.201.12:8080') }}/realms/sonar/protocol/saml"
+    sp_entity_id: "sonarqube"
 
     # User Attribute Mappings
     user:
@@ -36,27 +36,27 @@ sonarqube:
 
 # Keycloak Configuration
 keycloak:
-  host: "192.168.201.12"
+  host: "{{ keycloak_host_ip | default('192.168.201.12') }}"
   port: 8080
   protocol: "http"
   realm: "sonar"
-  admin_user: "admin"
-  admin_password: "{{ vault_keycloak_admin_password | default('admin123') }}"
-  base_url: "http://192.168.201.12:8080"
+  admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME | default('admin') }}"
+  admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD | default('admin123') }}"
+  base_url: "{{ keycloak_base_url | default('http://192.168.201.12:8080') }}"
 
   # SAML Client Configuration
   saml_client:
-    client_id: "http://192.168.201.11:9000"
+    client_id: "sonarqube"
     enabled: true
     protocol: "saml"
     front_channel_logout: true
     redirect_uris:
-      - "http://192.168.201.11:9000/*"
+      - "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}/*"
     web_origins:
-      - "http://192.168.201.11:9000"
-    base_url: "http://192.168.201.11:9000"
-    root_url: "http://192.168.201.11:9000"
-    admin_url: "http://192.168.201.11:9000"
+      - "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
+    base_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
+    root_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
+    admin_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
 
     # SAML Attributes
     attributes:

@@ -1,0 +1,30 @@
+---
+# Shared Keycloak configuration for all SonarQube servers
+
+# Keycloak host facts (resolved from inventory)
+keycloak_host_ip: "{{ hostvars[groups['keycloak'][0]]['ansible_host'] | default(groups['keycloak'][0]) }}"
+keycloak_base_url: "http://{{ keycloak_host_ip }}:8080"
+
+# Keycloak admin credentials (shared)
+sonarqube_keycloak_saml_keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
+sonarqube_keycloak_saml_keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+
+# Groups Configuration (shared across all SonarQube instances)
+sonarqube_keycloak_saml_groups:
+  sonar_users:
+    name: "sonar-users"
+    description: "SonarQube Users Group"
+
+# Test User Configuration (shared)
+sonarqube_keycloak_saml_test_user:
+  enabled: true
+  username: "demo.user"
+  password: "demo123!"
+  email: "demo@example.com"
+  first_name: "Demo"
+  last_name: "User"
+  groups:
+    - "sonar-users"
+
+# Debug Logging
+sonarqube_keycloak_saml_debug_logging: false

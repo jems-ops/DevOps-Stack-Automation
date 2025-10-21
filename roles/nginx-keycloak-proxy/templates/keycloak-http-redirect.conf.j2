@@ -1,0 +1,6 @@
+# Clean HTTP -> HTTPS redirect for Keycloak
+server {
+  listen 80 default_server;
+  server_name _;
+  return 301 https://{{ keycloak_server_name }}$request_uri;
+}

@@ -108,8 +108,9 @@ server {
 {% endfor %}
 
 # Default server block for requests without matching Host header
+# Default server for HTTP is managed by keycloak-redirect when keycloak_ssl_server_name is set
 server {
-  listen          {{ nginx_listen_port }} default_server;
+  listen          {{ nginx_listen_port }};
   server_name     _;
 
   # Return a simple status page

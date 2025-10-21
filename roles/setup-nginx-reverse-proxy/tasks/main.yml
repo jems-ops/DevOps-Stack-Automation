@@ -46,6 +46,32 @@
     - test nginx config
     - restart nginx
 
+- name: Deploy Keycloak SSL reverse proxy (optional)
+  when: keycloak_ssl_server_name is defined and keycloak_backend_host is defined and keycloak_backend_port is defined
+  template:
+    src: "keycloak-ssl.conf.j2"
+    dest: "{{ nginx_config_path }}/keycloak.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify:
+    - test nginx config
+    - restart nginx
+
+- name: Deploy Keycloak HTTP redirect to HTTPS (optional)
+  when: keycloak_ssl_server_name is defined
+  template:
+    src: "keycloak-redirect.conf.j2"
+    dest: "{{ nginx_config_path }}/keycloak-redirect.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify:
+    - test nginx config
+    - restart nginx
+
 - name: Test nginx configuration syntax
   command: nginx -t
   register: nginx_config_test

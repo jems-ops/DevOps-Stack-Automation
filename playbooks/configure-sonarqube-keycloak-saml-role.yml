@@ -4,13 +4,6 @@
   become: true
   gather_facts: true
 
-  vars:
-    # Example: Override specific configuration
-    sonarqube:
-      host: "192.168.201.11"  # Force specific IP instead of auto-detection
-    keycloak:
-      host: "192.168.201.12"
-    debug_logging: false
 
   roles:
     - sonarqube-keycloak-saml

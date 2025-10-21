@@ -1,0 +1,69 @@
+---
+# Ansible-lint configuration
+# See https://ansible-lint.readthedocs.io/
+
+profile: production  # Use production profile for stricter rules
+
+# Exclude paths from linting
+exclude_paths:
+  - .cache/
+  - .github/
+  - .pytest_cache/
+  - group_vars/all/vault.yml
+  - molecule/
+  - __pycache__/
+  - '*.vault'
+
+# Skip specific rules if needed
+skip_list:
+  - yaml[line-length]  # Allow long lines in YAML files
+  - no-changed-when  # Allow tasks without changed_when in some cases
+  - command-instead-of-module  # Allow command module when appropriate
+
+# Enable specific rules
+enable_list:
+  - yaml
+  - var-naming[no-role-prefix]  # Enforce role variable prefixes
+
+# Variable naming configuration
+var_naming_pattern: "^[a-z_][a-z0-9_]*$"
+
+# Warn but don't fail on these
+warn_list:
+  - experimental
+  - role-name
+  - galaxy[version-incorrect]
+
+# Use specific Ansible version for linting
+# This ensures compatibility with your Ansible version
+offline: false
+
+# Display progress
+parseable: true
+quiet: false
+verbosity: 1
+
+# File types to lint
+kinds:
+  - playbook: "**/*playbook*.{yml,yaml}"
+  - tasks: "**/tasks/**/*.{yml,yaml}"
+  - handlers: "**/handlers/**/*.{yml,yaml}"
+  - vars: "**/vars/**/*.{yml,yaml}"
+  - defaults: "**/defaults/**/*.{yml,yaml}"
+  - meta: "**/meta/**/*.{yml,yaml}"
+  - yaml: "**/*.{yml,yaml}"
+
+# Mock modules and roles for offline linting
+mock_modules:
+  - zuul_return
+  - fake_module
+
+mock_roles:
+  - mocked_role
+
+# Tags to skip
+tags: []
+
+# Extra variables for linting
+extra_vars:
+  ansible_check_mode: true

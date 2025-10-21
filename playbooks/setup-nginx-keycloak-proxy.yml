@@ -1,0 +1,105 @@
+---
+- name: Deploy clean nginx reverse proxy for Keycloak
+  hosts: nginx
+  gather_facts: yes
+  become: true
+
+  vars:
+    # Keycloak server configuration
+    keycloak_server_name: keycloak.local
+    keycloak_backend_host: 192.168.201.12
+    keycloak_backend_port: 8080
+
+    # Optional: Custom SSL certificates (comment out to use self-signed)
+    # keycloak_ssl_certificate_path: /path/to/your/cert.crt
+    # keycloak_ssl_certificate_key_path: /path/to/your/cert.key
+
+    # Nginx performance tuning
+    nginx_keepalive_connections: 32
+    nginx_proxy_connect_timeout: 60s
+    nginx_proxy_send_timeout: 60s
+    nginx_proxy_read_timeout: 60s
+
+    # Backup old configurations before removal
+    backup_old_configs: true
+
+  pre_tasks:
+    - name: Display setup information
+      debug:
+        msg: |
+          🔧 Keycloak Nginx Reverse Proxy Setup
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Target server: {{ inventory_hostname }}
+          📍 Server name: {{ keycloak_server_name }}
+          🔗 Keycloak backend: {{ keycloak_backend_host }}:{{ keycloak_backend_port }}
+          🔒 SSL: {% if keycloak_ssl_certificate_path is defined %}Custom certificates{% else %}Self-signed certificates{% endif %}
+          👤 User: {{ ansible_user | default('unknown') }}
+
+    - name: Verify Keycloak backend connectivity
+      uri:
+        url: "http://{{ keycloak_backend_host }}:{{ keycloak_backend_port }}/health/ready"
+        method: GET
+        timeout: 10
+      register: keycloak_health
+      failed_when: false
+      changed_when: false
+
+    - name: Display backend status
+      debug:
+        msg: |
+          {% if keycloak_health.status == 200 %}
+          ✅ Keycloak backend is healthy and ready
+          {% elif keycloak_health.status is defined %}
+          ⚠️  Keycloak backend returned status {{ keycloak_health.status }}
+          {% else %}
+          ❌ Could not reach Keycloak backend - proceeding anyway
+          {% endif %}
+
+  roles:
+    - nginx-keycloak-proxy
+
+  post_tasks:
+    - name: Verify nginx configuration
+      command: nginx -t
+      register: nginx_verify
+      changed_when: false
+
+    - name: Display completion summary
+      debug:
+        msg: |
+          ✅ Keycloak Nginx Reverse Proxy Setup Complete!
+
+          📊 Configuration Summary:
+          • Nginx server: {{ inventory_hostname }}
+          • Server name: {{ keycloak_server_name }}
+          • Backend: {{ keycloak_backend_host }}:{{ keycloak_backend_port }}
+          • HTTPS config: /etc/nginx/conf.d/keycloak-https.conf
+          • HTTP redirect: /etc/nginx/conf.d/keycloak-http-redirect.conf
+          • SSL certificates: {% if keycloak_ssl_certificate_path is defined %}{{ keycloak_ssl_certificate_path }}{% else %}/etc/nginx/ssl/keycloak.crt{% endif %}
+
+          🌐 Access Information:
+          • HTTPS: https://{{ keycloak_server_name }}/
+          • Admin Console: https://{{ keycloak_server_name }}/admin/
+          • Health Check: https://{{ keycloak_server_name }}/health
+
+          🔧 Next Steps:
+          1. Configure DNS: {{ keycloak_server_name }} -> {{ inventory_hostname }}
+          2. Test HTTPS access: curl -k https://{{ keycloak_server_name }}/
+          3. Update SonarQube SAML configuration to use https://{{ keycloak_server_name }}
+          4. Consider installing proper SSL certificates for production use
+      when: nginx_verify.rc == 0
+
+    - name: Display troubleshooting info
+      debug:
+        msg: |
+          ❌ Setup completed but nginx configuration test failed!
+
+          Check the following:
+          • Nginx error logs: sudo tail -f /var/log/nginx/error.log
+          • Configuration syntax: sudo nginx -t
+          • Service status: sudo systemctl status nginx
+
+          Configuration files:
+          • /etc/nginx/conf.d/keycloak-https.conf
+          • /etc/nginx/conf.d/keycloak-http-redirect.conf
+      when: nginx_verify.rc != 0
