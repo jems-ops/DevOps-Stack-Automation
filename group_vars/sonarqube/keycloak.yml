@@ -4,8 +4,8 @@
 # Keycloak configuration (using reverse proxy)
 keycloak_host_ip: "{{ hostvars[groups['keycloak'][0]]['ansible_host'] | default(groups['keycloak'][0]) }}"
 keycloak_proxy_ip: "{{ hostvars[groups['nginx'][0]]['ansible_host'] | default(groups['nginx'][0]) }}"
-keycloak_server_name: "keycloak.local"
-keycloak_base_url: "https://{{ keycloak_server_name }}"
+keycloak_server_name: "{{ keycloak_proxy_ip }}"
+keycloak_base_url: "https://{{ keycloak_proxy_ip }}"
 
 # Keycloak admin credentials (shared)
 sonarqube_keycloak_saml_keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"

@@ -36,9 +36,9 @@ sonarqube_keycloak_saml_sonarqube:
 
 # Keycloak Configuration
 sonarqube_keycloak_saml_keycloak:
-  host: "{{ keycloak_host_ip }}"
-  port: 8080
-  protocol: "http"
+  host: "{{ keycloak_proxy_ip }}"
+  port: 443
+  protocol: "https"
   realm: "sonar"
   admin_user: "{{ sonarqube_keycloak_saml_keycloak_admin_user | default('admin') }}"
   admin_password: "{{ sonarqube_keycloak_saml_keycloak_admin_password | default('admin123') }}"
