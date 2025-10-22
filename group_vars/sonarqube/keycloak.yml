@@ -1,31 +1,12 @@
 ---
-# Shared Keycloak configuration for all SonarQube servers
+# Keycloak connection configuration for SonarQube SAML integration
+# Similar to sonar.yml - contains only host/connection specifics
 
 # Keycloak host resolution from inventory
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
 keycloak_host_ip: "{{ hostvars[groups['keycloak'][0]]['ansible_host'] }}"
 keycloak_base_url: "https://{{ keycloak_hostname }}"
 
-# Keycloak admin credentials (shared)
+# Keycloak admin credentials
 sonarqube_keycloak_saml_keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
 sonarqube_keycloak_saml_keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
-
-# Groups Configuration (shared across all SonarQube instances)
-sonarqube_keycloak_saml_groups:
-  sonar_users:
-    name: "sonar-users"
-    description: "SonarQube Users Group"
-
-# Test User Configuration (shared)
-sonarqube_keycloak_saml_test_user:
-  enabled: true
-  username: "demo.user"
-  password: "demo123!"
-  email: "demo@example.com"
-  first_name: "Demo"
-  last_name: "User"
-  groups:
-    - "sonar-users"
-
-# Debug Logging
-sonarqube_keycloak_saml_debug_logging: false
