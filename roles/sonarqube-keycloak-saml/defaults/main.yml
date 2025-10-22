@@ -110,6 +110,26 @@ sonarqube_keycloak_saml_keycloak:
           single: "false"
           full_path: "false"
 
+# Groups Configuration
+sonarqube_keycloak_saml_groups:
+  sonar_users:
+    name: "sonar-users"
+    description: "SonarQube Users Group"
+
+# Test User Configuration (optional)
+sonarqube_keycloak_saml_test_user:
+  enabled: true
+  username: "demo.user"
+  password: "demo123!"
+  email: "demo@example.com"
+  first_name: "Demo"
+  last_name: "User"
+  groups:
+    - "sonar-users"
+
+# Logging
+sonarqube_keycloak_saml_debug_logging: false
+
 # Backward compatibility aliases
 sonarqube: "{{ sonarqube_keycloak_saml_sonarqube }}"
 keycloak: "{{ sonarqube_keycloak_saml_keycloak }}"
