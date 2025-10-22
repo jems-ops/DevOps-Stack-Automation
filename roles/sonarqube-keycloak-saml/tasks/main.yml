@@ -14,41 +14,41 @@
   tags: ['validate']
 
 - name: Enable debug logging
-  include_tasks: debug_logging.yml
+  ansible.builtin.include_tasks: debug_logging.yml
   when: debug_logging | default(false) | bool
   tags: ['debug']
 
 - name: Configure SonarQube SAML settings
-  include_tasks: configure_sonarqube_saml.yml
+  ansible.builtin.include_tasks: configure_sonarqube_saml.yml
   tags: ['sonarqube', 'saml']
 
 - name: Get Keycloak access token
-  include_tasks: get_keycloak_token.yml
+  ansible.builtin.include_tasks: get_keycloak_token.yml
   tags: ['keycloak', 'token']
 
 - name: Create Keycloak SAML client
-  include_tasks: create_keycloak_saml_client.yml
+  ansible.builtin.include_tasks: create_keycloak_saml_client.yml
   tags: ['keycloak', 'saml', 'client']
 
 - name: Configure SAML protocol mappers
-  include_tasks: configure_protocol_mappers.yml
+  ansible.builtin.include_tasks: configure_protocol_mappers.yml
   tags: ['keycloak', 'saml', 'mappers']
 
 - name: Create and configure groups
-  include_tasks: configure_groups.yml
+  ansible.builtin.include_tasks: configure_groups.yml
   tags: ['keycloak', 'groups']
 
 - name: Create test user (optional)
-  include_tasks: create_test_user.yml
+  ansible.builtin.include_tasks: create_test_user.yml
   when: test_user.enabled | default(false) | bool
   tags: ['keycloak', 'test_user']
 
 - name: Get Keycloak certificate
-  include_tasks: get_keycloak_certificate.yml
+  ansible.builtin.include_tasks: get_keycloak_certificate.yml
   tags: ['keycloak', 'certificate']
 
 - name: Update SonarQube certificate
-  include_tasks: update_sonarqube_certificate.yml
+  ansible.builtin.include_tasks: update_sonarqube_certificate.yml
   tags: ['sonarqube', 'certificate']
 
 - name: Restart SonarQube service
@@ -61,5 +61,5 @@
   tags: ['restart']
 
 - name: Verify SAML configuration
-  include_tasks: verify_configuration.yml
+  ansible.builtin.include_tasks: verify_configuration.yml
   tags: ['verify']
