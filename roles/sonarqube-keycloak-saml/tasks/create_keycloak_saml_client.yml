@@ -5,6 +5,7 @@
   ansible.builtin.uri:
     url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
     method: GET
+    validate_certs: false
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: [200]
@@ -18,6 +19,7 @@
   ansible.builtin.uri:
     url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ existing_saml_client[0].id }}"
     method: DELETE
+    validate_certs: false
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: [204]
@@ -27,6 +29,7 @@
   ansible.builtin.uri:
     url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
     method: POST
+    validate_certs: false
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
       Content-Type: "application/json"
@@ -61,6 +64,7 @@
   ansible.builtin.uri:
     url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
     method: GET
+    validate_certs: false
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: [200]

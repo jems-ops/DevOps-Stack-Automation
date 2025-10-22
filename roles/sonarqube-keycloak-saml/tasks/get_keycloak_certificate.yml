@@ -5,6 +5,7 @@
   ansible.builtin.uri:
     url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml/descriptor"
     method: GET
+    validate_certs: false
     status_code: [200]
     return_content: true
   register: saml_descriptor

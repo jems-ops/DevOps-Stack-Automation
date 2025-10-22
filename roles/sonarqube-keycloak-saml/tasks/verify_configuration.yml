@@ -17,6 +17,7 @@
   ansible.builtin.uri:
     url: "{{ sonarqube.base_url }}/sessions/init/saml"
     method: HEAD
+    validate_certs: false
     follow_redirects: none
     status_code: [302]
   register: saml_init_test
