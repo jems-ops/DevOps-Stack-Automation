@@ -1,9 +1,18 @@
----
 - name: Set backward compatibility aliases
   ansible.builtin.set_fact:
-    sonarqube: "{{ sonarqube_keycloak_saml_sonarqube }}"
-    keycloak: "{{ sonarqube_keycloak_saml_keycloak }}"
-    keycloak_groups: "{{ sonarqube_keycloak_saml_groups }}"
-    test_user: "{{ sonarqube_keycloak_saml_test_user }}"
-    debug_logging: "{{ sonarqube_keycloak_saml_debug_logging }}"
+    sonarqube: "{{ sonarqube_keycloak_saml_sonarqube | default({}, true) }}"
+    keycloak: "{{ sonarqube_keycloak_saml_keycloak | default({}, true) }}"
+    keycloak_groups: "{{ sonarqube_keycloak_saml_groups | default({}, true) }}"
+    test_user: "{{ sonarqube_keycloak_saml_test_user | default({}, true) }}"
+    debug_logging: "{{ sonarqube_keycloak_saml_debug_logging | default(false) }}"
+  tags: ['always']
+
+- name: Confirm alias variables loaded
+  ansible.builtin.debug:
+    msg:
+      - "sonarqube.host => {{ sonarqube.host | default('undefined') }}"
+      - "keycloak.realm => {{ keycloak.realm | default('undefined') }}"
+      - "keycloak_groups => {{ keycloak_groups | default('undefined') }}"
+      - "test_user.username => {{ test_user.username | default('undefined') }}"
+      - "debug_logging => {{ debug_logging | default('undefined') }}"
   tags: ['always']
