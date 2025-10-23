@@ -1,8 +1,3 @@
----
-# Shared SonarQube variables for all SonarQube hosts
-
-# SonarQube host resolution from inventory (DNS name for HTTPS proxy)
-# Uses first host in sonarqube group for shared references
-sonarqube_hostname: "{{ groups['sonarqube'][0] }}"
-sonarqube_host_ip: "{{ hostvars[groups['sonarqube'][0]]['ansible_host'] }}"
-sonarqube_host_url: "https://{{ sonarqube_hostname }}"
+sonarqube_keycloak_saml_sonarqube:
+  host: "https://{{ groups['sonarqube'][0] }}"
+  ip: "{{ hostvars[groups['sonarqube'][0]]['ansible_host'] }}"
