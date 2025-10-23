@@ -3,7 +3,10 @@
 
 - name: Get existing protocol mappers
   ansible.builtin.uri:
-    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: >-
+      {{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{-
+      sonarqube_keycloak_saml_keycloak.realm }}/clients/{{-
+      saml_client_id }}/protocol-mappers/models
     method: GET
     validate_certs: false
     headers:
@@ -13,7 +16,10 @@
 
 - name: Delete existing protocol mappers
   ansible.builtin.uri:
-    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models/{{ item.id }}"
+    url: >-
+      {{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{-
+      sonarqube_keycloak_saml_keycloak.realm }}/clients/{{-
+      saml_client_id }}/protocol-mappers/models/{{ item.id }}
     method: DELETE
     validate_certs: false
     headers:
@@ -24,7 +30,10 @@
 
 - name: Create protocol mappers
   ansible.builtin.uri:
-    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: >-
+      {{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{-
+      sonarqube_keycloak_saml_keycloak.realm }}/clients/{{-
+      saml_client_id }}/protocol-mappers/models
     method: POST
     validate_certs: false
     headers:
@@ -47,7 +56,10 @@
 
 - name: Verify protocol mappers were created
   ansible.builtin.uri:
-    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: >-
+      {{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{-
+      sonarqube_keycloak_saml_keycloak.realm }}/clients/{{-
+      saml_client_id }}/protocol-mappers/models
     method: GET
     validate_certs: false
     headers:
