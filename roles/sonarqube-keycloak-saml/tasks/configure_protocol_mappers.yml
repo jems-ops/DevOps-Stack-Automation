@@ -58,6 +58,6 @@
 - name: Confirm all mappers were created
   ansible.builtin.assert:
     that:
-      - created_mappers.json | length == keycloak.saml_client.protocol_mappers | length
+      - created_mappers.json | length == sonarqube_keycloak_saml_keycloak.saml_client.protocol_mappers | length
     fail_msg: "Not all protocol mappers were created successfully"
     success_msg: "All {{ sonarqube_keycloak_saml_keycloak.saml_client.protocol_mappers | length }} protocol mappers created successfully"

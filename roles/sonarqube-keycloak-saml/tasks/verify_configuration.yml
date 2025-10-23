@@ -26,8 +26,8 @@
   ansible.builtin.assert:
     that:
       - saml_init_test.location is defined
-      - keycloak.base_url in saml_init_test.location
-      - keycloak.realm in saml_init_test.location
+      - sonarqube_keycloak_saml_keycloak.base_url in saml_init_test.location
+      - sonarqube_keycloak_saml_keycloak.realm in saml_init_test.location
       - "'protocol/saml' in saml_init_test.location"
     fail_msg: "SAML initiation does not redirect to Keycloak properly"
     success_msg: "SAML initiation correctly redirects to Keycloak"
@@ -55,10 +55,10 @@
 
       🔗 Access SonarQube: {{ sonarqube_keycloak_saml_sonarqube.base_url }}
       🔑 Click 'Log in with Keycloak SAML' to test SSO
-      {% if test_user.enabled %}
+      {% if sonarqube_keycloak_saml_test_user.enabled %}
 
       👤 Test User Created:
-         - Username: {{ test_user.username }}
-         - Password: {{ test_user.password }}
+         - Username: {{ sonarqube_keycloak_saml_test_user.username }}
+         - Password: {{ sonarqube_keycloak_saml_test_user.password }}
          - Group: sonar-users
       {% endif %}
