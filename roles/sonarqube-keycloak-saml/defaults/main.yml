@@ -1,14 +1,15 @@
 ---
 # SonarQube-Keycloak SAML Integration Role Defaults
+# These defaults reference variables from group_vars/all/saml_integration.yml
 
 # SonarQube Configuration
 sonarqube_keycloak_saml_sonarqube:
-  host: "{{ sonarqube_host_ip | default(ansible_host) | default(inventory_hostname) }}"
+  host: "{{ sonarqube_hostname }}"
   port: 9000
   protocol: "http"
   config_path: "/opt/sonarqube/conf/sonar.properties"
   service_name: "sonarqube"
-  base_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
+  base_url: "{{ sonarqube_base_url }}"
 
   # SAML Configuration
   saml:
@@ -40,8 +41,8 @@ sonarqube_keycloak_saml_keycloak:
   port: 443
   protocol: "https"
   realm: "sonar"
-  admin_user: "{{ sonarqube_keycloak_saml_keycloak_admin_user | default('admin') }}"
-  admin_password: "{{ sonarqube_keycloak_saml_keycloak_admin_password | default('admin1253') }}"
+  admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
+  admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
   base_url: "{{ keycloak_base_url }}"
 
   # SAML Client Configuration
@@ -51,12 +52,12 @@ sonarqube_keycloak_saml_keycloak:
     protocol: "saml"
     front_channel_logout: true
     redirect_uris:
-      - "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}/*"
+      - "{{ sonarqube_base_url }}/*"
     web_origins:
-      - "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
-    base_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
-    root_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
-    admin_url: "{{ sonarqube_host_url | default('http://' + (ansible_host | default(inventory_hostname)) + ':9000') }}"
+      - "{{ sonarqube_base_url }}"
+    base_url: "{{ sonarqube_base_url }}"
+    root_url: "{{ sonarqube_base_url }}"
+    admin_url: "{{ sonarqube_base_url }}"
 
     # SAML Attributes
     attributes:
