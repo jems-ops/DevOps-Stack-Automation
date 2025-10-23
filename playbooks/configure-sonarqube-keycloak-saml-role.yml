@@ -4,5 +4,9 @@
   become: true
   gather_facts: true
 
+  vars_files:
+    - ../group_vars/sonar.yml
+    - ../group_vars/keycloak.yml
+
   roles:
     - sonarqube-keycloak-saml

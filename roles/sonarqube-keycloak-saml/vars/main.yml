@@ -1,9 +1,0 @@
----
-# Variable aliases for cleaner task files
-# These reference the namespaced variables from defaults/main.yml
-
-sonarqube: "{{ sonarqube_keycloak_saml_sonarqube }}"
-keycloak: "{{ sonarqube_keycloak_saml_keycloak }}"
-groups: "{{ sonarqube_keycloak_saml_groups }}"
-test_user: "{{ sonarqube_keycloak_saml_test_user }}"
-debug_logging: "{{ sonarqube_keycloak_saml_debug_logging }}"

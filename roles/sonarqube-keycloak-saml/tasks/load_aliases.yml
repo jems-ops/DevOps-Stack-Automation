@@ -1,0 +1,9 @@
+---
+- name: Set backward compatibility aliases
+  ansible.builtin.set_fact:
+    sonarqube: "{{ sonarqube_keycloak_saml_sonarqube }}"
+    keycloak: "{{ sonarqube_keycloak_saml_keycloak }}"
+    keycloak_groups: "{{ sonarqube_keycloak_saml_groups }}"
+    test_user: "{{ sonarqube_keycloak_saml_test_user }}"
+    debug_logging: "{{ sonarqube_keycloak_saml_debug_logging }}"
+  tags: ['always']

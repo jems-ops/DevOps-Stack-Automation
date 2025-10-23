@@ -41,7 +41,7 @@ sonarqube_keycloak_saml_keycloak:
   protocol: "https"
   realm: "sonar"
   admin_user: "{{ sonarqube_keycloak_saml_keycloak_admin_user | default('admin') }}"
-  admin_password: "{{ sonarqube_keycloak_saml_keycloak_admin_password | default('admin123') }}"
+  admin_password: "{{ sonarqube_keycloak_saml_keycloak_admin_password | default('admin1253') }}"
   base_url: "{{ keycloak_base_url }}"
 
   # SAML Client Configuration
