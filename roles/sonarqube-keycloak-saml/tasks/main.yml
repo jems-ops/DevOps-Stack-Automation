@@ -1,5 +1,14 @@
 ---
 # SonarQube-Keycloak SAML Integration Main Tasks
+- name: Debug backward compatibility aliases
+  ansible.builtin.debug:
+    msg:
+      - "sonarqube.host = {{ sonarqube.host | default('undefined') }}"
+      - "keycloak.realm = {{ keycloak.realm | default('undefined') }}"
+      - "groups = {{ groups | default('undefined') }}"
+      - "test_user = {{ test_user.username | default('undefined') }}"
+      - "debug_logging = {{ debug_logging | default('undefined') }}"
+  tags: ['debug']
 
 - name: Validate required variables
   ansible.builtin.assert:

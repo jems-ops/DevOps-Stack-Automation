@@ -1,7 +1,7 @@
 ---
 # SonarQube-Keycloak SAML Integration Handlers
 
-- name: restart_sonarqube
+- name: Restart_sonarqube
   ansible.builtin.systemd:
     name: "{{ sonarqube.service_name }}"
     state: restarted
@@ -9,7 +9,7 @@
   become: true
   listen: restart_sonarqube
 
-- name: wait_for_sonarqube
+- name: Wait_for_sonarqube
   ansible.builtin.uri:
     url: "{{ sonarqube.base_url }}/api/system/status"
     method: GET
