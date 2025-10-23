@@ -3,7 +3,7 @@
 
 - name: Check if SAML client already exists
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients"
     method: GET
     validate_certs: false
     headers:
@@ -17,7 +17,7 @@
 
 - name: Delete existing SAML client if it exists
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ existing_saml_client[0].id }}"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ existing_saml_client[0].id }}"
     method: DELETE
     validate_certs: false
     headers:
@@ -27,7 +27,7 @@
 
 - name: Create SAML client
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients"
     method: POST
     validate_certs: false
     headers:
@@ -35,26 +35,26 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      clientId: "{{ keycloak.saml_client.client_id }}"
-      protocol: "{{ keycloak.saml_client.protocol }}"
-      enabled: "{{ keycloak.saml_client.enabled }}"
-      frontchannelLogout: "{{ keycloak.saml_client.front_channel_logout }}"
-      redirectUris: "{{ keycloak.saml_client.redirect_uris }}"
-      webOrigins: "{{ keycloak.saml_client.web_origins }}"
-      baseUrl: "{{ keycloak.saml_client.base_url }}"
-      rootUrl: "{{ keycloak.saml_client.root_url }}"
-      adminUrl: "{{ keycloak.saml_client.admin_url }}"
+      clientId: "{{ sonarqube_keycloak_saml_keycloak.saml_client.client_id }}"
+      protocol: "{{ sonarqube_keycloak_saml_keycloak.saml_client.protocol }}"
+      enabled: "{{ sonarqube_keycloak_saml_keycloak.saml_client.enabled }}"
+      frontchannelLogout: "{{ sonarqube_keycloak_saml_keycloak.saml_client.front_channel_logout }}"
+      redirectUris: "{{ sonarqube_keycloak_saml_keycloak.saml_client.redirect_uris }}"
+      webOrigins: "{{ sonarqube_keycloak_saml_keycloak.saml_client.web_origins }}"
+      baseUrl: "{{ sonarqube_keycloak_saml_keycloak.saml_client.base_url }}"
+      rootUrl: "{{ sonarqube_keycloak_saml_keycloak.saml_client.root_url }}"
+      adminUrl: "{{ sonarqube_keycloak_saml_keycloak.saml_client.admin_url }}"
       attributes:
-        "saml.authnstatement": "{{ keycloak.saml_client.attributes.saml_authnstatement }}"
-        "saml.server.signature": "{{ keycloak.saml_client.attributes.saml_server_signature }}"
-        "saml.signature.algorithm": "{{ keycloak.saml_client.attributes.saml_signature_algorithm }}"
-        "saml.client.signature": "{{ keycloak.saml_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak.saml_client.attributes.saml_assertion_signature }}"
-        "saml.encrypt": "{{ keycloak.saml_client.attributes.saml_encrypt }}"
-        "saml.force.post.binding": "{{ keycloak.saml_client.attributes.saml_force_post_binding }}"
-        "saml_name_id_format": "{{ keycloak.saml_client.attributes.saml_name_id_format }}"
-        "saml.signing.certificate": "{{ keycloak.saml_client.attributes.saml_signing_certificate }}"
-        "saml.signing.private.key": "{{ keycloak.saml_client.attributes.saml_signing_private_key }}"
+        "saml.authnstatement": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_authnstatement }}"
+        "saml.server.signature": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_server_signature }}"
+        "saml.signature.algorithm": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_signature_algorithm }}"
+        "saml.client.signature": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_client_signature }}"
+        "saml.assertion.signature": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_assertion_signature }}"
+        "saml.encrypt": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_encrypt }}"
+        "saml.force.post.binding": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_force_post_binding }}"
+        "saml_name_id_format": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_name_id_format }}"
+        "saml.signing.certificate": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_signing_certificate }}"
+        "saml.signing.private.key": "{{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_signing_private_key }}"
       defaultClientScopes: []
       optionalClientScopes: []
     status_code: [201]
@@ -62,7 +62,7 @@
 
 - name: Get created client details
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients"
     method: GET
     validate_certs: false
     headers:

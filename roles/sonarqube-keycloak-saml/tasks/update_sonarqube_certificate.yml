@@ -3,7 +3,7 @@
 
 - name: Configure SAML certificate in SonarQube
   ansible.builtin.lineinfile:
-    path: "{{ sonarqube.config_path }}"
+    path: "{{ sonarqube_keycloak_saml_sonarqube.config_path }}"
     regexp: "^#?sonar.auth.saml.certificate.secured="
     line: "sonar.auth.saml.certificate.secured={{ keycloak_certificate }}"
     backup: true
@@ -12,7 +12,7 @@
 
 - name: Remove old certificate configuration if exists
   ansible.builtin.lineinfile:
-    path: "{{ sonarqube.config_path }}"
+    path: "{{ sonarqube_keycloak_saml_sonarqube.config_path }}"
     regexp: "^sonar.auth.saml.certificate="
     state: absent
   become: true

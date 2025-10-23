@@ -3,14 +3,14 @@
 
 - name: Get Keycloak admin access token
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/realms/master/protocol/openid-connect/token"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/realms/master/protocol/openid-connect/token"
     method: POST
     body_format: form-urlencoded
     return_content: true
     validate_certs: false
     body:
-      username: "{{ keycloak.admin_user }}"
-      password: "{{ keycloak.admin_password }}"
+      username: "{{ sonarqube_keycloak_saml_keycloak.admin_user }}"
+      password: "{{ sonarqube_keycloak_saml_keycloak.admin_password }}"
       grant_type: "password"
       client_id: "admin-cli"
     status_code: [200]

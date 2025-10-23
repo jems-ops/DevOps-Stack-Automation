@@ -1,24 +1,19 @@
 ---
-# Load aliases first
-- name: Load backward compatibility aliases
-  ansible.builtin.include_tasks: load_aliases.yml
-  tags: ['always']
-
 - name: Validate required variables
   ansible.builtin.assert:
     that:
-      - sonarqube.host is defined
-      - keycloak.host is defined
-      - keycloak.realm is defined
-      - keycloak.admin_user is defined
-      - keycloak.admin_password is defined
+      - sonarqube_keycloak_saml_sonarqube.host is defined
+      - sonarqube_keycloak_saml_keycloak.host is defined
+      - sonarqube_keycloak_saml_keycloak.realm is defined
+      - sonarqube_keycloak_saml_keycloak.admin_user is defined
+      - sonarqube_keycloak_saml_keycloak.admin_password is defined
     fail_msg: "Required variables are not defined. Please check your configuration."
     success_msg: "All required variables are defined."
   tags: ['validate']
 
 - name: Enable debug logging
   ansible.builtin.include_tasks: debug_logging.yml
-  when: debug_logging | default(false) | bool
+  when: sonarqube_keycloak_saml_debug_logging | default(false) | bool
   tags: ['debug']
 
 - name: Configure SonarQube SAML settings
@@ -43,7 +38,7 @@
 
 - name: Create test user (optional)
   ansible.builtin.include_tasks: create_test_user.yml
-  when: test_user.enabled | default(false) | bool
+  when: sonarqube_keycloak_saml_test_user.enabled | default(false) | bool
   tags: ['keycloak', 'test_user']
 
 - name: Get Keycloak certificate
@@ -56,7 +51,7 @@
 
 - name: Restart SonarQube service
   ansible.builtin.systemd:
-    name: "{{ sonarqube.service_name }}"
+    name: "{{ sonarqube_keycloak_saml_sonarqube.service_name }}"
     state: restarted
     enabled: true
   become: true

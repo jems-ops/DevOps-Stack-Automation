@@ -3,7 +3,7 @@
 
 - name: Wait for SonarQube to be ready
   ansible.builtin.uri:
-    url: "{{ sonarqube.base_url }}/api/system/status"
+    url: "{{ sonarqube_keycloak_saml_sonarqube.base_url }}/api/system/status"
     method: GET
     status_code: [200]
     return_content: true
@@ -15,7 +15,7 @@
 
 - name: Verify SonarQube SAML initiation endpoint
   ansible.builtin.uri:
-    url: "{{ sonarqube.base_url }}/sessions/init/saml"
+    url: "{{ sonarqube_keycloak_saml_sonarqube.base_url }}/sessions/init/saml"
     method: HEAD
     validate_certs: false
     follow_redirects: none
@@ -38,22 +38,22 @@
       === SonarQube-Keycloak SAML Integration Summary ===
 
       ✅ SonarQube Configuration:
-         - URL: {{ sonarqube.base_url }}
-         - SAML Enabled: {{ sonarqube.saml.enabled }}
-         - Force Authentication: {{ sonarqube.saml.force_authentication }}
+         - URL: {{ sonarqube_keycloak_saml_sonarqube.base_url }}
+         - SAML Enabled: {{ sonarqube_keycloak_saml_sonarqube.saml.enabled }}
+         - Force Authentication: {{ sonarqube_keycloak_saml_sonarqube.saml.force_authentication }}
 
       ✅ Keycloak Configuration:
-         - URL: {{ keycloak.base_url }}
-         - Realm: {{ keycloak.realm }}
-         - SAML Client ID: {{ keycloak.saml_client.client_id }}
-         - HTTP POST Binding: {{ keycloak.saml_client.attributes.saml_force_post_binding }}
+         - URL: {{ sonarqube_keycloak_saml_keycloak.base_url }}
+         - Realm: {{ sonarqube_keycloak_saml_keycloak.realm }}
+         - SAML Client ID: {{ sonarqube_keycloak_saml_keycloak.saml_client.client_id }}
+         - HTTP POST Binding: {{ sonarqube_keycloak_saml_keycloak.saml_client.attributes.saml_force_post_binding }}
 
-      ✅ Protocol Mappers: {{ keycloak.saml_client.protocol_mappers | length }} configured
+      ✅ Protocol Mappers: {{ sonarqube_keycloak_saml_keycloak.saml_client.protocol_mappers | length }} configured
 
       ✅ Groups:
          - sonar-users group created
 
-      🔗 Access SonarQube: {{ sonarqube.base_url }}
+      🔗 Access SonarQube: {{ sonarqube_keycloak_saml_sonarqube.base_url }}
       🔑 Click 'Log in with Keycloak SAML' to test SSO
       {% if test_user.enabled %}
 

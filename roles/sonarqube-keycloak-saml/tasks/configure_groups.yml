@@ -3,7 +3,7 @@
 
 - name: Check if sonar-users group exists
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/groups"
     method: GET
     validate_certs: false
     headers:
@@ -17,7 +17,7 @@
 
 - name: Create sonar-users group if it doesn't exist
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/groups"
     method: POST
     validate_certs: false
     headers:
@@ -34,7 +34,7 @@
 
 - name: Get updated groups list
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/groups"
     method: GET
     validate_certs: false
     headers:

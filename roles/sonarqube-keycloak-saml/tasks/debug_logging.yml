@@ -14,7 +14,7 @@
   ansible.builtin.debug:
     msg:
       - "SonarQube Base URL: {{ sonarqube.base_url }}"
-      - "Keycloak Base URL: {{ keycloak.base_url }}"
-      - "Keycloak Realm: {{ keycloak.realm }}"
-      - "SAML Client ID: {{ keycloak.saml_client.client_id }}"
-      - "Protocol Mappers: {{ keycloak.saml_client.protocol_mappers | length }} configured"
+      - "Keycloak Base URL: {{ sonarqube_keycloak_saml_keycloak.base_url }}"
+      - "Keycloak Realm: {{ sonarqube_keycloak_saml_keycloak.realm }}"
+      - "SAML Client ID: {{ sonarqube_keycloak_saml_keycloak.saml_client.client_id }}"
+      - "Protocol Mappers: {{ sonarqube_keycloak_saml_keycloak.saml_client.protocol_mappers | length }} configured"

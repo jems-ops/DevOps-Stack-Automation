@@ -3,7 +3,7 @@
 
 - name: Get existing protocol mappers
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
     method: GET
     validate_certs: false
     headers:
@@ -13,7 +13,7 @@
 
 - name: Delete existing protocol mappers
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models/{{ item.id }}"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models/{{ item.id }}"
     method: DELETE
     validate_certs: false
     headers:
@@ -24,7 +24,7 @@
 
 - name: Create protocol mappers
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
     method: POST
     validate_certs: false
     headers:
@@ -43,11 +43,11 @@
         "single": "{{ item.config.single | default(omit) }}"
         "full.path": "{{ item.config.full_path | default(omit) }}"
     status_code: [201]
-  loop: "{{ keycloak.saml_client.protocol_mappers }}"
+  loop: "{{ sonarqube_keycloak_saml_keycloak.saml_client.protocol_mappers }}"
 
 - name: Verify protocol mappers were created
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
     method: GET
     validate_certs: false
     headers:
@@ -60,4 +60,4 @@
     that:
       - created_mappers.json | length == keycloak.saml_client.protocol_mappers | length
     fail_msg: "Not all protocol mappers were created successfully"
-    success_msg: "All {{ keycloak.saml_client.protocol_mappers | length }} protocol mappers created successfully"
+    success_msg: "All {{ sonarqube_keycloak_saml_keycloak.saml_client.protocol_mappers | length }} protocol mappers created successfully"

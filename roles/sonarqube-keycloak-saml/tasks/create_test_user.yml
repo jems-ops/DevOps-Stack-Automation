@@ -3,7 +3,7 @@
 
 - name: Check if test user already exists
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users?username={{ test_user.username }}"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/users?username={{ sonarqube_keycloak_saml_test_user.username }}"
     method: GET
     validate_certs: false
     headers:
@@ -13,7 +13,7 @@
 
 - name: Delete existing test user if it exists
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users/{{ existing_test_users.json[0].id }}"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/users/{{ existing_test_users.json[0].id }}"
     method: DELETE
     validate_certs: false
     headers:
@@ -23,7 +23,7 @@
 
 - name: Create test user
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/users"
     method: POST
     validate_certs: false
     headers:
@@ -31,22 +31,22 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      username: "{{ test_user.username }}"
+      username: "{{ sonarqube_keycloak_saml_test_user.username }}"
       enabled: true
       emailVerified: true
-      firstName: "{{ test_user.first_name }}"
-      lastName: "{{ test_user.last_name }}"
-      email: "{{ test_user.email }}"
+      firstName: "{{ sonarqube_keycloak_saml_test_user.first_name }}"
+      lastName: "{{ sonarqube_keycloak_saml_test_user.last_name }}"
+      email: "{{ sonarqube_keycloak_saml_test_user.email }}"
       credentials:
         - type: "password"
-          value: "{{ test_user.password }}"
+          value: "{{ sonarqube_keycloak_saml_test_user.password }}"
           temporary: false
     status_code: [201]
   register: create_test_user_response
 
 - name: Get created test user
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users?username={{ test_user.username }}"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/users?username={{ sonarqube_keycloak_saml_test_user.username }}"
     method: GET
     validate_certs: false
     headers:
@@ -60,7 +60,7 @@
 
 - name: Add test user to sonar-users group
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/users/{{ test_user_id }}/groups/{{ sonar_users_group_id }}"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/admin/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/users/{{ test_user_id }}/groups/{{ sonar_users_group_id }}"
     method: PUT
     validate_certs: false
     headers:
@@ -69,4 +69,4 @@
 
 - name: Verify test user was created and added to group
   ansible.builtin.debug:
-    msg: "Test user '{{ test_user.username }}' created successfully and added to sonar-users group"
+    msg: "Test user '{{ sonarqube_keycloak_saml_test_user.username }}' created successfully and added to sonar-users group"

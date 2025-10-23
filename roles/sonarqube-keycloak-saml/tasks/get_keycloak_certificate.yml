@@ -3,7 +3,7 @@
 
 - name: Get Keycloak SAML descriptor
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml/descriptor"
+    url: "{{ sonarqube_keycloak_saml_keycloak.base_url }}/realms/{{ sonarqube_keycloak_saml_keycloak.realm }}/protocol/saml/descriptor"
     method: GET
     validate_certs: false
     status_code: [200]
