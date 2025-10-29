@@ -65,7 +65,17 @@
       - "🌐 Application URL: {{ keycloak_saml_app.base_url }}"
       - "🔐 SAML Client ID: {{ keycloak_saml_client.client_id }}"
       - "👥 Groups: {{ keycloak_saml_groups.admins.name }}, {{ keycloak_saml_groups.users.name }}"
-      - "{% if keycloak_saml_test_user.enabled %}"
       - "👤 Test User: {{ keycloak_saml_test_user.username }} / {{ keycloak_saml_test_user.password }}"
-      - "{% endif %}"
   tags: ['summary']
+  when: keycloak_saml_test_user.enabled | default(false) | bool
+
+- name: Display completion summary (no test user)
+  ansible.builtin.debug:
+    msg:
+      - "✅ {{ keycloak_saml_app_type | capitalize }}-Keycloak SAML integration completed!"
+      - ""
+      - "🌐 Application URL: {{ keycloak_saml_app.base_url }}"
+      - "🔐 SAML Client ID: {{ keycloak_saml_client.client_id }}"
+      - "👥 Groups: {{ keycloak_saml_groups.admins.name }}, {{ keycloak_saml_groups.users.name }}"
+  tags: ['summary']
+  when: not (keycloak_saml_test_user.enabled | default(false) | bool)
