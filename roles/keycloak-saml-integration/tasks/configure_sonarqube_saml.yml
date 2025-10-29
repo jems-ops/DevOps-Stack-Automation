@@ -5,7 +5,7 @@
   ansible.builtin.systemd:
     name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
     state: stopped
-  become: yes
+  become: true
 
 - name: Backup existing sonar.properties
   ansible.builtin.copy:
@@ -15,7 +15,7 @@
     owner: "{{ keycloak_saml_app_config[keycloak_saml_app_type].user }}"
     group: "{{ keycloak_saml_app_config[keycloak_saml_app_type].group }}"
     mode: '0644'
-  become: yes
+  become: true
 
 - name: Generate SonarQube SAML configuration block
   ansible.builtin.set_fact:
@@ -29,13 +29,13 @@
     owner: "{{ keycloak_saml_app_config[keycloak_saml_app_type].user }}"
     group: "{{ keycloak_saml_app_config[keycloak_saml_app_type].group }}"
     mode: '0644'
-  become: yes
+  become: true
 
 - name: Start SonarQube service after configuration
   ansible.builtin.systemd:
     name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
     state: started
-  become: yes
+  become: true
 
 - name: Wait for SonarQube to be ready
   ansible.builtin.uri:
