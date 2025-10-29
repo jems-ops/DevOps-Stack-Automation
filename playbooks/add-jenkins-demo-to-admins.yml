@@ -1,0 +1,69 @@
+---
+- name: Add jenkins-demo user to jenkins-admins group
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+
+  vars:
+    keycloak_base_url: "https://keycloak.local"
+    keycloak_realm: "jenkins"
+    keycloak_admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
+    keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+
+  tasks:
+    - name: Get Keycloak access token
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          client_id: "admin-cli"
+          username: "{{ keycloak_admin_user }}"
+          password: "{{ keycloak_admin_password }}"
+          grant_type: "password"
+        status_code: 200
+        validate_certs: false
+      register: token_response
+
+    - name: Get jenkins-demo user ID
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/users?username=jenkins-demo"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_response.json.access_token }}"
+        status_code: 200
+        validate_certs: false
+      register: user_response
+
+    - name: Get jenkins-admins group ID
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/groups?search=jenkins-admins"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_response.json.access_token }}"
+        status_code: 200
+        validate_certs: false
+      register: group_response
+
+    - name: Add jenkins-demo to jenkins-admins group
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/users/{{ user_response.json[0].id }}/groups/{{ group_response.json[0].id }}"
+        method: PUT
+        headers:
+          Authorization: "Bearer {{ token_response.json.access_token }}"
+        status_code: [204]
+        validate_certs: false
+
+    - name: Display success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Successfully added jenkins-demo user to jenkins-admins group"
+          - ""
+          - "🔐 Login credentials:"
+          - "   Username: jenkins-demo"
+          - "   Password: JenkinsDemo123!"
+          - ""
+          - "🌐 Access Jenkins at: https://jenkins.local"
+          - ""
+          - "⚠️  You may need to logout and login again for changes to take effect"

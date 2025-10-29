@@ -3,62 +3,66 @@
 
 - name: Get existing groups in Keycloak realm
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/groups"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: 200
+    validate_certs: false
   register: existing_groups
 
 - name: Create Jenkins Admin group
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/groups"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
-      name: "{{ groups.jenkins_admins.name }}"
-      path: "/{{ groups.jenkins_admins.name }}"
+      name: "{{ jenkins_keycloak_saml_groups.jenkins_admins.name }}"
+      path: "/{{ jenkins_keycloak_saml_groups.jenkins_admins.name }}"
       attributes:
-        description: ["{{ groups.jenkins_admins.description }}"]
+        description: ["{{ jenkins_keycloak_saml_groups.jenkins_admins.description }}"]
     status_code: [201, 409]
-  when: groups.jenkins_admins.name not in (existing_groups.json | map(attribute='name') | list)
+    validate_certs: false
+  when: jenkins_keycloak_saml_groups.jenkins_admins.name not in (existing_groups.json | map(attribute='name') | list)
 
 - name: Create Jenkins Users group
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/groups"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
-      name: "{{ groups.jenkins_users.name }}"
-      path: "/{{ groups.jenkins_users.name }}"
+      name: "{{ jenkins_keycloak_saml_groups.jenkins_users.name }}"
+      path: "/{{ jenkins_keycloak_saml_groups.jenkins_users.name }}"
       attributes:
-        description: ["{{ groups.jenkins_users.description }}"]
+        description: ["{{ jenkins_keycloak_saml_groups.jenkins_users.description }}"]
     status_code: [201, 409]
-  when: groups.jenkins_users.name not in (existing_groups.json | map(attribute='name') | list)
+    validate_certs: false
+  when: jenkins_keycloak_saml_groups.jenkins_users.name not in (existing_groups.json | map(attribute='name') | list)
 
 - name: Get updated groups list
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/groups"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/groups"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: 200
+    validate_certs: false
   register: updated_groups
 
 - name: Set group IDs facts
   ansible.builtin.set_fact:
-    jenkins_admins_group_id: "{{ (updated_groups.json | selectattr('name', 'equalto', groups.jenkins_admins.name) | list)[0].id }}"
-    jenkins_users_group_id: "{{ (updated_groups.json | selectattr('name', 'equalto', groups.jenkins_users.name) | list)[0].id }}"
+    jenkins_admins_group_id: "{{ (updated_groups.json | selectattr('name', 'equalto', jenkins_keycloak_saml_groups.jenkins_admins.name) | list)[0].id }}"
+    jenkins_users_group_id: "{{ (updated_groups.json | selectattr('name', 'equalto', jenkins_keycloak_saml_groups.jenkins_users.name) | list)[0].id }}"
 
 - name: Display created groups
   ansible.builtin.debug:
     msg:
       - "Created/verified Jenkins groups:"
-      - "  - {{ groups.jenkins_admins.name }} ({{ jenkins_admins_group_id }})"
-      - "  - {{ groups.jenkins_users.name }} ({{ jenkins_users_group_id }})"
+      - "  - {{ jenkins_keycloak_saml_groups.jenkins_admins.name }} ({{ jenkins_admins_group_id }})"
+      - "  - {{ jenkins_keycloak_saml_groups.jenkins_users.name }} ({{ jenkins_users_group_id }})"

@@ -3,94 +3,98 @@
 
 - name: Check if Jenkins SAML client already exists
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: 200
+    validate_certs: false
   register: existing_clients
 
 - name: Set existing client fact
   ansible.builtin.set_fact:
-    existing_saml_client: "{{ existing_clients.json | selectattr('clientId', 'equalto', keycloak.saml_client.client_id) | list }}"
+    existing_saml_client: "{{ existing_clients.json | selectattr('clientId', 'equalto', jenkins_keycloak_saml_keycloak.saml_client.client_id) | list }}"
 
 - name: Update existing Jenkins SAML client
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ existing_saml_client[0].id }}"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients/{{ existing_saml_client[0].id }}"
     method: PUT
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
-      clientId: "{{ keycloak.saml_client.client_id }}"
-      protocol: "{{ keycloak.saml_client.protocol }}"
-      enabled: "{{ keycloak.saml_client.enabled }}"
-      frontchannelLogout: "{{ keycloak.saml_client.front_channel_logout }}"
-      redirectUris: "{{ keycloak.saml_client.redirect_uris }}"
-      webOrigins: "{{ keycloak.saml_client.web_origins }}"
-      baseUrl: "{{ keycloak.saml_client.base_url }}"
-      rootUrl: "{{ keycloak.saml_client.root_url }}"
-      adminUrl: "{{ keycloak.saml_client.admin_url }}"
+      clientId: "{{ jenkins_keycloak_saml_keycloak.saml_client.client_id }}"
+      protocol: "{{ jenkins_keycloak_saml_keycloak.saml_client.protocol }}"
+      enabled: "{{ jenkins_keycloak_saml_keycloak.saml_client.enabled }}"
+      frontchannelLogout: "{{ jenkins_keycloak_saml_keycloak.saml_client.front_channel_logout }}"
+      redirectUris: "{{ jenkins_keycloak_saml_keycloak.saml_client.redirect_uris }}"
+      webOrigins: "{{ jenkins_keycloak_saml_keycloak.saml_client.web_origins }}"
+      baseUrl: "{{ jenkins_keycloak_saml_keycloak.saml_client.base_url }}"
+      rootUrl: "{{ jenkins_keycloak_saml_keycloak.saml_client.root_url }}"
+      adminUrl: "{{ jenkins_keycloak_saml_keycloak.saml_client.admin_url }}"
       attributes:
-        "saml.authnstatement": "{{ keycloak.saml_client.attributes.saml_authnstatement }}"
-        "saml.server.signature": "{{ keycloak.saml_client.attributes.saml_server_signature }}"
-        "saml.signature.algorithm": "{{ keycloak.saml_client.attributes.saml_signature_algorithm }}"
-        "saml.client.signature": "{{ keycloak.saml_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak.saml_client.attributes.saml_assertion_signature }}"
-        "saml.encrypt": "{{ keycloak.saml_client.attributes.saml_encrypt }}"
-        "saml.force.post.binding": "{{ keycloak.saml_client.attributes.saml_force_post_binding }}"
-        "saml_name_id_format": "{{ keycloak.saml_client.attributes.saml_name_id_format }}"
-        "saml.signing.certificate": "{{ keycloak.saml_client.attributes.saml_signing_certificate }}"
-        "saml.signing.private.key": "{{ keycloak.saml_client.attributes.saml_signing_private_key }}"
+        "saml.authnstatement": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_authnstatement }}"
+        "saml.server.signature": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_server_signature }}"
+        "saml.signature.algorithm": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_signature_algorithm }}"
+        "saml.client.signature": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_client_signature }}"
+        "saml.assertion.signature": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_assertion_signature }}"
+        "saml.encrypt": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_encrypt }}"
+        "saml.force.post.binding": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_force_post_binding }}"
+        "saml_name_id_format": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_name_id_format }}"
+        "saml.signing.certificate": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_signing_certificate }}"
+        "saml.signing.private.key": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_signing_private_key }}"
     status_code: [200, 204]
+    validate_certs: false
   when: existing_saml_client | length > 0
 
 - name: Create new Jenkins SAML client
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
-      clientId: "{{ keycloak.saml_client.client_id }}"
-      protocol: "{{ keycloak.saml_client.protocol }}"
-      enabled: "{{ keycloak.saml_client.enabled }}"
-      frontchannelLogout: "{{ keycloak.saml_client.front_channel_logout }}"
-      redirectUris: "{{ keycloak.saml_client.redirect_uris }}"
-      webOrigins: "{{ keycloak.saml_client.web_origins }}"
-      baseUrl: "{{ keycloak.saml_client.base_url }}"
-      rootUrl: "{{ keycloak.saml_client.root_url }}"
-      adminUrl: "{{ keycloak.saml_client.admin_url }}"
+      clientId: "{{ jenkins_keycloak_saml_keycloak.saml_client.client_id }}"
+      protocol: "{{ jenkins_keycloak_saml_keycloak.saml_client.protocol }}"
+      enabled: "{{ jenkins_keycloak_saml_keycloak.saml_client.enabled }}"
+      frontchannelLogout: "{{ jenkins_keycloak_saml_keycloak.saml_client.front_channel_logout }}"
+      redirectUris: "{{ jenkins_keycloak_saml_keycloak.saml_client.redirect_uris }}"
+      webOrigins: "{{ jenkins_keycloak_saml_keycloak.saml_client.web_origins }}"
+      baseUrl: "{{ jenkins_keycloak_saml_keycloak.saml_client.base_url }}"
+      rootUrl: "{{ jenkins_keycloak_saml_keycloak.saml_client.root_url }}"
+      adminUrl: "{{ jenkins_keycloak_saml_keycloak.saml_client.admin_url }}"
       attributes:
-        "saml.authnstatement": "{{ keycloak.saml_client.attributes.saml_authnstatement }}"
-        "saml.server.signature": "{{ keycloak.saml_client.attributes.saml_server_signature }}"
-        "saml.signature.algorithm": "{{ keycloak.saml_client.attributes.saml_signature_algorithm }}"
-        "saml.client.signature": "{{ keycloak.saml_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak.saml_client.attributes.saml_assertion_signature }}"
-        "saml.encrypt": "{{ keycloak.saml_client.attributes.saml_encrypt }}"
-        "saml.force.post.binding": "{{ keycloak.saml_client.attributes.saml_force_post_binding }}"
-        "saml_name_id_format": "{{ keycloak.saml_client.attributes.saml_name_id_format }}"
-        "saml.signing.certificate": "{{ keycloak.saml_client.attributes.saml_signing_certificate }}"
-        "saml.signing.private.key": "{{ keycloak.saml_client.attributes.saml_signing_private_key }}"
+        "saml.authnstatement": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_authnstatement }}"
+        "saml.server.signature": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_server_signature }}"
+        "saml.signature.algorithm": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_signature_algorithm }}"
+        "saml.client.signature": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_client_signature }}"
+        "saml.assertion.signature": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_assertion_signature }}"
+        "saml.encrypt": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_encrypt }}"
+        "saml.force.post.binding": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_force_post_binding }}"
+        "saml_name_id_format": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_name_id_format }}"
+        "saml.signing.certificate": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_signing_certificate }}"
+        "saml.signing.private.key": "{{ jenkins_keycloak_saml_keycloak.saml_client.attributes.saml_signing_private_key }}"
     status_code: [201, 409]
+    validate_certs: false
   when: existing_saml_client | length == 0
 
 - name: Get updated client list to retrieve client ID
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: 200
+    validate_certs: false
   register: updated_clients
 
 - name: Set SAML client ID fact
   ansible.builtin.set_fact:
-    saml_client_id: "{{ (updated_clients.json | selectattr('clientId', 'equalto', keycloak.saml_client.client_id) | list)[0].id }}"
+    saml_client_id: "{{ (updated_clients.json | selectattr('clientId', 'equalto', jenkins_keycloak_saml_keycloak.saml_client.client_id) | list)[0].id }}"
 
 - name: Verify Jenkins SAML client creation
   ansible.builtin.debug:
-    msg: "Jenkins SAML client '{{ keycloak.saml_client.client_id }}' configured successfully with ID: {{ saml_client_id }}"
+    msg: "Jenkins SAML client '{{ jenkins_keycloak_saml_keycloak.saml_client.client_id }}' configured successfully with ID: {{ saml_client_id }}"

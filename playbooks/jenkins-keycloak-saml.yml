@@ -1,0 +1,12 @@
+---
+- name: Jenkins-Keycloak SAML Integration
+  hosts: jenkins
+  become: true
+  gather_facts: true
+
+  vars:
+    # All configuration now uses vault variables and is set in defaults/main.yml
+    # No overrides needed - defaults are already configured for HTTPS and vault
+
+  roles:
+    - jenkins-keycloak-saml

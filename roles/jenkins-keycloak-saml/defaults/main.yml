@@ -1,13 +1,18 @@
 ---
-# Jenkins-Keycloak SAML Integration Default Variables
+# Jenkins-Keycloak SAML Integration Role Defaults
+# These defaults reference variables from group_vars/all/saml_integration.yml
 
 # Jenkins Configuration
-jenkins:
-  base_url: "http://{{ ansible_fqdn }}:8080"
+jenkins_keycloak_saml_jenkins:
+  host: "{{ jenkins_hostname }}"
+  port: 443
+  protocol: "https"
+  base_url: "{{ jenkins_base_url }}"
   home: "/var/lib/jenkins"
   config_file: "config.xml"
   user: "jenkins"
   group: "jenkins"
+  service_name: "jenkins"
 
   # SAML Configuration
   saml:
@@ -18,19 +23,18 @@ jenkins:
     username_attribute: "username"
     email_attribute: "email"
     full_name_attribute: "displayName"
-    logout_url: "{{ keycloak.base_url }}/realms/{{ keycloak.realm }}/protocol/saml"
     force_authentication: false
     sp_entity_id: "jenkins-saml"
 
 # Keycloak Configuration
-keycloak:
-  protocol: "http"
-  host: "localhost"
-  port: 8080
-  base_url: "http://localhost:8080"
+jenkins_keycloak_saml_keycloak:
+  host: "{{ keycloak_hostname }}"
+  port: 443
+  protocol: "https"
   realm: "jenkins"
-  admin_user: "admin"
-  admin_password: "{{ vault_keycloak_admin_password }}"
+  admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
+  admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+  base_url: "{{ keycloak_base_url }}"
 
   # SAML Client Configuration
   saml_client:
@@ -39,13 +43,13 @@ keycloak:
     enabled: true
     front_channel_logout: true
     redirect_uris:
-      - "{{ jenkins.base_url }}/securityRealm/finishLogin"
-      - "{{ jenkins.base_url }}/securityRealm/finishLogin/*"
+      - "{{ jenkins_base_url }}/securityRealm/finishLogin"
+      - "{{ jenkins_base_url }}/securityRealm/finishLogin/*"
     web_origins:
-      - "{{ jenkins.base_url }}"
-    base_url: "{{ jenkins.base_url }}"
-    root_url: "{{ jenkins.base_url }}"
-    admin_url: "{{ jenkins.base_url }}"
+      - "{{ jenkins_base_url }}"
+    base_url: "{{ jenkins_base_url }}"
+    root_url: "{{ jenkins_base_url }}"
+    admin_url: "{{ jenkins_base_url }}"
 
     # SAML Attributes
     attributes:
@@ -96,25 +100,11 @@ keycloak:
 
       - name: "displayName"
         protocol: "saml"
-        protocol_mapper: "saml-javascript-mapper"
+        protocol_mapper: "saml-user-property-mapper"
         config:
           attribute_name: "displayName"
           attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-          single: "true"
-          script: |
-            var firstName = user.getFirstName() || '';
-            var lastName = user.getLastName() || '';
-            var displayName = '';
-            if (firstName && lastName) {
-              displayName = firstName + ' ' + lastName;
-            } else if (firstName) {
-              displayName = firstName;
-            } else if (lastName) {
-              displayName = lastName;
-            } else {
-              displayName = user.getUsername();
-            }
-            displayName;
+          user_attribute: "username"
 
       - name: "groups"
         protocol: "saml"
@@ -126,7 +116,7 @@ keycloak:
           full_path: "false"
 
 # Groups Configuration
-groups:
+jenkins_keycloak_saml_groups:
   jenkins_admins:
     name: "jenkins-admins"
     description: "Jenkins Administrators"
@@ -135,8 +125,8 @@ groups:
     description: "Jenkins Users"
 
 # Test User Configuration (optional)
-test_user:
-  enabled: false
+jenkins_keycloak_saml_test_user:
+  enabled: true
   username: "jenkins-demo"
   email: "jenkins-demo@example.com"
   first_name: "Jenkins"
@@ -144,8 +134,7 @@ test_user:
   password: "JenkinsDemo123!"
   groups:
     - "jenkins-users"
+    - "jenkins-admins"
 
-# Debug Configuration
-debug:
-  enabled: false
-  log_level: "info"
+# Logging
+jenkins_keycloak_saml_debug_logging: false

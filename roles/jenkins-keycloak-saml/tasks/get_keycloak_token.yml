@@ -3,15 +3,16 @@
 
 - name: Get Keycloak admin access token
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/realms/master/protocol/openid-connect/token"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/realms/master/protocol/openid-connect/token"
     method: POST
     body_format: form-urlencoded
     body:
       client_id: "admin-cli"
-      username: "{{ keycloak.admin_user }}"
-      password: "{{ keycloak.admin_password }}"
+      username: "{{ jenkins_keycloak_saml_keycloak.admin_user }}"
+      password: "{{ jenkins_keycloak_saml_keycloak.admin_password }}"
       grant_type: "password"
     status_code: 200
+    validate_certs: false
   register: keycloak_token_response
 
 - name: Set Keycloak access token fact

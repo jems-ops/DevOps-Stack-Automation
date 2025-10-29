@@ -3,26 +3,28 @@
 
 - name: Get existing protocol mappers for Jenkins SAML client
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: 200
+    validate_certs: false
   register: existing_mappers
 
 - name: Delete existing protocol mappers
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models/{{ item.id }}"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models/{{ item.id }}"
     method: DELETE
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: [204]
+    validate_certs: false
   loop: "{{ existing_mappers.json }}"
   when: existing_mappers.json | length > 0
 
 - name: Create SAML protocol mappers
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
@@ -34,21 +36,23 @@
       protocolMapper: "{{ item.protocol_mapper }}"
       config: "{{ item.config }}"
     status_code: [201]
-  loop: "{{ keycloak.saml_client.protocol_mappers }}"
+    validate_certs: false
+  loop: "{{ jenkins_keycloak_saml_keycloak.saml_client.protocol_mappers }}"
   register: created_mappers
 
 - name: Verify protocol mappers creation
   ansible.builtin.uri:
-    url: "{{ keycloak.base_url }}/admin/realms/{{ keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
+    url: "{{ jenkins_keycloak_saml_keycloak.base_url }}/admin/realms/{{ jenkins_keycloak_saml_keycloak.realm }}/clients/{{ saml_client_id }}/protocol-mappers/models"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_access_token }}"
     status_code: 200
+    validate_certs: false
   register: verification_mappers
 
 - name: Assert protocol mappers were created successfully
   ansible.builtin.assert:
     that:
-      - verification_mappers.json | length == keycloak.saml_client.protocol_mappers | length
+      - verification_mappers.json | length == jenkins_keycloak_saml_keycloak.saml_client.protocol_mappers | length
     fail_msg: "Not all protocol mappers were created successfully"
-    success_msg: "All {{ keycloak.saml_client.protocol_mappers | length }} protocol mappers created successfully"
+    success_msg: "All {{ jenkins_keycloak_saml_keycloak.saml_client.protocol_mappers | length }} protocol mappers created successfully"

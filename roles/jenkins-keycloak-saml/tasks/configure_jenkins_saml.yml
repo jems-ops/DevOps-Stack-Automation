@@ -15,62 +15,30 @@
 
 - name: Backup existing Jenkins config.xml
   ansible.builtin.copy:
-    src: "{{ jenkins.home }}/{{ jenkins.config_file }}"
-    dest: "{{ jenkins.home }}/{{ jenkins.config_file }}.backup.{{ ansible_date_time.epoch }}"
+    src: "{{ jenkins_keycloak_saml_jenkins.home }}/{{ jenkins_keycloak_saml_jenkins.config_file }}"
+    dest: "{{ jenkins_keycloak_saml_jenkins.home }}/{{ jenkins_keycloak_saml_jenkins.config_file }}.backup.{{ ansible_date_time.epoch }}"
     remote_src: yes
-    owner: "{{ jenkins.user }}"
-    group: "{{ jenkins.group }}"
+    owner: "{{ jenkins_keycloak_saml_jenkins.user }}"
+    group: "{{ jenkins_keycloak_saml_jenkins.group }}"
     mode: '0644'
   become: yes
 
-- name: Generate Jenkins SAML security configuration
+- name: Generate complete Jenkins configuration with SAML from template
   ansible.builtin.template:
     src: jenkins-saml-config.xml.j2
-    dest: "/tmp/jenkins-saml-config.xml"
+    dest: "{{ jenkins_keycloak_saml_jenkins.home }}/{{ jenkins_keycloak_saml_jenkins.config_file }}"
+    owner: "{{ jenkins_keycloak_saml_jenkins.user }}"
+    group: "{{ jenkins_keycloak_saml_jenkins.group }}"
     mode: '0644'
-  delegate_to: localhost
-
-- name: Read current Jenkins config.xml
-  ansible.builtin.slurp:
-    src: "{{ jenkins.home }}/{{ jenkins.config_file }}"
-  register: current_jenkins_config
-  become: yes
-
-- name: Parse current Jenkins configuration
-  ansible.builtin.set_fact:
-    jenkins_config_content: "{{ current_jenkins_config.content | b64decode }}"
-
-- name: Read SAML security realm configuration
-  ansible.builtin.slurp:
-    src: "/tmp/jenkins-saml-config.xml"
-  register: saml_config_content
-  delegate_to: localhost
-
-- name: Update Jenkins configuration with SAML security realm
-  ansible.builtin.replace:
-    path: "{{ jenkins.home }}/{{ jenkins.config_file }}"
-    regexp: '<securityRealm class=".*?"/>'
-    replace: "{{ saml_config_content.content | b64decode | trim }}"
     backup: yes
   become: yes
-  when: "'<securityRealm class=' in jenkins_config_content"
 
-- name: Update Jenkins configuration with SAML security realm (fallback)
-  ansible.builtin.replace:
-    path: "{{ jenkins.home }}/{{ jenkins.config_file }}"
-    regexp: '<securityRealm.*?</securityRealm>'
-    replace: "{{ saml_config_content.content | b64decode | trim }}"
-    backup: yes
-  become: yes
-  when: "'<securityRealm class=' not in jenkins_config_content"
-
-- name: Set Jenkins configuration file permissions
+- name: Remove cached Keycloak metadata file to force refresh
   ansible.builtin.file:
-    path: "{{ jenkins.home }}/{{ jenkins.config_file }}"
-    owner: "{{ jenkins.user }}"
-    group: "{{ jenkins.group }}"
-    mode: '0644'
+    path: "{{ jenkins_keycloak_saml_jenkins.home }}/org.jenkinsci.plugins.saml.SamlSecurityRealm.xml"
+    state: absent
   become: yes
+  ignore_errors: yes
 
 - name: Start Jenkins service
   ansible.builtin.systemd:
@@ -87,15 +55,9 @@
 
 - name: Verify Jenkins is accessible
   ansible.builtin.uri:
-    url: "{{ jenkins.base_url }}/login"
+    url: "{{ jenkins_keycloak_saml_jenkins.base_url }}/login"
     method: GET
     status_code: 200
     timeout: 60
   retries: 10
   delay: 30
-
-- name: Clean up temporary SAML configuration file
-  ansible.builtin.file:
-    path: "/tmp/jenkins-saml-config.xml"
-    state: absent
-  delegate_to: localhost
