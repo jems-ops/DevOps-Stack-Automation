@@ -40,12 +40,13 @@
         status_code: 200
       register: keycloak_health
       failed_when: false
+      check_mode: no
 
     - name: Display pre-flight check results
       ansible.builtin.debug:
         msg:
-          - "✅ Jenkins service status: {{ jenkins_service.status.ActiveState }}"
-          - "✅ Keycloak accessible: {{ keycloak_health.status == 200 }}"
+          - "✅ Jenkins service status: {{ jenkins_service.status.ActiveState | default('unknown') }}"
+          - "✅ Keycloak accessible: {{ keycloak_health.status | default(0) == 200 }}"
 
   roles:
     - role: keycloak-saml-integration

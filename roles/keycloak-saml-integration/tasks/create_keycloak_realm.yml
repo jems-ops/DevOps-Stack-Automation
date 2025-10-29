@@ -1,0 +1,40 @@
+---
+# Create Keycloak Realm if it doesn't exist
+
+- name: Check if realm exists
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_keycloak.base_url }}/admin/realms/{{ keycloak_saml_keycloak.realm }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+    validate_certs: no
+    status_code: [200, 404]
+  register: realm_check
+  failed_when: false
+
+- name: Create realm if it doesn't exist
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_keycloak.base_url }}/admin/realms"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      realm: "{{ keycloak_saml_keycloak.realm }}"
+      enabled: true
+      displayName: "{{ keycloak_saml_app_name | capitalize }} Realm"
+      sslRequired: "external"
+      registrationAllowed: false
+      loginWithEmailAllowed: true
+      duplicateEmailsAllowed: false
+      resetPasswordAllowed: true
+      editUsernameAllowed: false
+      bruteForceProtected: true
+    validate_certs: no
+    status_code: 201
+  when: realm_check.status == 404
+
+- name: Display realm creation status
+  ansible.builtin.debug:
+    msg: "{{ 'Created new realm: ' + keycloak_saml_keycloak.realm if realm_check.status == 404 else 'Realm already exists: ' + keycloak_saml_keycloak.realm }}"

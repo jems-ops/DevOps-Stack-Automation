@@ -37,7 +37,7 @@
       config: "{{ item.config }}"
     status_code: [201]
     validate_certs: false
-  loop: "{{ keycloak_saml_keycloak.saml_client.protocol_mappers }}"
+  loop: "{{ keycloak_saml_protocol_mappers }}"
   register: created_mappers
 
 - name: Verify protocol mappers creation
@@ -53,6 +53,6 @@
 - name: Assert protocol mappers were created successfully
   ansible.builtin.assert:
     that:
-      - verification_mappers.json | length == keycloak_saml_keycloak.saml_client.protocol_mappers | length
+      - verification_mappers.json | length == keycloak_saml_protocol_mappers | length
     fail_msg: "Not all protocol mappers were created successfully"
-    success_msg: "All {{ keycloak_saml_keycloak.saml_client.protocol_mappers | length }} protocol mappers created successfully"
+    success_msg: "All {{ keycloak_saml_protocol_mappers | length }} protocol mappers created successfully"

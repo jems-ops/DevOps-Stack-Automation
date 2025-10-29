@@ -37,12 +37,13 @@
         status_code: 200
       register: keycloak_health
       failed_when: false
+      check_mode: no
 
     - name: Display pre-flight check results
       ansible.builtin.debug:
         msg:
-          - "✅ SonarQube service status: {{ sonarqube_service.status.ActiveState }}"
-          - "✅ Keycloak accessible: {{ keycloak_health.status == 200 }}"
+          - "✅ SonarQube service status: {{ sonarqube_service.status.ActiveState | default('unknown') }}"
+          - "✅ Keycloak accessible: {{ keycloak_health.status | default(0) == 200 }}"
 
   roles:
     - role: keycloak-saml-integration

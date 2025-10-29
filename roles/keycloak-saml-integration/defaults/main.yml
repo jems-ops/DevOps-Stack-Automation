@@ -27,8 +27,8 @@ keycloak_saml_app_config:
     home: "/opt/sonarqube"
     config_file: "conf/sonar.properties"
     service_name: "sonarqube"
-    user: "sonarqube"
-    group: "sonarqube"
+    user: "sonar"
+    group: "sonar"
     saml_callback_url: "/oauth2/callback/saml"
 
 # Keycloak Configuration

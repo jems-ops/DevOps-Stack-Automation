@@ -21,7 +21,7 @@
     validate_certs: false
   when: existing_test_users.json | length > 0
 
-- name: Create Jenkins test user
+- name: Create test user
   ansible.builtin.uri:
     url: "{{ keycloak_saml_keycloak.base_url }}/admin/realms/{{ keycloak_saml_keycloak.realm }}/users"
     method: POST
@@ -81,7 +81,7 @@
 - name: Display test user information
   ansible.builtin.debug:
     msg:
-      - "Created Jenkins test user:"
+      - "Created {{ keycloak_saml_app_type | capitalize }} test user:"
       - "  Username: {{ keycloak_saml_test_user.username }}"
       - "  Email: {{ keycloak_saml_test_user.email }}"
       - "  Name: {{ keycloak_saml_test_user.first_name }} {{ keycloak_saml_test_user.last_name }}"

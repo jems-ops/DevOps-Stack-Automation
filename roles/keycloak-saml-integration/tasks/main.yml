@@ -28,6 +28,10 @@
   ansible.builtin.include_tasks: get_keycloak_token.yml
   tags: ['keycloak', 'token']
 
+- name: Create Keycloak realm if needed
+  ansible.builtin.include_tasks: create_keycloak_realm.yml
+  tags: ['keycloak', 'realm']
+
 - name: Create Keycloak SAML client
   ansible.builtin.include_tasks: create_saml_client.yml
   tags: ['keycloak', 'saml', 'client']
