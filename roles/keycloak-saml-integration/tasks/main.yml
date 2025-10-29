@@ -24,6 +24,10 @@
       - "👤 SAML Client: {{ keycloak_saml_client.client_id }}"
   tags: ['info']
 
+- name: Run pre-flight checks
+  ansible.builtin.include_tasks: preflight_checks.yml
+  tags: ['preflight', 'checks']
+
 - name: Get Keycloak access token
   ansible.builtin.include_tasks: get_keycloak_token.yml
   tags: ['keycloak', 'token']

@@ -11,40 +11,6 @@
     # Application Type Configuration
     keycloak_saml_app_type: "sonarqube"
 
-    # SonarQube-specific Configuration
-    sonarqube_hostname: "sonar.local"
-    sonarqube_base_url: "https://{{ sonarqube_hostname }}"
-
-    # Keycloak Configuration
-    keycloak_hostname: "keycloak.local"
-    keycloak_base_url: "https://{{ keycloak_hostname }}"
-
-    # HTTPS Configuration
-    keycloak_saml_use_https: true
-
-  pre_tasks:
-    - name: Verify SonarQube is running
-      ansible.builtin.systemd:
-        name: sonarqube
-        state: started
-      register: sonarqube_service
-
-    - name: Verify Keycloak is accessible
-      ansible.builtin.uri:
-        url: "{{ keycloak_base_url }}/realms/master"
-        method: GET
-        validate_certs: no
-        status_code: 200
-      register: keycloak_health
-      failed_when: false
-      check_mode: no
-
-    - name: Display pre-flight check results
-      ansible.builtin.debug:
-        msg:
-          - "✅ SonarQube service status: {{ sonarqube_service.status.ActiveState | default('unknown') }}"
-          - "✅ Keycloak accessible: {{ keycloak_health.status | default(0) == 200 }}"
-
   roles:
     - role: keycloak-saml-integration
       tags:

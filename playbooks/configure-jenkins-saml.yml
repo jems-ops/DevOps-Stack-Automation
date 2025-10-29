@@ -11,43 +11,6 @@
     # Application Type Configuration
     keycloak_saml_app_type: "jenkins"
 
-    # Jenkins-specific Configuration
-    jenkins_hostname: "jenkins.local"
-    jenkins_base_url: "https://{{ jenkins_hostname }}"
-
-    # Keycloak Configuration
-    keycloak_hostname: "keycloak.local"
-    keycloak_base_url: "https://{{ keycloak_hostname }}"
-
-    # HTTPS Configuration
-    keycloak_saml_use_https: true
-
-    # SAML Plugin Version (optional)
-    jenkins_saml_plugin_version: "latest"
-
-  pre_tasks:
-    - name: Verify Jenkins is running
-      ansible.builtin.systemd:
-        name: jenkins
-        state: started
-      register: jenkins_service
-
-    - name: Verify Keycloak is accessible
-      ansible.builtin.uri:
-        url: "{{ keycloak_base_url }}/realms/master"
-        method: GET
-        validate_certs: no
-        status_code: 200
-      register: keycloak_health
-      failed_when: false
-      check_mode: no
-
-    - name: Display pre-flight check results
-      ansible.builtin.debug:
-        msg:
-          - "✅ Jenkins service status: {{ jenkins_service.status.ActiveState | default('unknown') }}"
-          - "✅ Keycloak accessible: {{ keycloak_health.status | default(0) == 200 }}"
-
   roles:
     - role: keycloak-saml-integration
       tags:

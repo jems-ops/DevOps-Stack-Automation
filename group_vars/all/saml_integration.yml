@@ -14,3 +14,9 @@ jenkins_base_url: "https://{{ jenkins_hostname }}"
 # Keycloak host resolution from inventory
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
 keycloak_base_url: "https://{{ keycloak_hostname }}"
+
+# Common SAML Configuration
+keycloak_saml_use_https: true
+
+# Jenkins-specific settings
+jenkins_saml_plugin_version: "latest"
