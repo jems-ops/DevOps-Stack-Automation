@@ -9,7 +9,8 @@
 
 - name: Wait for Jenkins to stop
   ansible.builtin.wait_for:
-    port: "{{ keycloak_saml_app.port }}"
+    port: 8080
+    host: 127.0.0.1
     state: stopped
     timeout: 60
 
@@ -49,7 +50,8 @@
 
 - name: Wait for Jenkins to start
   ansible.builtin.wait_for:
-    port: "{{ keycloak_saml_app.port }}"
+    port: 8080
+    host: 127.0.0.1
     state: started
     timeout: 300
 
