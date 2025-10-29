@@ -1,0 +1,74 @@
+---
+# Playbook: Configure Jenkins SAML Integration with Keycloak
+# This playbook sets up SAML SSO between Jenkins and Keycloak
+# using the generic keycloak-saml-integration role
+
+- name: Configure Jenkins SAML Integration with Keycloak
+  hosts: jenkins_servers
+  become: yes
+
+  vars:
+    # Application Type Configuration
+    keycloak_saml_app_type: "jenkins"
+
+    # Jenkins-specific Configuration
+    jenkins_hostname: "jenkins.local"
+    jenkins_base_url: "https://{{ jenkins_hostname }}"
+
+    # Keycloak Configuration
+    keycloak_hostname: "keycloak.local"
+    keycloak_base_url: "https://{{ keycloak_hostname }}"
+
+    # HTTPS Configuration
+    keycloak_saml_use_https: true
+
+    # SAML Plugin Version (optional)
+    jenkins_saml_plugin_version: "latest"
+
+  pre_tasks:
+    - name: Verify Jenkins is running
+      ansible.builtin.systemd:
+        name: jenkins
+        state: started
+      register: jenkins_service
+
+    - name: Verify Keycloak is accessible
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/realms/master"
+        method: GET
+        validate_certs: no
+        status_code: 200
+      register: keycloak_health
+      failed_when: false
+
+    - name: Display pre-flight check results
+      ansible.builtin.debug:
+        msg:
+          - "✅ Jenkins service status: {{ jenkins_service.status.ActiveState }}"
+          - "✅ Keycloak accessible: {{ keycloak_health.status == 200 }}"
+
+  roles:
+    - role: keycloak-saml-integration
+      tags:
+        - jenkins
+        - saml
+        - keycloak
+
+  post_tasks:
+    - name: Display SAML login instructions
+      ansible.builtin.debug:
+        msg:
+          - "🎉 Jenkins SAML Integration Complete!"
+          - ""
+          - "📋 Test User Credentials:"
+          - "   Username: jenkins-demo"
+          - "   Password: JenkinsDemo123!"
+          - "   Groups: jenkins-users, jenkins-admins"
+          - ""
+          - "🔐 SAML Login URL:"
+          - "   {{ jenkins_base_url }}/securityRealm/commenceLogin"
+          - ""
+          - "💡 Note: Jenkins SAML plugin doesn't show a login button on the default login page."
+          - "   Users must navigate directly to the SAML login URL above."
+          - ""
+          - "🔧 Alternative: Create a bookmark or redirect users to the SAML login URL."

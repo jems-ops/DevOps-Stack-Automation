@@ -1,20 +1,21 @@
 # Ansible Inventory for Jenkins Automation Project
 # Rocky Linux 9 hosts - credentials managed via vault
+# Hostnames represent DNS names (after reverse proxy where applicable)
 
-[jenkins]
-192.168.201.14
+[jenkins_servers]
+jenkins.local ansible_host=192.168.201.14
 
 [nginx]
-192.168.201.15
+nginx-proxy ansible_host=192.168.201.15
 
-[sonarqube]
-192.168.201.16
+[sonarqube_servers]
+sonar.local ansible_host=192.168.201.16
 
 [freeipa]
-192.168.201.13
+freeipa.local ansible_host=192.168.201.13
 
 [keycloak]
-192.168.201.12
+keycloak.local ansible_host=192.168.201.12
 
 # Group variables for all hosts
 [all:vars]

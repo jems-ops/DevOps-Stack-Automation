@@ -71,14 +71,15 @@ roles/keycloak-saml-integration/
 ├── defaults/
 │   └── main.yml              # Default variables
 ├── tasks/
-│   ├── main.yml              # Main task orchestration
-│   ├── get_keycloak_token.yml
-│   ├── create_saml_client.yml
-│   ├── configure_protocol_mappers.yml
-│   ├── configure_groups.yml
-│   ├── create_test_user.yml
-│   ├── get_keycloak_certificate.yml
-│   └── configure_app_saml.yml
+│   ├── main.yml                      # Main task orchestration
+│   ├── get_keycloak_token.yml        # Get Keycloak admin token
+│   ├── create_saml_client.yml        # Create SAML client in Keycloak
+│   ├── configure_protocol_mappers.yml # Configure SAML attribute mappings
+│   ├── configure_groups.yml          # Create groups in Keycloak
+│   ├── create_test_user.yml          # Create test user with admin perms
+│   ├── get_keycloak_certificate.yml  # Fetch Keycloak SAML certificate
+│   ├── configure_jenkins_saml.yml    # Jenkins-specific SAML config
+│   └── configure_sonarqube_saml.yml  # SonarQube-specific SAML config
 ├── templates/
 │   ├── jenkins-saml-config.xml.j2
 │   └── sonar-saml-config.properties.j2
@@ -93,17 +94,21 @@ roles/keycloak-saml-integration/
 
 ### Jenkins SAML Integration
 
-Create a playbook `playbooks/jenkins-saml.yml`:
+Use the provided playbook `playbooks/configure-jenkins-saml.yml`:
 
 ```yaml
 ---
-- name: Jenkins-Keycloak SAML Integration
-  hosts: jenkins
-  become: true
-  gather_facts: true
+- name: Configure Jenkins SAML Integration with Keycloak
+  hosts: jenkins_servers
+  become: yes
 
   vars:
     keycloak_saml_app_type: "jenkins"
+    jenkins_hostname: "jenkins.local"
+    jenkins_base_url: "https://{{ jenkins_hostname }}"
+    keycloak_hostname: "keycloak.local"
+    keycloak_base_url: "https://{{ keycloak_hostname }}"
+    keycloak_saml_use_https: true
 
   roles:
     - keycloak-saml-integration
@@ -111,22 +116,26 @@ Create a playbook `playbooks/jenkins-saml.yml`:
 
 Run:
 ```bash
-ansible-playbook playbooks/jenkins-saml.yml -i inventory --ask-vault-pass
+ansible-playbook playbooks/configure-jenkins-saml.yml -i inventory --ask-vault-pass
 ```
 
 ### SonarQube SAML Integration
 
-Create a playbook `playbooks/sonarqube-saml.yml`:
+Use the provided playbook `playbooks/configure-sonarqube-saml.yml`:
 
 ```yaml
 ---
-- name: SonarQube-Keycloak SAML Integration
-  hosts: sonarqube
-  become: true
-  gather_facts: true
+- name: Configure SonarQube SAML Integration with Keycloak
+  hosts: sonarqube_servers
+  become: yes
 
   vars:
     keycloak_saml_app_type: "sonarqube"
+    sonarqube_hostname: "sonar.local"
+    sonarqube_base_url: "https://{{ sonarqube_hostname }}"
+    keycloak_hostname: "keycloak.local"
+    keycloak_base_url: "https://{{ keycloak_hostname }}"
+    keycloak_saml_use_https: true
 
   roles:
     - keycloak-saml-integration
@@ -134,7 +143,7 @@ Create a playbook `playbooks/sonarqube-saml.yml`:
 
 Run:
 ```bash
-ansible-playbook playbooks/sonarqube-saml.yml -i inventory --ask-vault-pass
+ansible-playbook playbooks/configure-sonarqube-saml.yml -i inventory --ask-vault-pass
 ```
 
 ## How It Works
@@ -152,19 +161,36 @@ ansible-playbook playbooks/sonarqube-saml.yml -i inventory --ask-vault-pass
 
 ### Jenkins Template (`jenkins-saml-config.xml.j2`)
 
-Generates complete `config.xml` with:
-- SAML Security Realm configuration
+Generates complete Jenkins `config.xml` with:
+- SAML Security Realm configuration using `org.jenkinsci.plugins.saml.SamlSecurityRealm`
 - Full Control Once Logged In authorization strategy
-- IdP metadata from Keycloak
-- Attribute mappings
+- IdP metadata fetched dynamically from Keycloak
+- User attribute mappings (username, email, displayName)
+- Group attribute mapping for role-based access
+- Advanced SAML settings (encryption, signing, force authentication)
+
+The Jenkins task:
+- Stops Jenkins service before configuration
+- Backs up existing `config.xml`
+- Applies the SAML template
+- Restarts Jenkins and waits for it to be ready
 
 ### SonarQube Template (`sonar-saml-config.properties.j2`)
 
-Generates SAML properties for `sonar.properties`:
+Generates SAML configuration block for `sonar.properties`:
 - SAML enabled flag
-- Identity provider configuration
-- Attribute mappings
-- Group synchronization
+- Application ID (Keycloak client ID)
+- Identity provider configuration (Keycloak URLs)
+- Certificate configuration (optional for self-signed certs)
+- User attribute mappings (login, name, email)
+- Group synchronization via `groups` attribute
+- Force authentication setting
+
+The SonarQube task:
+- Stops SonarQube service before configuration
+- Backs up existing `sonar.properties`
+- Uses `blockinfile` to insert SAML config block
+- Restarts SonarQube and waits for health check
 
 ## Test Users
 
@@ -173,7 +199,7 @@ After deployment, test users are created:
 | Application | Username | Password | Groups |
 |-------------|----------|----------|--------|
 | Jenkins     | `jenkins-demo` | `JenkinsDemo123!` | jenkins-users, jenkins-admins |
-| SonarQube   | `sonarqube-demo` | `SonarqubeDemo123!` | sonar-users, sonar-admins |
+| SonarQube   | `sonarqube-demo` | `SonarqubeDemo123!` | sonarqube-users, sonarqube-admins |
 
 ## SAML Login URLs
 
@@ -198,9 +224,45 @@ keycloak_saml_app_config:
 
 2. Create application template in `templates/myapp-saml-config.j2`
 
-3. Update `tasks/configure_app_saml.yml` to handle the new app type
+3. Create a new task file `tasks/configure_myapp_saml.yml`:
+```yaml
+---
+- name: Stop myapp service
+  ansible.builtin.systemd:
+    name: myapp
+    state: stopped
+  become: yes
 
-4. Create playbook with `keycloak_saml_app_type: "myapp"`
+- name: Backup existing config
+  ansible.builtin.copy:
+    src: "{{ keycloak_saml_app_config[keycloak_saml_app_type].home }}/{{ keycloak_saml_app_config[keycloak_saml_app_type].config_file }}"
+    dest: "{{ keycloak_saml_app_config[keycloak_saml_app_type].home }}/{{ keycloak_saml_app_config[keycloak_saml_app_type].config_file }}.backup.{{ ansible_date_time.epoch }}"
+    remote_src: yes
+  become: yes
+
+- name: Apply SAML configuration from template
+  ansible.builtin.template:
+    src: myapp-saml-config.j2
+    dest: "{{ keycloak_saml_app_config[keycloak_saml_app_type].home }}/{{ keycloak_saml_app_config[keycloak_saml_app_type].config_file }}"
+    owner: "{{ keycloak_saml_app_config[keycloak_saml_app_type].user }}"
+    group: "{{ keycloak_saml_app_config[keycloak_saml_app_type].group }}"
+  become: yes
+
+- name: Start myapp service
+  ansible.builtin.systemd:
+    name: myapp
+    state: started
+  become: yes
+```
+
+4. Update `tasks/main.yml` to include the new configure task:
+```yaml
+- name: Configure MyApp SAML
+  ansible.builtin.include_tasks: configure_myapp_saml.yml
+  when: keycloak_saml_app_type == 'myapp'
+```
+
+5. Create playbook with `keycloak_saml_app_type: "myapp"`
 
 ## Dependencies
 
