@@ -13,15 +13,11 @@ skip_list:
   - role-name  # Allow hyphenated role names (keycloak-saml-integration)
   - name[casing]  # Allow lowercase handler names
   - ignore-errors  # Allow ignore_errors in handlers for optional reloads
+  - yaml[truthy]  # Allow yes/no in addition to true/false
+  - yaml[line-length]  # Allow long lines for URLs and file paths
 
 # Enable progressive mode for stricter checking over time
 profile: production
-
-# Set custom rules
-rules:
-  # Allow both true/false and yes/no
-  yaml[truthy]:
-    allowed-values: ['true', 'false', 'yes', 'no']
 
 # Variable naming convention
 var_naming_pattern: "^[a-z_][a-z0-9_]*$"
@@ -29,7 +25,6 @@ var_naming_pattern: "^[a-z_][a-z0-9_]*$"
 # Set warn level for specific rules
 warn_list:
   - experimental  # Experimental rules as warnings only
-  - ignore-errors  # Warn but don't fail on ignore_errors
 
 # Mock modules and platforms
 mock_modules:
