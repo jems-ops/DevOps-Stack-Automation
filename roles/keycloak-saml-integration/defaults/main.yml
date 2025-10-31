@@ -47,15 +47,15 @@ keycloak_saml_client:
   protocol: "saml"
   enabled: true
   front_channel_logout: true
-  
+
   # Redirect URIs (dynamically built based on app type)
   redirect_uris:
     - "{{ keycloak_saml_app.base_url }}{{ keycloak_saml_app_config[keycloak_saml_app_type].saml_callback_url }}"
     - "{{ keycloak_saml_app.base_url }}/*"
-  
+
   web_origins:
     - "{{ keycloak_saml_app.base_url }}"
-  
+
   base_url: "{{ keycloak_saml_app.base_url }}"
   root_url: "{{ keycloak_saml_app.base_url }}"
   admin_url: "{{ keycloak_saml_app.base_url }}"
