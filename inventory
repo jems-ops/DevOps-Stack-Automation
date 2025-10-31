@@ -11,6 +11,9 @@ nginx-proxy ansible_host=192.168.201.15
 [sonarqube_servers]
 sonar.local ansible_host=192.168.201.16
 
+[artifactory_servers]
+artifactory.local ansible_host=192.168.201.11
+
 [freeipa]
 freeipa.local ansible_host=192.168.201.13
 

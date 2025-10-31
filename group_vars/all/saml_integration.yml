@@ -11,6 +11,10 @@ sonarqube_base_url: "https://{{ sonarqube_hostname }}"
 jenkins_hostname: "{{ groups['jenkins_servers'][0] }}"
 jenkins_base_url: "https://{{ jenkins_hostname }}"
 
+# Artifactory host resolution from inventory
+artifactory_hostname: "{{ groups['artifactory_servers'][0] }}"
+artifactory_base_url: "https://{{ artifactory_hostname }}"
+
 # Keycloak host resolution from inventory
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
 keycloak_base_url: "https://{{ keycloak_hostname }}"
