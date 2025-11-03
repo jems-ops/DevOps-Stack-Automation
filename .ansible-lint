@@ -10,7 +10,7 @@ exclude_paths:
 
 # Use default rules with exceptions
 skip_list:
-  - role-name  # Allow hyphenated role names (keycloak-saml-integration)
+  - role-name  # Allow underscored role names (keycloak_saml_integration)
   - name[casing]  # Allow lowercase handler names
   - ignore-errors  # Allow ignore_errors in handlers for optional reloads
   - yaml[truthy]  # Allow yes/no in addition to true/false
@@ -32,7 +32,7 @@ mock_modules:
   - community.general.keycloak_group
 
 mock_roles:
-  - keycloak-saml-integration
+  - keycloak_saml_integration
 
 # Enable offline mode (don't check for role updates)
 offline: true

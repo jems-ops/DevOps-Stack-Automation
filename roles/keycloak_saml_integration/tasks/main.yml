@@ -1,0 +1,85 @@
+---
+# Main tasks for Generic Keycloak SAML Integration
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - keycloak_saml_integration_app_type is defined
+      - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube']
+      - keycloak_saml_integration_keycloak.host is defined
+      - keycloak_saml_integration_keycloak.realm is defined
+      - keycloak_saml_integration_keycloak.admin_user is defined
+      - keycloak_saml_integration_keycloak.admin_password is defined
+    fail_msg: "Required variables are not defined or app_type is invalid. Check defaults/main.yml for requirements."
+    success_msg: "All required variables are defined for {{ keycloak_saml_integration_app_type | upper }} SAML integration"
+  tags: ['validate']
+
+- name: Display integration information
+  ansible.builtin.debug:
+    msg:
+      - "🔐 {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML Integration"
+      - "🏗️  Application: {{ keycloak_saml_integration_app.base_url }}"
+      - "🔑 Keycloak: {{ keycloak_saml_integration_keycloak.base_url }}"
+      - "🏛️  Realm: {{ keycloak_saml_integration_keycloak.realm }}"
+      - "👤 SAML Client: {{ keycloak_saml_integration_client.client_id }}"
+  tags: ['info']
+
+- name: Run pre-flight checks
+  ansible.builtin.include_tasks: preflight_checks.yml
+  tags: ['preflight', 'checks']
+
+- name: Get Keycloak access token
+  ansible.builtin.include_tasks: get_keycloak_token.yml
+  tags: ['keycloak', 'token']
+
+- name: Create Keycloak realm if needed
+  ansible.builtin.include_tasks: create_keycloak_realm.yml
+  tags: ['keycloak', 'realm']
+
+- name: Create Keycloak SAML client
+  ansible.builtin.include_tasks: create_saml_client.yml
+  tags: ['keycloak', 'saml', 'client']
+
+- name: Configure SAML protocol mappers
+  ansible.builtin.include_tasks: configure_protocol_mappers.yml
+  tags: ['keycloak', 'saml', 'mappers']
+
+- name: Create and configure groups
+  ansible.builtin.include_tasks: configure_groups.yml
+  tags: ['keycloak', 'groups']
+
+- name: Create test user (optional)
+  ansible.builtin.include_tasks: create_test_user.yml
+  when: keycloak_saml_integration_test_user.enabled | default(false) | bool
+  tags: ['keycloak', 'test_user']
+
+- name: Get Keycloak certificate
+  ansible.builtin.include_tasks: get_keycloak_certificate.yml
+  tags: ['keycloak', 'certificate']
+
+- name: Configure application SAML integration
+  ansible.builtin.include_tasks: "configure_{{ keycloak_saml_integration_app_type }}_saml.yml"
+  tags: ['app', 'saml', 'configure']
+
+- name: Display completion summary
+  ansible.builtin.debug:
+    msg:
+      - "✅ {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML integration completed!"
+      - ""
+      - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
+      - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
+      - "👥 Groups: {{ keycloak_saml_integration_groups.admins.name }}, {{ keycloak_saml_integration_groups.users.name }}"
+      - "👤 Test User: {{ keycloak_saml_integration_test_user.username }} / {{ keycloak_saml_integration_test_user.password }}"
+  tags: ['summary']
+  when: keycloak_saml_integration_test_user.enabled | default(false) | bool
+
+- name: Display completion summary (no test user)
+  ansible.builtin.debug:
+    msg:
+      - "✅ {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML integration completed!"
+      - ""
+      - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
+      - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
+      - "👥 Groups: {{ keycloak_saml_integration_groups.admins.name }}, {{ keycloak_saml_integration_groups.users.name }}"
+  tags: ['summary']
+  when: not (keycloak_saml_integration_test_user.enabled | default(false) | bool)

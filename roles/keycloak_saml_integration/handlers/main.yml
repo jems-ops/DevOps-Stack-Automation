@@ -1,31 +1,31 @@
 ---
 # Generic Handlers for Keycloak SAML Integration Role
-# Application handlers dynamically respond based on keycloak_saml_app_type
+# Application handlers dynamically respond based on keycloak_saml_integration_app_type
 # Keycloak handlers use direct service name
 
 # Application Handlers (Jenkins, SonarQube, etc.)
 - name: restart application
   ansible.builtin.systemd:
-    name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: restarted
   become: yes
 
 - name: reload application
   ansible.builtin.systemd:
-    name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: reloaded
   become: yes
   ignore_errors: yes
 
 - name: stop application
   ansible.builtin.systemd:
-    name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: stopped
   become: yes
 
 - name: start application
   ansible.builtin.systemd:
-    name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: started
   become: yes
 

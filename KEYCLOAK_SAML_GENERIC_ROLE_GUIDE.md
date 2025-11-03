@@ -7,7 +7,7 @@ This document outlines the implementation of a **generic, reusable Ansible role*
 ## Design Goals
 
 1. **DRY Principle**: Extract common Keycloak SAML configuration tasks
-2. **Flexibility**: Support multiple applications with minimal code duplication  
+2. **Flexibility**: Support multiple applications with minimal code duplication
 3. **Maintainability**: Single source of truth for SAML integration logic
 4. **Extensibility**: Easy to add new applications
 
@@ -16,7 +16,7 @@ This document outlines the implementation of a **generic, reusable Ansible role*
 ### Role Structure
 
 ```
-roles/keycloak-saml-integration/
+roles/keycloak_saml_integration/
 ├── defaults/main.yml           # Generic variables with app-specific overrides
 ├── tasks/
 │   ├── main.yml                # Task orchestration
@@ -39,18 +39,18 @@ roles/keycloak-saml-integration/
 
 **Generic Variables** (works for all apps):
 ```yaml
-keycloak_saml_app_type: "jenkins"  # or "sonarqube"
-keycloak_saml_app_name: "{{ keycloak_saml_app_type }}"
-keycloak_saml_groups:
+keycloak_saml_integration_app_type: "jenkins"  # or "sonarqube"
+keycloak_saml_integration_app_name: "{{ keycloak_saml_integration_app_type }}"
+keycloak_saml_integration_groups:
   admins:
-    name: "{{ keycloak_saml_app_type }}-admins"
+    name: "{{ keycloak_saml_integration_app_type }}-admins"
   users:
-    name: "{{ keycloak_saml_app_type }}-users"
+    name: "{{ keycloak_saml_integration_app_type }}-users"
 ```
 
 **Application-Specific Configuration**:
 ```yaml
-keycloak_saml_app_config:
+keycloak_saml_integration_app_config:
   jenkins:
     home: "/var/lib/jenkins"
     config_file: "config.xml"
@@ -69,13 +69,13 @@ keycloak_saml_app_config:
 - **File**: `tasks/get_keycloak_token.yml`
 - **Purpose**: Authenticate to Keycloak Admin API
 - **Common for**: All applications
-- **Variables**: `keycloak_saml_keycloak.*`
+- **Variables**: `keycloak_saml_integration_keycloak.*`
 
 ### 2. Create SAML Client
 - **File**: `tasks/create_saml_client.yml`
 - **Purpose**: Create/update SAML client in Keycloak
 - **Common for**: All applications
-- **Dynamic**: Uses `keycloak_saml_app_type` to set client_id, redirect_uris
+- **Dynamic**: Uses `keycloak_saml_integration_app_type` to set client_id, redirect_uris
 
 ### 3. Configure Protocol Mappers
 - **File**: `tasks/configure_protocol_mappers.yml`
@@ -109,7 +109,7 @@ keycloak_saml_app_config:
 - **Logic**:
   ```yaml
   - name: Configure SAML based on application type
-    include_tasks: "configure_{{ keycloak_saml_app_type }}_saml.yml"
+    include_tasks: "configure_{{ keycloak_saml_integration_app_type }}_saml.yml"
   ```
 
 ### Jenkins-Specific (`configure_jenkins_saml.yml`)
@@ -132,22 +132,22 @@ keycloak_saml_app_config:
 Key sections:
 - `<authorizationStrategy>`: Permission matrix
 - `<securityRealm>`: SAML configuration with IdP metadata
-- Variables used: `keycloak_saml_app.base_url`, `keycloak_saml_app_saml.*`
+- Variables used: `keycloak_saml_integration_app.base_url`, `keycloak_saml_integration_app_saml.*`
 
 ### SonarQube Template
 **File**: `templates/sonar-saml-config.properties.j2`
 
 ```properties
 sonar.auth.saml.enabled=true
-sonar.auth.saml.applicationId={{ keycloak_saml_client.client_id }}
+sonar.auth.saml.applicationId={{ keycloak_saml_integration_client.client_id }}
 sonar.auth.saml.providerName=Keycloak
-sonar.auth.saml.providerId={{ keycloak_saml_keycloak.base_url }}/realms/{{ keycloak_saml_keycloak.realm }}
-sonar.auth.saml.loginUrl={{ keycloak_saml_keycloak.base_url }}/realms/{{ keycloak_saml_keycloak.realm }}/protocol/saml
+sonar.auth.saml.providerId={{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}
+sonar.auth.saml.loginUrl={{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml
 sonar.auth.saml.certificate.secured={{ saml_certificate }}
-sonar.auth.saml.user.login={{ keycloak_saml_app_saml.username_attribute }}
-sonar.auth.saml.user.name={{ keycloak_saml_app_saml.full_name_attribute }}
-sonar.auth.saml.user.email={{ keycloak_saml_app_saml.email_attribute }}
-sonar.auth.saml.group.name={{ keycloak_saml_app_saml.groups_attribute }}
+sonar.auth.saml.user.login={{ keycloak_saml_integration_app_saml.username_attribute }}
+sonar.auth.saml.user.name={{ keycloak_saml_integration_app_saml.full_name_attribute }}
+sonar.auth.saml.user.email={{ keycloak_saml_integration_app_saml.email_attribute }}
+sonar.auth.saml.group.name={{ keycloak_saml_integration_app_saml.groups_attribute }}
 ```
 
 ## Usage Examples
@@ -158,12 +158,12 @@ sonar.auth.saml.group.name={{ keycloak_saml_app_saml.groups_attribute }}
 - name: Jenkins SAML Integration
   hosts: jenkins
   become: true
-  
+
   vars:
-    keycloak_saml_app_type: "jenkins"
-  
+    keycloak_saml_integration_app_type: "jenkins"
+
   roles:
-    - keycloak-saml-integration
+    - keycloak_saml_integration
 ```
 
 ### SonarQube Integration
@@ -172,12 +172,12 @@ sonar.auth.saml.group.name={{ keycloak_saml_app_saml.groups_attribute }}
 - name: SonarQube SAML Integration
   hosts: sonarqube
   become: true
-  
+
   vars:
-    keycloak_saml_app_type: "sonarqube"
-  
+    keycloak_saml_integration_app_type: "sonarqube"
+
   roles:
-    - keycloak-saml-integration
+    - keycloak_saml_integration
 ```
 
 ## Benefits
@@ -190,7 +190,7 @@ sonar.auth.saml.group.name={{ keycloak_saml_app_saml.groups_attribute }}
 - ❌ Difficult to maintain consistency
 
 ### After (Generic Role)
-- ✅ Single `keycloak-saml-integration` role (~500 lines)
+- ✅ Single `keycloak_saml_integration` role (~500 lines)
 - ✅ ~95% code reuse
 - ✅ Changes in one place affect all applications
 - ✅ Easy to add new applications
@@ -213,7 +213,7 @@ To support a new application (e.g., GitLab):
 
 3. **Create task**: `tasks/configure_gitlab_saml.yml`
 
-4. **Create playbook**: `playbooks/gitlab-saml.yml` with `keycloak_saml_app_type: "gitlab"`
+4. **Create playbook**: `playbooks/gitlab-saml.yml` with `keycloak_saml_integration_app_type: "gitlab"`
 
 ## Migration Path
 

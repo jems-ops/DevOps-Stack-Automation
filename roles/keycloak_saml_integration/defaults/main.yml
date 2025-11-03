@@ -4,18 +4,18 @@
 
 # Application Configuration
 # Required: Set app_type to 'jenkins' or 'sonarqube'
-keycloak_saml_app_type: ""  # jenkins or sonarqube
-keycloak_saml_app_name: "{{ keycloak_saml_app_type }}"
+keycloak_saml_integration_app_type: ""  # jenkins or sonarqube
+keycloak_saml_integration_app_name: "{{ keycloak_saml_integration_app_type }}"
 
 # Application URLs (dynamically resolved based on app_type)
-keycloak_saml_app:
-  host: "{{ lookup('vars', keycloak_saml_app_type + '_hostname', default='localhost') }}"
-  port: "{{ 443 if keycloak_saml_use_https else 8080 }}"
-  protocol: "{{ 'https' if keycloak_saml_use_https else 'http' }}"
-  base_url: "{{ lookup('vars', keycloak_saml_app_type + '_base_url', default='http://localhost:8080') }}"
+keycloak_saml_integration_app:
+  host: "{{ lookup('vars', keycloak_saml_integration_app_type + '_hostname', default='localhost') }}"
+  port: "{{ 443 if keycloak_saml_integration_use_https else 8080 }}"
+  protocol: "{{ 'https' if keycloak_saml_integration_use_https else 'http' }}"
+  base_url: "{{ lookup('vars', keycloak_saml_integration_app_type + '_base_url', default='http://localhost:8080') }}"
 
 # Application-specific paths
-keycloak_saml_app_config:
+keycloak_saml_integration_app_config:
   jenkins:
     home: "/var/lib/jenkins"
     config_file: "config.xml"
@@ -32,33 +32,33 @@ keycloak_saml_app_config:
     saml_callback_url: "/oauth2/callback/saml"
 
 # Keycloak Configuration
-keycloak_saml_keycloak:
+keycloak_saml_integration_keycloak:
   host: "{{ keycloak_hostname }}"
   port: 443
   protocol: "https"
-  realm: "{{ keycloak_saml_app_type }}"
+  realm: "{{ keycloak_saml_integration_app_type }}"
   admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
   admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
   base_url: "{{ keycloak_base_url }}"
 
 # SAML Client Configuration
-keycloak_saml_client:
-  client_id: "{{ keycloak_saml_app_type }}-saml"
+keycloak_saml_integration_client:
+  client_id: "{{ keycloak_saml_integration_app_type }}-saml"
   protocol: "saml"
   enabled: true
   front_channel_logout: true
 
   # Redirect URIs (dynamically built based on app type)
   redirect_uris:
-    - "{{ keycloak_saml_app.base_url }}{{ keycloak_saml_app_config[keycloak_saml_app_type].saml_callback_url }}"
-    - "{{ keycloak_saml_app.base_url }}/*"
+    - "{{ keycloak_saml_integration_app.base_url }}{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].saml_callback_url }}"
+    - "{{ keycloak_saml_integration_app.base_url }}/*"
 
   web_origins:
-    - "{{ keycloak_saml_app.base_url }}"
+    - "{{ keycloak_saml_integration_app.base_url }}"
 
-  base_url: "{{ keycloak_saml_app.base_url }}"
-  root_url: "{{ keycloak_saml_app.base_url }}"
-  admin_url: "{{ keycloak_saml_app.base_url }}"
+  base_url: "{{ keycloak_saml_integration_app.base_url }}"
+  root_url: "{{ keycloak_saml_integration_app.base_url }}"
+  admin_url: "{{ keycloak_saml_integration_app.base_url }}"
 
   # SAML Attributes
   attributes:
@@ -74,7 +74,7 @@ keycloak_saml_client:
     saml_signing_private_key: ""
 
 # Protocol Mappers (Common for both applications)
-keycloak_saml_protocol_mappers:
+keycloak_saml_integration_protocol_mappers:
   - name: "username"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
@@ -125,30 +125,30 @@ keycloak_saml_protocol_mappers:
       full_path: "false"
 
 # Groups Configuration (dynamically prefixed with app name)
-keycloak_saml_groups:
+keycloak_saml_integration_groups:
   admins:
-    name: "{{ keycloak_saml_app_type }}-admins"
-    description: "{{ keycloak_saml_app_name | capitalize }} Administrators"
+    name: "{{ keycloak_saml_integration_app_type }}-admins"
+    description: "{{ keycloak_saml_integration_app_name | capitalize }} Administrators"
   users:
-    name: "{{ keycloak_saml_app_type }}-users"
-    description: "{{ keycloak_saml_app_name | capitalize }} Users"
+    name: "{{ keycloak_saml_integration_app_type }}-users"
+    description: "{{ keycloak_saml_integration_app_name | capitalize }} Users"
 
 # Test User Configuration
-keycloak_saml_test_user:
+keycloak_saml_integration_test_user:
   enabled: true
-  username: "{{ keycloak_saml_app_type }}-demo"
-  email: "{{ keycloak_saml_app_type }}-demo@example.com"
-  first_name: "{{ keycloak_saml_app_name | capitalize }}"
+  username: "{{ keycloak_saml_integration_app_type }}-demo"
+  email: "{{ keycloak_saml_integration_app_type }}-demo@example.com"
+  first_name: "{{ keycloak_saml_integration_app_name | capitalize }}"
   last_name: "Demo"
-  password: "{{ keycloak_saml_app_name | capitalize }}Demo123!"
+  password: "{{ keycloak_saml_integration_app_name | capitalize }}Demo123!"
   groups:
-    - "{{ keycloak_saml_groups.users.name }}"
-    - "{{ keycloak_saml_groups.admins.name }}"
+    - "{{ keycloak_saml_integration_groups.users.name }}"
+    - "{{ keycloak_saml_integration_groups.admins.name }}"
 
 # SAML Configuration for Applications
-keycloak_saml_app_saml:
+keycloak_saml_integration_app_saml:
   enabled: true
-  sp_entity_id: "{{ keycloak_saml_client.client_id }}"
+  sp_entity_id: "{{ keycloak_saml_integration_client.client_id }}"
   groups_attribute: "groups"
   username_attribute: "username"
   email_attribute: "email"
@@ -157,7 +157,7 @@ keycloak_saml_app_saml:
   maximum_authentication_lifetime: 7776000  # 90 days
 
 # HTTPS Configuration
-keycloak_saml_use_https: true
+keycloak_saml_integration_use_https: true
 
 # Logging
-keycloak_saml_debug_logging: false
+keycloak_saml_integration_debug_logging: false

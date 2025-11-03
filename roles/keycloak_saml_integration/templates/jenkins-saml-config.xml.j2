@@ -64,26 +64,26 @@
   -->
   <securityRealm class="org.jenkinsci.plugins.saml.SamlSecurityRealm" plugin="saml@2.2.2">
     <idpMetadataConfiguration>
-      <xml>{{ saml_descriptor.content | replace('<', '&lt;') | replace('>', '&gt;') }}</xml>
+      <xml>{{ keycloak_saml_integration_saml_descriptor.content | replace('<', '&lt;') | replace('>', '&gt;') }}</xml>
       <period>1440</period>
     </idpMetadataConfiguration>
-    <displayNameAttributeName>{{ keycloak_saml_app_saml.full_name_attribute }}</displayNameAttributeName>
-    <groupsAttributeName>{{ keycloak_saml_app_saml.groups_attribute }}</groupsAttributeName>
+    <displayNameAttributeName>{{ keycloak_saml_integration_app_saml.full_name_attribute }}</displayNameAttributeName>
+    <groupsAttributeName>{{ keycloak_saml_integration_app_saml.groups_attribute }}</groupsAttributeName>
     <loginButtonText>Login with SAML SSO</loginButtonText>
-    <maximumAuthenticationLifetime>{{ keycloak_saml_app_saml.maximum_authentication_lifetime }}</maximumAuthenticationLifetime>
+    <maximumAuthenticationLifetime>{{ keycloak_saml_integration_app_saml.maximum_authentication_lifetime }}</maximumAuthenticationLifetime>
     <usernameAttributeName></usernameAttributeName>
-    <emailAttributeName>{{ keycloak_saml_app_saml.email_attribute }}</emailAttributeName>
+    <emailAttributeName>{{ keycloak_saml_integration_app_saml.email_attribute }}</emailAttributeName>
     <logoutUrl></logoutUrl>
     <usernameCaseConversion>none</usernameCaseConversion>
     <encryptionData/>
     <authnContextClassRef/>
     <maximumSessionLifetime>86400</maximumSessionLifetime>
     <dataBindingMethod>HTTP_POST</dataBindingMethod>
-    <forceAuthn>{{ keycloak_saml_app_saml.force_authentication | lower }}</forceAuthn>
-    <spEntityId>{{ keycloak_saml_app_saml.sp_entity_id }}</spEntityId>
+    <forceAuthn>{{ keycloak_saml_integration_app_saml.force_authentication | lower }}</forceAuthn>
+    <spEntityId>{{ keycloak_saml_integration_app_saml.sp_entity_id }}</spEntityId>
     <advancedConfiguration>
-      <forceAuthn>{{ keycloak_saml_app_saml.force_authentication | lower }}</forceAuthn>
-      <spEntityId>{{ keycloak_saml_app_saml.sp_entity_id }}</spEntityId>
+      <forceAuthn>{{ keycloak_saml_integration_app_saml.force_authentication | lower }}</forceAuthn>
+      <spEntityId>{{ keycloak_saml_integration_app_saml.sp_entity_id }}</spEntityId>
       <authnRequestsSigned>false</authnRequestsSigned>
       <wantAssertionsSigned>false</wantAssertionsSigned>
       <signatureAlgorithm>RSA_SHA256</signatureAlgorithm>

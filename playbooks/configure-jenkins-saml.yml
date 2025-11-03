@@ -1,7 +1,7 @@
 ---
 # Playbook: Configure Jenkins SAML Integration with Keycloak
 # This playbook sets up SAML SSO between Jenkins and Keycloak
-# using the generic keycloak-saml-integration role
+# using the generic keycloak_saml_integration role
 
 - name: Configure Jenkins SAML Integration with Keycloak
   hosts: jenkins_servers
@@ -9,10 +9,10 @@
 
   vars:
     # Application Type Configuration
-    keycloak_saml_app_type: "jenkins"
+    keycloak_saml_integration_app_type: "jenkins"
 
   roles:
-    - role: keycloak-saml-integration
+    - role: keycloak_saml_integration
       tags:
         - jenkins
         - saml

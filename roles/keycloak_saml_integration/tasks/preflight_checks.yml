@@ -4,23 +4,23 @@
 
 - name: Verify application service is running
   ansible.builtin.systemd:
-    name: "{{ keycloak_saml_app_config[keycloak_saml_app_type].service_name }}"
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: started
   become: yes
-  register: app_service_status
+  register: keycloak_saml_integration_app_service_status
 
 - name: Verify Keycloak is accessible
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_keycloak.base_url }}/realms/master"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/master"
     method: GET
     validate_certs: no
     status_code: 200
-  register: keycloak_health
+  register: keycloak_saml_integration_keycloak_health
   failed_when: false
   check_mode: no
 
 - name: Display pre-flight check results
   ansible.builtin.debug:
     msg:
-      - "✅ {{ keycloak_saml_app_type | capitalize }} service status: {{ app_service_status.status.ActiveState | default('unknown') }}"
+      - "✅ {{ keycloak_saml_integration_app_type | capitalize }} service status: {{ app_service_status.status.ActiveState | default('unknown') }}"
       - "✅ Keycloak accessible: {{ keycloak_health.status | default(0) == 200 }}"

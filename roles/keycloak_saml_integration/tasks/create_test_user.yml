@@ -1,0 +1,89 @@
+---
+# Create Test User in Keycloak
+
+- name: Check if test user already exists
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users?username={{ keycloak_saml_integration_test_user.username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_existing_test_users
+
+- name: Delete existing test user if found
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_existing_test_users.json[0].id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: [204]
+    validate_certs: false
+  when: keycloak_saml_integration_existing_test_users.json | length > 0
+
+- name: Create test user
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      username: "{{ keycloak_saml_integration_test_user.username }}"
+      email: "{{ keycloak_saml_integration_test_user.email }}"
+      firstName: "{{ keycloak_saml_integration_test_user.first_name }}"
+      lastName: "{{ keycloak_saml_integration_test_user.last_name }}"
+      enabled: true
+      emailVerified: true
+      credentials:
+        - type: "password"
+          value: "{{ keycloak_saml_integration_test_user.password }}"
+          temporary: false
+    status_code: [201]
+    validate_certs: false
+
+- name: Get test user ID
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users?username={{ keycloak_saml_integration_test_user.username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_created_test_user
+
+- name: Set test user ID fact
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_test_user_id: "{{ keycloak_saml_integration_created_test_user.json[0].id }}"
+
+- name: Get all groups to find group IDs
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_all_groups
+
+- name: Add test user to each configured group
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ (keycloak_saml_integration_all_groups.json | selectattr('name', 'equalto', item) | list)[0].id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: [204]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_test_user.groups }}"
+  when: keycloak_saml_integration_test_user.groups is defined
+
+- name: Display test user information
+  ansible.builtin.debug:
+    msg:
+      - "Created {{ keycloak_saml_integration_app_type | capitalize }} test user:"
+      - "  Username: {{ keycloak_saml_integration_test_user.username }}"
+      - "  Email: {{ keycloak_saml_integration_test_user.email }}"
+      - "  Name: {{ keycloak_saml_integration_test_user.first_name }} {{ keycloak_saml_integration_test_user.last_name }}"
+      - "  Password: {{ keycloak_saml_integration_test_user.password }}"
+      - "  Groups: {{ keycloak_saml_integration_test_user.groups | join(', ') }}"

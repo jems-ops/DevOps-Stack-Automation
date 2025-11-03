@@ -3,9 +3,9 @@
 ## Issue: Jenkins SAML Login Not Displaying Button or Errors
 
 ### Current Status
-✅ Jenkins is running  
-✅ SAML plugin is installed and configured  
-✅ Keycloak realm and client are configured  
+✅ Jenkins is running
+✅ SAML plugin is installed and configured
+✅ Keycloak realm and client are configured
 ⚠️ SAML attribute mapping issue detected
 
 ---
@@ -19,7 +19,7 @@ SEVERE o.j.p.saml.SamlSecurityRealm#getUsernameFromProfile: Falling back to Name
 WARNING o.j.p.saml.SamlSecurityRealm#modifyUserEmail: There is not Email attribute 'email' for user : jenkins-demo
 ```
 
-**Root Cause:**  
+**Root Cause:**
 The SAML assertion from Keycloak is not including the `username` attribute in the expected format. Jenkins falls back to using the NameID, which works, but causes warnings.
 
 ---
@@ -32,9 +32,9 @@ Remove the `usernameAttributeName` from Jenkins config or leave it empty to make
 
 **Edit the template:**
 ```yaml
-# In roles/keycloak-saml-integration/templates/jenkins-saml-config.xml.j2
+# In roles/keycloak_saml_integration/templates/jenkins-saml-config.xml.j2
 # Line 74: Change from:
-<usernameAttributeName>{{ keycloak_saml_app_saml.username_attribute }}</usernameAttributeName>
+<usernameAttributeName>{{ keycloak_saml_integration_app_saml.username_attribute }}</usernameAttributeName>
 
 # To (empty):
 <usernameAttributeName></usernameAttributeName>

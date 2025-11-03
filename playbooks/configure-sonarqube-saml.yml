@@ -1,7 +1,7 @@
 ---
 # Playbook: Configure SonarQube SAML Integration with Keycloak
 # This playbook sets up SAML SSO between SonarQube and Keycloak
-# using the generic keycloak-saml-integration role
+# using the generic keycloak_saml_integration role
 
 - name: Configure SonarQube SAML Integration with Keycloak
   hosts: sonarqube_servers
@@ -9,10 +9,10 @@
 
   vars:
     # Application Type Configuration
-    keycloak_saml_app_type: "sonarqube"
+    keycloak_saml_integration_app_type: "sonarqube"
 
   roles:
-    - role: keycloak-saml-integration
+    - role: keycloak_saml_integration
       tags:
         - sonarqube
         - saml

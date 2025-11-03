@@ -1,8 +1,8 @@
 # Jenkins Keycloak SAML SSO - Manual Setup Guide
 
-**Version:** 1.0  
-**Last Updated:** October 30, 2025  
-**Automated Role:** `keycloak-saml-integration`
+**Version:** 1.0
+**Last Updated:** October 30, 2025
+**Automated Role:** `keycloak_saml_integration`
 
 ---
 
@@ -108,7 +108,7 @@ chown jenkins:jenkins saml.hpi
 systemctl restart jenkins
 ```
 
-**Reference:** See `roles/keycloak-saml-integration/tasks/configure_jenkins_saml.yml`
+**Reference:** See `roles/keycloak_saml_integration/tasks/configure_jenkins_saml.yml`
 
 ---
 
@@ -124,7 +124,7 @@ systemctl restart jenkins
 
 **Automated equivalent:**
 ```yaml
-# See: roles/keycloak-saml-integration/tasks/create_keycloak_realm.yml
+# See: roles/keycloak_saml_integration/tasks/create_keycloak_realm.yml
 POST /admin/realms
 {
   "realm": "jenkins",
@@ -151,7 +151,7 @@ POST /admin/realms
 
 5. **Login settings:**
    - **Root URL:** `https://jenkins.local`
-   - **Valid redirect URIs:** 
+   - **Valid redirect URIs:**
      ```
      https://jenkins.local/securityRealm/finishLogin
      https://jenkins.local/*
@@ -169,7 +169,7 @@ POST /admin/realms
 
 **Automated equivalent:**
 ```yaml
-# See: roles/keycloak-saml-integration/tasks/create_saml_client.yml
+# See: roles/keycloak_saml_integration/tasks/create_saml_client.yml
 ```
 
 ---
@@ -235,8 +235,8 @@ In the `jenkins-saml` client, go to **Client scopes** → **jenkins-saml-dedicat
 
 **Automated equivalent:**
 ```yaml
-# See: roles/keycloak-saml-integration/tasks/configure_protocol_mappers.yml
-# See: roles/keycloak-saml-integration/defaults/main.yml (keycloak_saml_protocol_mappers)
+# See: roles/keycloak_saml_integration/tasks/configure_protocol_mappers.yml
+# See: roles/keycloak_saml_integration/defaults/main.yml (keycloak_saml_integration_protocol_mappers)
 ```
 
 ---
@@ -258,7 +258,7 @@ In the `jenkins-saml` client, go to **Client scopes** → **jenkins-saml-dedicat
 
 **Automated equivalent:**
 ```yaml
-# See: roles/keycloak-saml-integration/tasks/configure_groups.yml
+# See: roles/keycloak_saml_integration/tasks/configure_groups.yml
 ```
 
 ---
@@ -290,7 +290,7 @@ In the `jenkins-saml` client, go to **Client scopes** → **jenkins-saml-dedicat
 
 **Automated equivalent:**
 ```yaml
-# See: roles/keycloak-saml-integration/tasks/create_test_user.yml
+# See: roles/keycloak_saml_integration/tasks/create_test_user.yml
 ```
 
 ---
@@ -306,7 +306,7 @@ In the `jenkins-saml` client, go to **Client scopes** → **jenkins-saml-dedicat
 
 **Automated equivalent:**
 ```yaml
-# See: roles/keycloak-saml-integration/tasks/get_keycloak_certificate.yml
+# See: roles/keycloak_saml_integration/tasks/get_keycloak_certificate.yml
 ```
 
 ---
@@ -338,7 +338,7 @@ cp /var/lib/jenkins/config.xml /var/lib/jenkins/config.xml.backup.$(date +%s)
 5. **Group Attribute:** `groups`
 
 6. **Username Attribute:** *Leave empty* (uses NameID)
-   
+
    ⚠️ **Important:** Leave this empty to avoid "Unable to get username" errors
 
 7. **Email Attribute:** `email`
@@ -464,7 +464,7 @@ The automated role performs all the steps above:
 ### Role Structure
 
 ```
-roles/keycloak-saml-integration/
+roles/keycloak_saml_integration/
 ├── defaults/main.yml              # Default variables
 ├── tasks/
 │   ├── main.yml                   # Orchestration
@@ -489,7 +489,7 @@ jenkins_hostname: "{{ groups['jenkins_servers'][0] }}"
 jenkins_base_url: "https://{{ jenkins_hostname }}"
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
 keycloak_base_url: "https://{{ keycloak_hostname }}"
-keycloak_saml_use_https: true
+keycloak_saml_integration_use_https: true
 ```
 
 **Playbook:** `playbooks/configure-jenkins-saml.yml`
@@ -497,12 +497,12 @@ keycloak_saml_use_https: true
 - name: Configure Jenkins SAML Integration with Keycloak
   hosts: jenkins_servers
   become: yes
-  
+
   vars:
-    keycloak_saml_app_type: "jenkins"
-  
+    keycloak_saml_integration_app_type: "jenkins"
+
   roles:
-    - keycloak-saml-integration
+    - keycloak_saml_integration
 ```
 
 ---
@@ -581,7 +581,7 @@ curl -k https://keycloak.local/realms/jenkins/protocol/saml/descriptor
 
 **Symptom:** SSL/TLS certificate errors
 
-**Solution:** 
+**Solution:**
 - **Production:** Use valid SSL certificates
 - **Development:** Disable cert validation in Jenkins SAML plugin settings
 
@@ -651,7 +651,7 @@ journalctl -u jenkins -n 50 | grep -i saml
 
 ### Our Resources
 
-- **Automated Role:** `roles/keycloak-saml-integration/`
+- **Automated Role:** `roles/keycloak_saml_integration/`
 - **Playbook:** `playbooks/configure-jenkins-saml.yml`
 - **Troubleshooting Guide:** `JENKINS_SAML_TROUBLESHOOTING.md`
 - **Deployment Summary:** `DEPLOYMENT_SUMMARY.md`
@@ -668,16 +668,16 @@ Groups:   jenkins-admins, jenkins-users
 
 ## Summary
 
-**Manual Setup Time:** ~30-45 minutes  
-**Automated Setup Time:** ~5 minutes  
+**Manual Setup Time:** ~30-45 minutes
+**Automated Setup Time:** ~5 minutes
 
-**Manual Steps:** 20+ steps across Keycloak and Jenkins  
+**Manual Steps:** 20+ steps across Keycloak and Jenkins
 **Automated Steps:** 1 command
 
 **Recommendation:** Use the automated Ansible role for consistency, repeatability, and reduced errors.
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** October 30, 2025  
+**Document Version:** 1.0
+**Last Updated:** October 30, 2025
 **Maintained By:** DevOps Automation Team

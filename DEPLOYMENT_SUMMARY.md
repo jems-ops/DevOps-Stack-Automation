@@ -1,7 +1,7 @@
 # Generic Keycloak SAML Integration - Deployment Summary
 
-**Date:** October 29, 2025  
-**Branch:** `feature/general-keycloak-sso`  
+**Date:** October 29, 2025
+**Branch:** `feature/general-keycloak-sso`
 **Status:** ✅ Successfully Deployed
 
 ---
@@ -15,7 +15,7 @@ Successfully implemented and deployed a **generic, reusable Keycloak SAML integr
 ## Architecture
 
 ### Generic Role Design
-- **Role:** `keycloak-saml-integration`
+- **Role:** `keycloak_saml_integration`
 - **Applications Supported:** Jenkins, SonarQube (extensible for others)
 - **Configuration:** Application-agnostic with `app_type` parameter
 - **Realm Creation:** Automatic realm provisioning if not exists
@@ -121,24 +121,24 @@ sonar.auth.saml.loginUrl=https://keycloak.local/realms/sonarqube/protocol/saml
    - `playbooks/configure-sonarqube-saml.yml` - SonarQube SAML deployment
 
 2. **Role Tasks:**
-   - `roles/keycloak-saml-integration/tasks/main.yml` - Orchestration
-   - `roles/keycloak-saml-integration/tasks/get_keycloak_token.yml`
-   - `roles/keycloak-saml-integration/tasks/create_keycloak_realm.yml`
-   - `roles/keycloak-saml-integration/tasks/create_saml_client.yml`
-   - `roles/keycloak-saml-integration/tasks/configure_protocol_mappers.yml`
-   - `roles/keycloak-saml-integration/tasks/configure_groups.yml`
-   - `roles/keycloak-saml-integration/tasks/create_test_user.yml`
-   - `roles/keycloak-saml-integration/tasks/get_keycloak_certificate.yml`
-   - `roles/keycloak-saml-integration/tasks/configure_jenkins_saml.yml`
-   - `roles/keycloak-saml-integration/tasks/configure_sonarqube_saml.yml`
+   - `roles/keycloak_saml_integration/tasks/main.yml` - Orchestration
+   - `roles/keycloak_saml_integration/tasks/get_keycloak_token.yml`
+   - `roles/keycloak_saml_integration/tasks/create_keycloak_realm.yml`
+   - `roles/keycloak_saml_integration/tasks/create_saml_client.yml`
+   - `roles/keycloak_saml_integration/tasks/configure_protocol_mappers.yml`
+   - `roles/keycloak_saml_integration/tasks/configure_groups.yml`
+   - `roles/keycloak_saml_integration/tasks/create_test_user.yml`
+   - `roles/keycloak_saml_integration/tasks/get_keycloak_certificate.yml`
+   - `roles/keycloak_saml_integration/tasks/configure_jenkins_saml.yml`
+   - `roles/keycloak_saml_integration/tasks/configure_sonarqube_saml.yml`
 
 3. **Templates:**
-   - `roles/keycloak-saml-integration/templates/jenkins-saml-config.xml.j2`
-   - `roles/keycloak-saml-integration/templates/sonar-saml-config.properties.j2`
+   - `roles/keycloak_saml_integration/templates/jenkins-saml-config.xml.j2`
+   - `roles/keycloak_saml_integration/templates/sonar-saml-config.properties.j2`
 
 4. **Configuration:**
-   - `roles/keycloak-saml-integration/defaults/main.yml`
-   - `roles/keycloak-saml-integration/README.md`
+   - `roles/keycloak_saml_integration/defaults/main.yml`
+   - `roles/keycloak_saml_integration/README.md`
    - `group_vars/all/saml_integration.yml`
 
 5. **Documentation:**
@@ -153,11 +153,11 @@ sonar.auth.saml.loginUrl=https://keycloak.local/realms/sonarqube/protocol/saml
 ## Technical Fixes Applied
 
 1. **Realm Auto-Creation:** Added task to create Keycloak realm if it doesn't exist
-2. **Variable References:** Fixed protocol mappers to use `keycloak_saml_protocol_mappers`
+2. **Variable References:** Fixed protocol mappers to use `keycloak_saml_integration_protocol_mappers`
 3. **Generic Group Names:** Changed from `jenkins_admins` to `admins` for app-agnostic design
 4. **SonarQube User:** Fixed from `sonarqube` to `sonar` (actual system user)
 5. **Check Mode Support:** Added `check_mode: no` to health checks for dry-run compatibility
-6. **Dynamic Naming:** All tasks use `keycloak_saml_app_type` for dynamic references
+6. **Dynamic Naming:** All tasks use `keycloak_saml_integration_app_type` for dynamic references
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 # SAML Integration Variables for Generic Keycloak SAML Integration Role
-# These variables are referenced by the keycloak-saml-integration role
+# These variables are referenced by the keycloak_saml_integration role
 # and resolve hostnames from the inventory
 
 # SonarQube host resolution from inventory
@@ -20,7 +20,7 @@ keycloak_hostname: "{{ groups['keycloak'][0] }}"
 keycloak_base_url: "https://{{ keycloak_hostname }}"
 
 # Common SAML Configuration
-keycloak_saml_use_https: true
+keycloak_saml_integration_use_https: true
 
 # Jenkins-specific settings
 jenkins_saml_plugin_version: "latest"

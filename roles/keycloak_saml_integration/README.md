@@ -26,7 +26,7 @@ A generic Ansible role for integrating applications with Keycloak using SAML SSO
 
 ```yaml
 # Set the application type (jenkins or sonarqube)
-keycloak_saml_app_type: "jenkins"  # or "sonarqube"
+keycloak_saml_integration_app_type: "jenkins"  # or "sonarqube"
 
 # Vault variables (from group_vars/all/vault.yml)
 vault_KEYCLOAK_ADMIN_USERNAME: "admin"
@@ -52,22 +52,22 @@ keycloak_base_url: "https://keycloak.local"
 
 ```yaml
 # Enable/disable test user creation
-keycloak_saml_test_user:
+keycloak_saml_integration_test_user:
   enabled: true
-  username: "{{ keycloak_saml_app_type }}-demo"
-  password: "{{ keycloak_saml_app_name | capitalize }}Demo123!"
+  username: "{{ keycloak_saml_integration_app_type }}-demo"
+  password: "{{ keycloak_saml_integration_app_name | capitalize }}Demo123!"
 
 # Debug logging
-keycloak_saml_debug_logging: false
+keycloak_saml_integration_debug_logging: false
 
 # HTTPS configuration
-keycloak_saml_use_https: true
+keycloak_saml_integration_use_https: true
 ```
 
 ## Directory Structure
 
 ```
-roles/keycloak-saml-integration/
+roles/keycloak_saml_integration/
 ├── defaults/
 │   └── main.yml              # Default variables
 ├── tasks/
@@ -103,15 +103,15 @@ Use the provided playbook `playbooks/configure-jenkins-saml.yml`:
   become: yes
 
   vars:
-    keycloak_saml_app_type: "jenkins"
+    keycloak_saml_integration_app_type: "jenkins"
     jenkins_hostname: "jenkins.local"
     jenkins_base_url: "https://{{ jenkins_hostname }}"
     keycloak_hostname: "keycloak.local"
     keycloak_base_url: "https://{{ keycloak_hostname }}"
-    keycloak_saml_use_https: true
+    keycloak_saml_integration_use_https: true
 
   roles:
-    - keycloak-saml-integration
+    - keycloak_saml_integration
 ```
 
 Run:
@@ -130,15 +130,15 @@ Use the provided playbook `playbooks/configure-sonarqube-saml.yml`:
   become: yes
 
   vars:
-    keycloak_saml_app_type: "sonarqube"
+    keycloak_saml_integration_app_type: "sonarqube"
     sonarqube_hostname: "sonar.local"
     sonarqube_base_url: "https://{{ sonarqube_hostname }}"
     keycloak_hostname: "keycloak.local"
     keycloak_base_url: "https://{{ keycloak_hostname }}"
-    keycloak_saml_use_https: true
+    keycloak_saml_integration_use_https: true
 
   roles:
-    - keycloak-saml-integration
+    - keycloak_saml_integration
 ```
 
 Run:
@@ -212,7 +212,7 @@ To add support for a new application:
 
 1. Add application config to `defaults/main.yml`:
 ```yaml
-keycloak_saml_app_config:
+keycloak_saml_integration_app_config:
   myapp:
     home: "/opt/myapp"
     config_file: "conf/myapp.conf"
@@ -235,17 +235,17 @@ keycloak_saml_app_config:
 
 - name: Backup existing config
   ansible.builtin.copy:
-    src: "{{ keycloak_saml_app_config[keycloak_saml_app_type].home }}/{{ keycloak_saml_app_config[keycloak_saml_app_type].config_file }}"
-    dest: "{{ keycloak_saml_app_config[keycloak_saml_app_type].home }}/{{ keycloak_saml_app_config[keycloak_saml_app_type].config_file }}.backup.{{ ansible_date_time.epoch }}"
+    src: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    dest: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}.backup.{{ ansible_date_time.epoch }}"
     remote_src: yes
   become: yes
 
 - name: Apply SAML configuration from template
   ansible.builtin.template:
     src: myapp-saml-config.j2
-    dest: "{{ keycloak_saml_app_config[keycloak_saml_app_type].home }}/{{ keycloak_saml_app_config[keycloak_saml_app_type].config_file }}"
-    owner: "{{ keycloak_saml_app_config[keycloak_saml_app_type].user }}"
-    group: "{{ keycloak_saml_app_config[keycloak_saml_app_type].group }}"
+    dest: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
   become: yes
 
 - name: Start myapp service
@@ -259,10 +259,10 @@ keycloak_saml_app_config:
 ```yaml
 - name: Configure MyApp SAML
   ansible.builtin.include_tasks: configure_myapp_saml.yml
-  when: keycloak_saml_app_type == 'myapp'
+  when: keycloak_saml_integration_app_type == 'myapp'
 ```
 
-5. Create playbook with `keycloak_saml_app_type: "myapp"`
+5. Create playbook with `keycloak_saml_integration_app_type: "myapp"`
 
 ## Dependencies
 
