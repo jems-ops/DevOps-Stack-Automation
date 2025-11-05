@@ -63,7 +63,7 @@ keycloak_saml_integration_client:
   # SAML Attributes
   attributes:
     saml_authnstatement: "true"
-    saml_server_signature: "true"
+    saml_server_signature: "false"
     saml_signature_algorithm: "RSA_SHA256"
     saml_client_signature: "false"
     saml_assertion_signature: "true"
@@ -79,50 +79,50 @@ keycloak_saml_integration_protocol_mappers:
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      attribute_name: "username"
-      attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-      user_attribute: "username"
+      "attribute.name": "username"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
 
   - name: "email"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      attribute_name: "email"
-      attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-      user_attribute: "email"
+      "attribute.name": "email"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "email"
 
   - name: "firstName"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      attribute_name: "firstName"
-      attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-      user_attribute: "firstName"
+      "attribute.name": "firstName"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "firstName"
 
   - name: "lastName"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      attribute_name: "lastName"
-      attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-      user_attribute: "lastName"
+      "attribute.name": "lastName"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "lastName"
 
   - name: "displayName"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      attribute_name: "displayName"
-      attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-      user_attribute: "username"
+      "attribute.name": "displayName"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
 
   - name: "groups"
     protocol: "saml"
     protocol_mapper: "saml-group-membership-mapper"
     config:
-      attribute_name: "groups"
-      attribute_nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic"
-      single: "false"
-      full_path: "false"
+      "attribute.name": "groups"
+      "attribute.nameformat": "Basic"
+      "single": "false"
+      "full.path": "false"
 
 # Groups Configuration (dynamically prefixed with app name)
 keycloak_saml_integration_groups:
