@@ -21,6 +21,27 @@
   ansible.builtin.set_fact:
     keycloak_saml_integration_sonar_saml_config: "{{ lookup('template', 'sonar-saml-config.properties.j2') }}"
 
+- name: Remove old SAML certificate entries
+  ansible.builtin.lineinfile:
+    path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    regexp: '^sonar\.auth\.saml\.certificate\.secured='
+    state: absent
+  become: true
+
+- name: Remove old SAML provider ID entries
+  ansible.builtin.lineinfile:
+    path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    regexp: '^sonar\.auth\.saml\.providerId='
+    state: absent
+  become: true
+
+- name: Remove old SAML login URL entries
+  ansible.builtin.lineinfile:
+    path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    regexp: '^sonar\.auth\.saml\.loginUrl='
+    state: absent
+  become: true
+
 - name: Insert SAML configuration into sonar.properties
   ansible.builtin.blockinfile:
     path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
