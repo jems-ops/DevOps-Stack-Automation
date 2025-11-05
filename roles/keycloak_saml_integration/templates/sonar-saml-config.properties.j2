@@ -10,7 +10,7 @@ sonar.auth.saml.enabled=true
 sonar.auth.saml.applicationId={{ keycloak_saml_integration_client.client_id }}
 
 # Identity Provider Name
-sonar.auth.saml.providerName=Keycloak
+sonar.auth.saml.providerName=Keycloak SAML
 
 # Identity Provider ID (Keycloak realm URL)
 sonar.auth.saml.providerId={{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}
@@ -18,8 +18,8 @@ sonar.auth.saml.providerId={{ keycloak_saml_integration_keycloak.base_url }}/rea
 # Identity Provider Login URL
 sonar.auth.saml.loginUrl={{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml
 
-# Identity Provider Certificate (optional - leave empty for testing with self-signed certs)
-# sonar.auth.saml.certificate.secured=
+# Identity Provider Certificate
+sonar.auth.saml.certificate.secured={{ keycloak_saml_integration_keycloak_certificate }}
 
 # Service Provider Private Key (optional - leave empty if not signing requests)
 sonar.auth.saml.sp.privateKey.secured=
@@ -32,6 +32,11 @@ sonar.auth.saml.sp.certificate.secured=
 sonar.auth.saml.user.login={{ keycloak_saml_integration_app_saml.username_attribute }}
 sonar.auth.saml.user.name={{ keycloak_saml_integration_app_saml.full_name_attribute }}
 sonar.auth.saml.user.email={{ keycloak_saml_integration_app_saml.email_attribute }}
+sonar.auth.saml.user.signUpEnabled=true
+sonar.auth.saml.user.defaultGroup=sonarqube-users
+
+# Service Provider Entity ID
+sonar.auth.saml.sp.entityId={{ keycloak_saml_integration_client.client_id }}
 
 #----- SAML Group Synchronization
 # Map SAML group attribute to SonarQube groups
@@ -42,7 +47,7 @@ sonar.auth.saml.group.name={{ keycloak_saml_integration_app_saml.groups_attribut
 sonar.auth.saml.signature.enabled=false
 
 # Force authentication for all requests
-sonar.forceAuthentication=true
+sonar.forceAuthentication=false
 
 #----- SAML Session Configuration
 # Session timeout (optional)
