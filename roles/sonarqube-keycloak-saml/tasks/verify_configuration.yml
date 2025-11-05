@@ -3,14 +3,14 @@
 
 - name: Wait for SonarQube to be ready
   ansible.builtin.uri:
-    url: "{{ sonarqube_keycloak_saml_sonarqube.base_url }}/api/system/status"
-    method: GET
+    url: "{{ sonarqube_keycloak_saml_sonarqube.base_url }}"
+    method: HEAD
     status_code: [200]
-    return_content: true
+    validate_certs: false
   register: sonarqube_status
-  until: "sonarqube_status.json is defined and sonarqube_status.json.status == 'UP'"
-  retries: 30
-  delay: 10
+  until: sonarqube_status.status == 200
+  retries: 12
+  delay: 5
   failed_when: false
 
 - name: Verify SonarQube SAML initiation endpoint
