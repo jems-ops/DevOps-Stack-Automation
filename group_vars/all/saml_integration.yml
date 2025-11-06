@@ -3,11 +3,11 @@
 # These variables are referenced by the SAML integration role defaults
 
 # SonarQube host resolution from inventory
-sonarqube_hostname: "{{ groups['sonarqube'][0] }}"
+sonarqube_hostname: "{{ groups['sonarqube_servers'][0] }}"
 sonarqube_base_url: "https://{{ sonarqube_hostname }}"
 
 # Jenkins host resolution from inventory
-jenkins_hostname: "{{ groups['jenkins'][0] }}"
+jenkins_hostname: "{{ groups['jenkins_servers'][0] }}"
 jenkins_base_url: "https://{{ jenkins_hostname }}"
 
 # Keycloak host resolution from inventory

@@ -1,6 +1,22 @@
 ---
 # Main tasks for Generic Keycloak SAML Integration
 
+- name: Load app-specific configuration
+  ansible.builtin.include_vars:
+    file: "vars/apps/{{ keycloak_saml_integration_app_type }}.yml"
+  tags: ['always']
+
+- name: Set app-specific variables for role
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_app_config: "{{ { keycloak_saml_integration_app_type: app_config } }}"
+    keycloak_saml_integration_protocol_mappers: "{{ protocol_mappers }}"
+    keycloak_saml_integration_groups:
+      admins: "{{ app_groups.admins | default({'name': keycloak_saml_integration_app_type + '-admins', 'description': 'Administrators'}) }}"
+      users: "{{ app_groups.users }}"
+    keycloak_saml_integration_test_user: "{{ test_user }}"
+    keycloak_saml_integration_app_saml: "{{ saml_security | combine({'username_attribute': saml_attributes.username, 'email_attribute': saml_attributes.email, 'full_name_attribute': saml_attributes.full_name, 'groups_attribute': saml_attributes.groups}) }}"
+  tags: ['always']
+
 - name: Validate required variables
   ansible.builtin.assert:
     that:
@@ -10,7 +26,7 @@
       - keycloak_saml_integration_keycloak.realm is defined
       - keycloak_saml_integration_keycloak.admin_user is defined
       - keycloak_saml_integration_keycloak.admin_password is defined
-    fail_msg: "Required variables are not defined or app_type is invalid. Check defaults/main.yml for requirements."
+    fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube"
     success_msg: "All required variables are defined for {{ keycloak_saml_integration_app_type | upper }} SAML integration"
   tags: ['validate']
 

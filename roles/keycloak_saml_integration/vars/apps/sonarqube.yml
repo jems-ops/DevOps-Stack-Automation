@@ -1,0 +1,80 @@
+---
+# SonarQube-specific SAML Integration Configuration
+
+# Application Configuration
+app_config:
+  home: "/opt/sonarqube"
+  config_file: "conf/sonar.properties"
+  service_name: "sonarqube"
+  user: "sonar"
+  group: "sonar"
+  saml_callback_url: "/oauth2/callback/saml"
+
+# SAML Attribute Mapping
+saml_attributes:
+  username: "username"
+  email: "email"
+  full_name: "name"
+  groups: "groups"
+
+# Protocol Mappers
+protocol_mappers:
+  - name: "username"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.name": "username"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+
+  - name: "name"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.name": "name"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+
+  - name: "groups"
+    protocol: "saml"
+    protocol_mapper: "saml-group-membership-mapper"
+    config:
+      "attribute.name": "groups"
+      "attribute.nameformat": "Basic"
+      "single": "false"
+      "full.path": "false"
+
+# Groups Configuration
+app_groups:
+  users:
+    name: "sonar-users"
+    description: "SonarQube Users"
+
+# Test User Configuration
+test_user:
+  enabled: true
+  username: "demo.user"
+  email: "demo@example.com"
+  first_name: "Demo"
+  last_name: "User"
+  password: "demo123!"
+  groups:
+    - "sonar-users"
+
+# SAML Security Settings
+saml_security:
+  maximum_authentication_lifetime: 7776000  # 90 days
+  force_authentication: false
+  sp_entity_id: "sonarqube"
+
+# SonarQube-specific SAML settings
+sonarqube_saml:
+  enabled: true
+  application_id: "sonarqube"
+  provider_name: "Keycloak SAML"
+  sign_requests_enabled: false
+  user_login_attribute: "username"
+  user_name_attribute: "name"
+  user_email_attribute: "email"
+  group_name_attribute: "groups"
+  sign_up_enabled: true

@@ -28,6 +28,7 @@
       protocol: "{{ keycloak_saml_integration_client.protocol }}"
       enabled: "{{ keycloak_saml_integration_client.enabled }}"
       frontchannelLogout: "{{ keycloak_saml_integration_client.front_channel_logout }}"
+      fullScopeAllowed: false
       redirectUris: "{{ keycloak_saml_integration_client.redirect_uris }}"
       webOrigins: "{{ keycloak_saml_integration_client.web_origins }}"
       baseUrl: "{{ keycloak_saml_integration_client.base_url }}"
@@ -38,7 +39,7 @@
         "saml.server.signature": "{{ keycloak_saml_integration_client.attributes.saml_server_signature }}"
         "saml.signature.algorithm": "{{ keycloak_saml_integration_client.attributes.saml_signature_algorithm }}"
         "saml.client.signature": "{{ keycloak_saml_integration_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak_saml_integration_client.attributes.saml_assertion_signature }}"
+        "saml.assertion.signature": "false"
         "saml.encrypt": "{{ keycloak_saml_integration_client.attributes.saml_encrypt }}"
         "saml.force.post.binding": "{{ keycloak_saml_integration_client.attributes.saml_force_post_binding }}"
         "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"
@@ -61,6 +62,7 @@
       protocol: "{{ keycloak_saml_integration_client.protocol }}"
       enabled: "{{ keycloak_saml_integration_client.enabled }}"
       frontchannelLogout: "{{ keycloak_saml_integration_client.front_channel_logout }}"
+      fullScopeAllowed: false
       redirectUris: "{{ keycloak_saml_integration_client.redirect_uris }}"
       webOrigins: "{{ keycloak_saml_integration_client.web_origins }}"
       baseUrl: "{{ keycloak_saml_integration_client.base_url }}"
@@ -71,7 +73,7 @@
         "saml.server.signature": "{{ keycloak_saml_integration_client.attributes.saml_server_signature }}"
         "saml.signature.algorithm": "{{ keycloak_saml_integration_client.attributes.saml_signature_algorithm }}"
         "saml.client.signature": "{{ keycloak_saml_integration_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak_saml_integration_client.attributes.saml_assertion_signature }}"
+        "saml.assertion.signature": "false"
         "saml.encrypt": "{{ keycloak_saml_integration_client.attributes.saml_encrypt }}"
         "saml.force.post.binding": "{{ keycloak_saml_integration_client.attributes.saml_force_post_binding }}"
         "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"

@@ -13,6 +13,7 @@
 - name: Extract Keycloak certificate from SAML descriptor
   ansible.builtin.set_fact:
     keycloak_saml_integration_keycloak_certificate: "{{ keycloak_saml_integration_saml_descriptor.content | regex_search('<ds:X509Certificate>(.*?)</ds:X509Certificate>', '\\1') | first }}"
+    keycloak_saml_integration_certificate: "{{ keycloak_saml_integration_saml_descriptor.content | regex_search('<ds:X509Certificate>(.*?)</ds:X509Certificate>', '\\1') | first }}"
 
 - name: Verify certificate extraction
   ansible.builtin.assert:

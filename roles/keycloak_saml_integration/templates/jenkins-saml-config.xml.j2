@@ -62,7 +62,7 @@
     <permission>Overall/Read:jenkins-users</permission>
   </authorizationStrategy>
   -->
-  <securityRealm class="org.jenkinsci.plugins.saml.SamlSecurityRealm" plugin="saml@2.2.2">
+  <securityRealm class="org.jenkinsci.plugins.saml.SamlSecurityRealm" plugin="saml@4.429.v9a_781a_61f1da_">
     <idpMetadataConfiguration>
       <xml>{{ keycloak_saml_integration_saml_descriptor.content | replace('<', '&lt;') | replace('>', '&gt;') }}</xml>
       <period>1440</period>

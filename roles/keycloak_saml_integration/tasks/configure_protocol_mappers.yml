@@ -1,6 +1,48 @@
 ---
 # Configure SAML Protocol Mappers
 
+- name: Get default client scopes attached to client
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/default-client-scopes"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_default_scopes
+
+- name: Remove all default client scopes to prevent duplicate attributes
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/default-client-scopes/{{ item.id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: [204]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_default_scopes.json }}"
+  when: keycloak_saml_integration_default_scopes.json | length > 0
+
+- name: Get optional client scopes attached to client
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/optional-client-scopes"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_optional_scopes
+
+- name: Remove all optional client scopes to prevent duplicate attributes
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/optional-client-scopes/{{ item.id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: [204]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_optional_scopes.json }}"
+  when: keycloak_saml_integration_optional_scopes.json | length > 0
+
 - name: Get existing protocol mappers for Jenkins SAML client
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/protocol-mappers/models"

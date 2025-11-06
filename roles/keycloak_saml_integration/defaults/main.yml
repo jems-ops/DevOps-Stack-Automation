@@ -23,27 +23,19 @@ keycloak_saml_integration_app_config:
     user: "jenkins"
     group: "jenkins"
     saml_callback_url: "/securityRealm/finishLogin"
-  sonarqube:
-    home: "/opt/sonarqube"
-    config_file: "conf/sonar.properties"
-    service_name: "sonarqube"
-    user: "sonar"
-    group: "sonar"
-    saml_callback_url: "/oauth2/callback/saml"
-
 # Keycloak Configuration
 keycloak_saml_integration_keycloak:
   host: "{{ keycloak_hostname }}"
   port: 443
   protocol: "https"
-  realm: "{{ keycloak_saml_integration_app_type }}"
+  realm: "{{ 'sonar' if keycloak_saml_integration_app_type == 'sonarqube' else keycloak_saml_integration_app_type }}"
   admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
   admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
   base_url: "{{ keycloak_base_url }}"
 
 # SAML Client Configuration
 keycloak_saml_integration_client:
-  client_id: "{{ keycloak_saml_integration_app_type }}-saml"
+  client_id: "{{ keycloak_saml_integration_app_type }}"
   protocol: "saml"
   enabled: true
   front_channel_logout: true
@@ -73,7 +65,7 @@ keycloak_saml_integration_client:
     saml_signing_certificate: ""
     saml_signing_private_key: ""
 
-# Protocol Mappers (Common for both applications)
+# Protocol Mappers
 keycloak_saml_integration_protocol_mappers:
   - name: "username"
     protocol: "saml"
@@ -91,29 +83,13 @@ keycloak_saml_integration_protocol_mappers:
       "attribute.nameformat": "Basic"
       "user.attribute": "email"
 
-  - name: "firstName"
+  - name: "name"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      "attribute.name": "firstName"
+      "attribute.name": "name"
       "attribute.nameformat": "Basic"
       "user.attribute": "firstName"
-
-  - name: "lastName"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "lastName"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "lastName"
-
-  - name: "displayName"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "displayName"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "username"
 
   - name: "groups"
     protocol: "saml"
@@ -124,7 +100,7 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
-# Groups Configuration (dynamically prefixed with app name)
+# Groups Configuration
 keycloak_saml_integration_groups:
   admins:
     name: "{{ keycloak_saml_integration_app_type }}-admins"
@@ -138,9 +114,9 @@ keycloak_saml_integration_test_user:
   enabled: true
   username: "{{ keycloak_saml_integration_app_type }}-demo"
   email: "{{ keycloak_saml_integration_app_type }}-demo@example.com"
-  first_name: "{{ keycloak_saml_integration_app_name | capitalize }}"
-  last_name: "Demo"
-  password: "{{ keycloak_saml_integration_app_name | capitalize }}Demo123!"
+  first_name: "Demo"
+  last_name: "User"
+  password: "demo123!"
   groups:
     - "{{ keycloak_saml_integration_groups.users.name }}"
     - "{{ keycloak_saml_integration_groups.admins.name }}"
