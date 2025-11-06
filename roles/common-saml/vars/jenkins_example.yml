@@ -1,0 +1,56 @@
+---
+# Example Variable Configuration for Jenkins SAML Integration
+# Copy and customize these variables in your playbook or role defaults
+# Note: Jenkins uses XML configuration, not properties files
+
+common_saml_app_name: "jenkins"
+common_saml_app_type: "properties"  # Can be adapted for XML if needed
+common_saml_config_path: "/var/lib/jenkins/config.xml"
+common_saml_service_name: "jenkins"
+common_saml_restart_service: true
+
+common_saml_config:
+  # Core Settings
+  enabled: true
+  application_id: "jenkins"
+  base_url: "https://jenkins.local"
+
+  # Identity Provider Settings
+  provider_name: "Keycloak SAML"
+  provider_id: "https://keycloak.local/realms/jenkins"
+  login_url: "https://keycloak.local/realms/jenkins/protocol/saml"
+  logout_url: "https://keycloak.local/realms/jenkins/protocol/saml/logout"
+
+  # Service Provider Settings
+  sp_entity_id: "jenkins"
+  sp_certificate: ""
+  sp_private_key: ""
+
+  # Authentication Settings
+  force_authentication: false
+
+  # User Attribute Mappings
+  user:
+    login: "username"
+    name: "displayName"
+    email: "email"
+    sign_up_enabled: true
+    default_group: "jenkins-users"
+
+  # Group Mappings
+  group:
+    name: "groups"
+
+  # Signature Configuration
+  signature:
+    enabled: false
+    certificate: ""
+
+# Optional: Enable debug mode
+common_saml_debug: false
+
+# Optional: Enable/disable backup
+common_saml_config_backup: true
+
+# Optional: Enable/disable validation
+common_saml_config_validate: true

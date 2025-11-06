@@ -1,0 +1,30 @@
+---
+# Cleanup temporary files created during SAML configuration
+# This task file removes temporary directories and files
+
+- name: Remove temporary SAML configuration file for this host
+  local_action:
+    module: ansible.builtin.file
+    path: "{{ common_saml_tmp_dir }}/saml-config-{{ inventory_hostname }}.{{ common_saml_app_type }}"
+    state: absent
+
+- name: Check if temporary directory is empty
+  local_action:
+    module: ansible.builtin.find
+    paths: "{{ common_saml_tmp_dir }}"
+    file_type: any
+  register: common_saml_tmp_dir_contents
+  run_once: true
+
+- name: Remove temporary directory if empty
+  local_action:
+    module: ansible.builtin.file
+    path: "{{ common_saml_tmp_dir }}"
+    state: absent
+  when: common_saml_tmp_dir_contents.matched == 0
+  run_once: true
+
+- name: Display cleanup status
+  ansible.builtin.debug:
+    msg: "Temporary SAML configuration files cleaned up"
+  when: common_saml_debug | default(false) | bool

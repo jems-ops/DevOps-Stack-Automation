@@ -1,0 +1,59 @@
+---
+# Common SAML Role Defaults
+# These are sensible defaults that can be overridden per application
+
+# Application identification
+common_saml_app_name: "application"
+common_saml_app_type: "properties"  # Options: properties, xml, json
+
+# SAML Configuration Structure
+# This should be overridden by calling roles with application-specific values
+common_saml_config:
+  # Core Settings
+  enabled: true
+  application_id: "{{ common_saml_app_name }}"
+  base_url: ""  # Must be set by calling role
+
+  # Identity Provider Settings
+  provider_name: "Keycloak SAML"
+  provider_id: ""  # Must be set by calling role
+  login_url: ""   # Must be set by calling role
+  logout_url: ""  # Optional
+
+  # Service Provider Settings
+  sp_entity_id: "{{ common_saml_app_name }}"
+  sp_certificate: ""  # Optional
+  sp_private_key: ""  # Optional
+
+  # Authentication Settings
+  force_authentication: false
+
+  # User Attribute Mappings
+  user:
+    login: "username"
+    name: "name"
+    email: "email"
+    sign_up_enabled: true
+    default_group: ""  # Optional
+
+  # Group Mappings
+  group:
+    name: "groups"
+
+  # Signature Configuration (Optional)
+  signature:
+    enabled: false
+    certificate: ""
+
+# File handling settings
+common_saml_config_path: ""  # Must be set by calling role
+common_saml_config_backup: true
+common_saml_config_validate: true
+common_saml_tmp_dir: "/tmp/ansible-saml-{{ common_saml_app_name }}"
+
+# Service management
+common_saml_service_name: ""  # Must be set by calling role
+common_saml_restart_service: true
+
+# Debugging
+common_saml_debug: false

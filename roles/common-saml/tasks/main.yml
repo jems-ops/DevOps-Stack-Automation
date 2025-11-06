@@ -1,0 +1,21 @@
+---
+# Common SAML Role - Main Tasks
+# This role provides reusable SAML configuration functionality
+
+- name: Include validation tasks
+  ansible.builtin.include_tasks: validate.yml
+  tags:
+    - saml
+    - saml-validate
+
+- name: Include configuration tasks
+  ansible.builtin.include_tasks: configure.yml
+  tags:
+    - saml
+    - saml-configure
+
+- name: Include cleanup tasks
+  ansible.builtin.include_tasks: cleanup.yml
+  tags:
+    - saml
+    - saml-cleanup

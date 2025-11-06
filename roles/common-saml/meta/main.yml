@@ -1,0 +1,31 @@
+---
+galaxy_info:
+  role_name: common_saml
+  author: DevOps Team
+  description: Common reusable SAML configuration role for multiple applications
+  company:
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - buster
+        - bullseye
+    - name: EL
+      versions:
+        - 8
+        - 9
+  galaxy_tags:
+    - saml
+    - sso
+    - authentication
+    - keycloak
+    - security
+
+dependencies: []
+
+allow_duplicates: false

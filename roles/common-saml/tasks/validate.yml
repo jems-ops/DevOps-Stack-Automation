@@ -1,0 +1,55 @@
+---
+# Validate SAML Configuration Variables
+# This task file validates that all required variables are set
+
+- name: Validate required SAML configuration variables
+  ansible.builtin.assert:
+    that:
+      - common_saml_app_name is defined
+      - common_saml_app_name | length > 0
+      - common_saml_config_path is defined
+      - common_saml_config_path | length > 0
+      - common_saml_config.base_url is defined
+      - common_saml_config.base_url | length > 0
+      - common_saml_config.provider_id is defined
+      - common_saml_config.provider_id | length > 0
+      - common_saml_config.login_url is defined
+      - common_saml_config.login_url | length > 0
+      - common_saml_config.application_id is defined
+      - common_saml_config.application_id | length > 0
+    fail_msg: |
+      Required SAML configuration variables are missing or empty.
+      Please ensure the following are defined:
+        - common_saml_app_name
+        - common_saml_config_path
+        - common_saml_config.base_url
+        - common_saml_config.provider_id
+        - common_saml_config.login_url
+        - common_saml_config.application_id
+    success_msg: "All required SAML configuration variables are present"
+  when: common_saml_config_validate | default(true) | bool
+
+- name: Validate SAML config file exists
+  ansible.builtin.stat:
+    path: "{{ common_saml_config_path }}"
+  register: saml_config_file_stat
+  become: true
+
+- name: Fail if config file does not exist
+  ansible.builtin.fail:
+    msg: "Configuration file {{ common_saml_config_path }} does not exist"
+  when:
+    - common_saml_config_validate | default(true) | bool
+    - not saml_config_file_stat.stat.exists
+
+- name: Display SAML configuration summary (debug mode)
+  ansible.builtin.debug:
+    msg:
+      - "SAML Configuration Summary:"
+      - "  Application: {{ common_saml_app_name }}"
+      - "  Config Path: {{ common_saml_config_path }}"
+      - "  Base URL: {{ common_saml_config.base_url }}"
+      - "  Provider ID: {{ common_saml_config.provider_id }}"
+      - "  SP Entity ID: {{ common_saml_config.sp_entity_id | default(common_saml_app_name) }}"
+      - "  Service: {{ common_saml_service_name | default('Not specified') }}"
+  when: common_saml_debug | default(false) | bool

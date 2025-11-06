@@ -1,0 +1,55 @@
+---
+# Example Variable Configuration for SonarQube SAML Integration
+# Copy and customize these variables in your playbook or role defaults
+
+common_saml_app_name: "sonarqube"
+common_saml_app_type: "properties"
+common_saml_config_path: "/opt/sonarqube/conf/sonar.properties"
+common_saml_service_name: "sonarqube"
+common_saml_restart_service: true
+
+common_saml_config:
+  # Core Settings
+  enabled: true
+  application_id: "sonarqube"
+  base_url: "https://sonar.local"
+
+  # Identity Provider Settings
+  provider_name: "Keycloak SAML"
+  provider_id: "https://keycloak.local/realms/sonar"
+  login_url: "https://keycloak.local/realms/sonar/protocol/saml"
+  logout_url: ""
+
+  # Service Provider Settings
+  sp_entity_id: "sonarqube"
+  sp_certificate: ""
+  sp_private_key: ""
+
+  # Authentication Settings
+  force_authentication: false
+
+  # User Attribute Mappings
+  user:
+    login: "username"
+    name: "name"
+    email: "email"
+    sign_up_enabled: true
+    default_group: "sonar-users"
+
+  # Group Mappings
+  group:
+    name: "groups"
+
+  # Signature Configuration
+  signature:
+    enabled: false
+    certificate: ""
+
+# Optional: Enable debug mode
+common_saml_debug: false
+
+# Optional: Enable/disable backup
+common_saml_config_backup: true
+
+# Optional: Enable/disable validation
+common_saml_config_validate: true
