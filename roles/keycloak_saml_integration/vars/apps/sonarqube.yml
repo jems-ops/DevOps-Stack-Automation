@@ -2,7 +2,7 @@
 # SonarQube-specific SAML Integration Configuration
 
 # Application Configuration
-app_config:
+keycloak_saml_integration_app_config:
   home: "/opt/sonarqube"
   config_file: "conf/sonar.properties"
   service_name: "sonarqube"
@@ -11,14 +11,14 @@ app_config:
   saml_callback_url: "/oauth2/callback/saml"
 
 # SAML Attribute Mapping
-saml_attributes:
+keycloak_saml_integration_saml_attributes:
   username: "username"
   email: "email"
   full_name: "name"
   groups: "groups"
 
 # Protocol Mappers
-protocol_mappers:
+keycloak_saml_integration_protocol_mappers:
   - name: "username"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
@@ -45,13 +45,13 @@ protocol_mappers:
       "full.path": "false"
 
 # Groups Configuration
-app_groups:
+keycloak_saml_integration_app_groups:
   users:
     name: "sonar-users"
     description: "SonarQube Users"
 
 # Test User Configuration
-test_user:
+keycloak_saml_integration_test_user:
   enabled: true
   username: "demo.user"
   email: "demo@example.com"
@@ -62,13 +62,13 @@ test_user:
     - "sonar-users"
 
 # SAML Security Settings
-saml_security:
+keycloak_saml_integration_saml_security:
   maximum_authentication_lifetime: 7776000  # 90 days
   force_authentication: false
   sp_entity_id: "sonarqube"
 
 # SonarQube-specific SAML settings
-sonarqube_saml:
+keycloak_saml_integration_sonarqube_saml:
   enabled: true
   application_id: "sonarqube"
   provider_name: "Keycloak SAML"

@@ -1,25 +1,20 @@
 ---
 - name: Configure Keycloak SAML Integration
-  hosts: "{{ app }}_servers"
+  hosts: "{{ app | default('jenkins') }}_servers"
   become: yes
   gather_facts: yes
-
-  vars:
-    # Application: jenkins
-    # Usage: -e "app=jenkins"
-    app: "{{ app | default('jenkins') }}"
 
   pre_tasks:
     - name: Set application type for deployment
       ansible.builtin.set_fact:
-        keycloak_saml_integration_app_type: "{{ app }}"
+        keycloak_saml_integration_app_type: "{{ app | default('jenkins') }}"
 
     - name: Display deployment information
       ansible.builtin.debug:
         msg:
-          - "🚀 Deploying {{ app | upper }} SAML Integration"
+          - "🚀 Deploying {{ keycloak_saml_integration_app_type | upper }} SAML Integration"
           - "Target: {{ inventory_hostname }}"
-          - "Application: {{ lookup('vars', app + '_base_url') }}"
+          - "Application: {{ lookup('vars', keycloak_saml_integration_app_type + '_base_url') }}"
           - "Keycloak: {{ keycloak_base_url }}"
 
   roles:
@@ -32,7 +27,7 @@
           - "🎉 Deployment Complete!"
           - ""
           - "📋 Next Steps:"
-          - "1. Access {{ lookup('vars', app + '_base_url') }}"
+          - "1. Access {{ lookup('vars', keycloak_saml_integration_app_type + '_base_url') }}"
           - "2. Look for 'Log in with SAML' or 'SSO' option"
           - "3. Test with Keycloak credentials"
           - ""

@@ -3,7 +3,7 @@
 
 - name: Set SonarQube-specific variables
   ansible.builtin.set_fact:
-    sonarqube_saml: "{{ sonarqube_saml }}"
+    keycloak_saml_integration_sonarqube_saml_active: "{{ keycloak_saml_integration_sonarqube_saml }}"
   tags: ['always']
 
 - name: Stop SonarQube service for configuration update

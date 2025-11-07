@@ -2,7 +2,7 @@
 # Jenkins-specific SAML Integration Configuration
 
 # Application Configuration
-app_config:
+keycloak_saml_integration_app_config:
   home: "/var/lib/jenkins"
   config_file: "config.xml"
   service_name: "jenkins"
@@ -11,19 +11,18 @@ app_config:
   saml_callback_url: "/securityRealm/finishLogin"
 
 # SAML Plugin Configuration
-saml_plugin:
+keycloak_saml_integration_saml_plugin:
   version: "4.429.v9a_781a_61f1da_"
   class: "org.jenkinsci.plugins.saml.SamlSecurityRealm"
-
 # SAML Attribute Mapping
-saml_attributes:
+keycloak_saml_integration_saml_attributes:
   username: "username"
   email: "email"
   full_name: "displayName"
   groups: "groups"
 
 # Protocol Mappers
-protocol_mappers:
+keycloak_saml_integration_protocol_mappers:
   - name: "username"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
@@ -58,7 +57,7 @@ protocol_mappers:
       "full.path": "false"
 
 # Groups Configuration
-app_groups:
+keycloak_saml_integration_app_groups:
   admins:
     name: "jenkins-admins"
     description: "Jenkins Administrators"
@@ -67,7 +66,7 @@ app_groups:
     description: "Jenkins Users"
 
 # Test User Configuration
-test_user:
+keycloak_saml_integration_test_user:
   enabled: true
   username: "jenkins-demo"
   email: "jenkins-demo@example.com"
@@ -79,7 +78,7 @@ test_user:
     - "jenkins-admins"
 
 # SAML Security Settings
-saml_security:
+keycloak_saml_integration_saml_security:
   maximum_authentication_lifetime: 7776000  # 90 days
   force_authentication: false
   sp_entity_id: "jenkins"

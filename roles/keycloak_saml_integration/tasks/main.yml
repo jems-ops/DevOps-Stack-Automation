@@ -8,13 +8,7 @@
 
 - name: Set app-specific variables for role
   ansible.builtin.set_fact:
-    keycloak_saml_integration_app_config: "{{ { keycloak_saml_integration_app_type: app_config } }}"
-    keycloak_saml_integration_protocol_mappers: "{{ protocol_mappers }}"
-    keycloak_saml_integration_groups:
-      admins: "{{ app_groups.admins | default({'name': keycloak_saml_integration_app_type + '-admins', 'description': 'Administrators'}) }}"
-      users: "{{ app_groups.users }}"
-    keycloak_saml_integration_test_user: "{{ test_user }}"
-    keycloak_saml_integration_app_saml: "{{ saml_security | combine({'username_attribute': saml_attributes.username, 'email_attribute': saml_attributes.email, 'full_name_attribute': saml_attributes.full_name, 'groups_attribute': saml_attributes.groups}) }}"
+    keycloak_saml_integration_app_config: "{{ {keycloak_saml_integration_app_type: keycloak_saml_integration_app_config} }}"
   tags: ['always']
 
 - name: Validate required variables
