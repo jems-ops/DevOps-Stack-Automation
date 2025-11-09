@@ -3,8 +3,8 @@
 # This role supports multiple applications (Jenkins, SonarQube, etc.)
 
 # Application Configuration
-# Required: Set app_type to 'jenkins' or 'sonarqube'
-keycloak_saml_integration_app_type: ""  # jenkins or sonarqube
+# Required: Set app_type to 'jenkins', 'sonarqube', or 'artifactory'
+keycloak_saml_integration_app_type: ""  # jenkins, sonarqube, or artifactory
 keycloak_saml_integration_app_name: "{{ keycloak_saml_integration_app_type }}"
 
 # Application URLs (dynamically resolved based on app_type)

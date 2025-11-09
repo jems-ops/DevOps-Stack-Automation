@@ -1,0 +1,42 @@
+---
+# Configure Artifactory SAML Authentication via REST API
+
+- name: Set Artifactory-specific variables
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_artifactory_saml_active: "{{ keycloak_saml_integration_artifactory_saml }}"
+  tags: ['always']
+
+- name: Generate Artifactory SAML configuration XML
+  ansible.builtin.template:
+    src: artifactory-saml-config.xml.j2
+    dest: "/tmp/artifactory-saml-config.xml"
+    mode: '0644'
+  delegate_to: localhost
+
+- name: Apply SAML configuration to Artifactory via REST API
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_app.base_url }}/artifactory/api/system/configuration/saml"
+    method: PATCH
+    user: "admin"
+    password: "Artifactory@2025"
+    body: "{{ lookup('template', 'artifactory-saml-config.xml.j2') }}"
+    body_format: raw
+    headers:
+      Content-Type: "application/xml"
+    status_code: [200, 201]
+    force_basic_auth: yes
+    validate_certs: no
+  register: keycloak_saml_integration_artifactory_saml_result
+
+- name: Display Artifactory SAML configuration result
+  ansible.builtin.debug:
+    msg: "✅ Artifactory SAML configuration applied successfully"
+  when: keycloak_saml_integration_artifactory_saml_result.status in [200, 201]
+
+- name: Wait for Artifactory to process SAML configuration
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: Display Artifactory SAML login URL
+  ansible.builtin.debug:
+    msg: "🔐 Artifactory SAML Login: {{ keycloak_saml_integration_app.base_url }}/artifactory/webapp/#/login (SAML SSO button)"

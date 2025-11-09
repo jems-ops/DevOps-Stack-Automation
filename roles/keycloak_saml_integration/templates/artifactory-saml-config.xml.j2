@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config xmlns="http://artifactory.jfrog.org/xsd/3.1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://artifactory.jfrog.org/xsd/3.1.6 http://www.jfrog.org/xsd/artifactory-v3_1_6.xsd">
+    <security>
+        <samlSettings>
+            <enableIntegration>{{ keycloak_saml_integration_artifactory_saml.enabled | lower }}</enableIntegration>
+            <loginUrl>{{ keycloak_saml_integration_app.base_url }}/realms/{{ keycloak_saml_integration_realm_name }}/protocol/saml</loginUrl>
+            <logoutUrl>{{ keycloak_saml_integration_app.base_url }}/realms/{{ keycloak_saml_integration_realm_name }}/protocol/saml</logoutUrl>
+            <serviceProviderName>{{ keycloak_saml_integration_artifactory_saml.service_provider_name }}</serviceProviderName>
+            <noAutoUserCreation>{{ not keycloak_saml_integration_artifactory_saml.auto_create_user | lower }}</noAutoUserCreation>
+            <allowUserToAccessProfile>{{ keycloak_saml_integration_artifactory_saml.allow_user_to_access_profile | lower }}</allowUserToAccessProfile>
+            <autoRedirect>false</autoRedirect>
+            <syncGroups>{{ keycloak_saml_integration_artifactory_saml.sync_groups | lower }}</syncGroups>
+            <useEncryptedAssertion>{{ keycloak_saml_integration_artifactory_saml.use_encrypted_assertion | lower }}</useEncryptedAssertion>
+            <certificate>{{ keycloak_saml_integration_certificate }}</certificate>
+            <emailAttribute>{{ keycloak_saml_integration_saml_attributes.email }}</emailAttribute>
+            <groupAttribute>{{ keycloak_saml_integration_saml_attributes.groups }}</groupAttribute>
+        </samlSettings>
+    </security>
+</config>

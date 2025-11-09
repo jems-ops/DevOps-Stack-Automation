@@ -1,14 +1,47 @@
 ---
-# Get Keycloak SAML Certificate
+# Get Keycloak SAML Certificate and Metadata with validation
 
-- name: Get Keycloak SAML descriptor
+- name: Get Keycloak SAML descriptor via Ansible uri module
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor"
     method: GET
     return_content: yes
     status_code: 200
     validate_certs: false
-  register: keycloak_saml_integration_saml_descriptor
+  register: keycloak_saml_integration_saml_descriptor_uri
+  ignore_errors: true
+
+- name: Validate SAML descriptor from uri module
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_uri_valid: "{{ keycloak_saml_integration_saml_descriptor_uri.status == 200 and 'EntityDescriptor' in keycloak_saml_integration_saml_descriptor_uri.content and 'X509Certificate' in keycloak_saml_integration_saml_descriptor_uri.content }}"
+
+- name: Fetch SAML descriptor via curl as fallback  # noqa command-instead-of-module
+  ansible.builtin.shell: |
+    curl -k -s "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor"
+  register: keycloak_saml_integration_saml_descriptor_curl
+  when: not keycloak_saml_integration_uri_valid | bool
+  changed_when: false
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: Set SAML descriptor based on validation result
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_saml_descriptor:
+      content: "{{ keycloak_saml_integration_saml_descriptor_uri.content if keycloak_saml_integration_uri_valid | bool else keycloak_saml_integration_saml_descriptor_curl.stdout }}"
+    keycloak_saml_integration_metadata_source: "{{ 'ansible-uri' if keycloak_saml_integration_uri_valid | bool else 'curl-fallback' }}"
+
+- name: Display metadata fetch method
+  ansible.builtin.debug:
+    msg: "📥 SAML metadata fetched using: {{ keycloak_saml_integration_metadata_source }}"
+
+- name: Validate SAML descriptor content
+  ansible.builtin.assert:
+    that:
+      - keycloak_saml_integration_saml_descriptor.content is defined
+      - keycloak_saml_integration_saml_descriptor.content | length > 0
+      - "'EntityDescriptor' in keycloak_saml_integration_saml_descriptor.content"
+      - "'X509Certificate' in keycloak_saml_integration_saml_descriptor.content"
+    fail_msg: "❌ SAML descriptor is invalid or incomplete"
+    success_msg: "✅ SAML descriptor validation passed"
 
 - name: Extract Keycloak certificate from SAML descriptor
   ansible.builtin.set_fact:
