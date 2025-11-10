@@ -10,14 +10,14 @@ keycloak_saml_integration_app_config:
   group: "sonar"
   saml_callback_url: "/oauth2/callback/saml"
 
-# SAML Attribute Mapping
+# SAML Attribute Mapping (SonarQube uses 'name' for full_name)
 keycloak_saml_integration_saml_attributes:
   username: "username"
   email: "email"
   full_name: "name"
   groups: "groups"
 
-# Protocol Mappers
+# Protocol Mappers (SonarQube-specific: only 3 mappers, name uses username attribute)
 keycloak_saml_integration_protocol_mappers:
   - name: "username"
     protocol: "saml"
@@ -44,26 +44,9 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
-# Groups Configuration
-keycloak_saml_integration_app_groups:
-  admins:
-    name: "sonarqube-admins"
-    description: "SonarQube Administrators"
-  users:
-    name: "sonarqube-users"
-    description: "SonarQube Users"
-
-# Test User Configuration
+# Test User (SonarQube-specific username format)
 keycloak_saml_integration_test_user:
-  enabled: true
   username: "demo.user"
-  email: "demo@example.com"
-  first_name: "Demo"
-  last_name: "User"
-  password: "demo123!"
-  groups:
-    - "sonarqube-users"
-    - "sonarqube-admins"
 
 # SAML Security Settings
 keycloak_saml_integration_saml_security:

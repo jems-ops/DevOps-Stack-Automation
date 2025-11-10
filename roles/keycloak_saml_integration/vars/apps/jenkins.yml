@@ -14,68 +14,12 @@ keycloak_saml_integration_app_config:
 keycloak_saml_integration_saml_plugin:
   version: "4.429.v9a_781a_61f1da_"
   class: "org.jenkinsci.plugins.saml.SamlSecurityRealm"
-# SAML Attribute Mapping
+# SAML Attribute Mapping (Jenkins-specific)
 keycloak_saml_integration_saml_attributes:
   username: "username"
   email: "email"
   full_name: "displayName"
   groups: "groups"
-
-# Protocol Mappers
-keycloak_saml_integration_protocol_mappers:
-  - name: "username"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "username"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "username"
-
-  - name: "email"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "email"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "email"
-
-  - name: "name"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "name"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "firstName"
-
-  - name: "groups"
-    protocol: "saml"
-    protocol_mapper: "saml-group-membership-mapper"
-    config:
-      "attribute.name": "groups"
-      "attribute.nameformat": "Basic"
-      "single": "false"
-      "full.path": "false"
-
-# Groups Configuration
-keycloak_saml_integration_app_groups:
-  admins:
-    name: "jenkins-admins"
-    description: "Jenkins Administrators"
-  users:
-    name: "jenkins-users"
-    description: "Jenkins Users"
-
-# Test User Configuration
-keycloak_saml_integration_test_user:
-  enabled: true
-  username: "jenkins-demo"
-  email: "jenkins-demo@example.com"
-  first_name: "Demo"
-  last_name: "User"
-  password: "demo123!"
-  groups:
-    - "jenkins-users"
-    - "jenkins-admins"
 
 # SAML Security Settings
 keycloak_saml_integration_saml_security:

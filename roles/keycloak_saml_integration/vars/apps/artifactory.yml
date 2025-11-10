@@ -10,74 +10,8 @@ keycloak_saml_integration_app_config:
   group: "artifactory"
   saml_callback_url: "/webapp/saml/loginResponse"
 
-# SAML Attribute Mapping
-keycloak_saml_integration_saml_attributes:
-  username: "username"
-  email: "email"
-  full_name: "name"
-  groups: "groups"
-
-# Protocol Mappers
-keycloak_saml_integration_protocol_mappers:
-  - name: "username"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "username"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "username"
-
-  - name: "email"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "email"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "email"
-
-  - name: "name"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "name"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "firstName"
-
-  - name: "groups"
-    protocol: "saml"
-    protocol_mapper: "saml-group-membership-mapper"
-    config:
-      "attribute.name": "groups"
-      "attribute.nameformat": "Basic"
-      "single": "false"
-      "full.path": "false"
-
-# Groups Configuration
-keycloak_saml_integration_app_groups:
-  admins:
-    name: "artifactory-admins"
-    description: "Artifactory Administrators"
-  users:
-    name: "artifactory-users"
-    description: "Artifactory Users"
-
-# Test User Configuration
-keycloak_saml_integration_test_user:
-  enabled: true
-  username: "artifactory-demo"
-  email: "artifactory-demo@example.com"
-  first_name: "Demo"
-  last_name: "User"
-  password: "demo123!"
-  groups:
-    - "artifactory-users"
-    - "artifactory-admins"
-
-# SAML Security Settings
-keycloak_saml_integration_saml_security:
-  maximum_authentication_lifetime: 7776000  # 90 days
-  force_authentication: false
-  sp_entity_id: "artifactory"
+# Note: Protocol mappers, groups, test user, and SAML security settings
+# are inherited from defaults/main.yml with dynamic app_type values
 
 # Artifactory-specific SAML settings
 keycloak_saml_integration_artifactory_saml:
