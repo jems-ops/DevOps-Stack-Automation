@@ -16,7 +16,7 @@ keycloak_saml_integration_app:
 
 # Keycloak Configuration
 # Shared realm name for all applications
-keycloak_saml_integration_realm_name: "devops"
+keycloak_saml_integration_realm_name: "master"
 
 keycloak_saml_integration_keycloak:
   host: "{{ keycloak_hostname }}"
