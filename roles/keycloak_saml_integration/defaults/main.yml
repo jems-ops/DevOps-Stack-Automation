@@ -14,15 +14,6 @@ keycloak_saml_integration_app:
   protocol: "{{ 'https' if keycloak_saml_integration_use_https else 'http' }}"
   base_url: "{{ lookup('vars', keycloak_saml_integration_app_type + '_base_url', default='http://localhost:8080') }}"
 
-# Application-specific paths
-keycloak_saml_integration_app_config:
-  jenkins:
-    home: "/var/lib/jenkins"
-    config_file: "config.xml"
-    service_name: "jenkins"
-    user: "jenkins"
-    group: "jenkins"
-    saml_callback_url: "/securityRealm/finishLogin"
 # Keycloak Configuration
 keycloak_saml_integration_keycloak:
   host: "{{ keycloak_hostname }}"
