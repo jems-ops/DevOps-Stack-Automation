@@ -34,10 +34,14 @@
     backup: yes
   become: true
 
-- name: Remove cached Keycloak metadata file to force refresh
+- name: Remove cached SAML metadata files to force refresh
   ansible.builtin.file:
-    path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/org.jenkinsci.plugins.saml.SamlSecurityRealm.xml"
+    path: "{{ item }}"
     state: absent
+  loop:
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/org.jenkinsci.plugins.saml.SamlSecurityRealm.xml"
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/saml-idp-metadata.xml"
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/saml-sp-metadata.xml"
   become: true
   ignore_errors: true
 
