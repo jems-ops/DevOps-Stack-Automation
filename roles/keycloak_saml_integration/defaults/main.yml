@@ -15,11 +15,14 @@ keycloak_saml_integration_app:
   base_url: "{{ lookup('vars', keycloak_saml_integration_app_type + '_base_url', default='http://localhost:8080') }}"
 
 # Keycloak Configuration
+# Shared realm name for all applications
+keycloak_saml_integration_realm_name: "master"
+
 keycloak_saml_integration_keycloak:
   host: "{{ keycloak_hostname }}"
   port: 443
   protocol: "https"
-  realm: "{{ 'sonar' if keycloak_saml_integration_app_type == 'sonarqube' else keycloak_saml_integration_app_type }}"
+  realm: "{{ keycloak_saml_integration_realm_name }}"
   admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
   admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
   base_url: "{{ keycloak_base_url }}"
