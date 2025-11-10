@@ -46,8 +46,11 @@ keycloak_saml_integration_protocol_mappers:
 
 # Groups Configuration
 keycloak_saml_integration_app_groups:
+  admins:
+    name: "sonarqube-admins"
+    description: "SonarQube Administrators"
   users:
-    name: "sonar-users"
+    name: "sonarqube-users"
     description: "SonarQube Users"
 
 # Test User Configuration
@@ -59,7 +62,8 @@ keycloak_saml_integration_test_user:
   last_name: "User"
   password: "demo123!"
   groups:
-    - "sonar-users"
+    - "sonarqube-users"
+    - "sonarqube-admins"
 
 # SAML Security Settings
 keycloak_saml_integration_saml_security:
