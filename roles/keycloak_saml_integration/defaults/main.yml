@@ -94,6 +94,14 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
+  - name: "roles"
+    protocol: "saml"
+    protocol_mapper: "saml-role-list-mapper"
+    config:
+      "attribute.name": "Role"
+      "attribute.nameformat": "Basic"
+      "single": "false"
+
 # Groups Configuration (Shared across all applications)
 keycloak_saml_integration_groups:
   admins:
@@ -131,3 +139,28 @@ keycloak_saml_integration_use_https: true
 
 # Logging
 keycloak_saml_integration_debug_logging: false
+
+# Best Practice: Hierarchical Groups and Client Roles
+# Enable this to use hierarchical group structure with client roles
+keycloak_saml_integration_use_best_practices: true
+
+# Parent group name (all subgroups will be created under this)
+keycloak_saml_integration_parent_group: "devops"
+
+# Client roles to create for each application
+keycloak_saml_integration_client_roles:
+  - name: "admin"
+    description: "Administrator role for {{ keycloak_saml_integration_app_type }}"
+  - name: "user"
+    description: "User role for {{ keycloak_saml_integration_app_type }}"
+
+# Subgroup definitions (will be created under parent group)
+keycloak_saml_integration_subgroups:
+  admins:
+    name: "{{ keycloak_saml_integration_app_type }}-admins"
+    description: "{{ keycloak_saml_integration_app_type | capitalize }} Administrators"
+    client_role: "admin"  # Maps to which client role
+  users:
+    name: "{{ keycloak_saml_integration_app_type }}-users"
+    description: "{{ keycloak_saml_integration_app_type | capitalize }} Users"
+    client_role: "user"  # Maps to which client role

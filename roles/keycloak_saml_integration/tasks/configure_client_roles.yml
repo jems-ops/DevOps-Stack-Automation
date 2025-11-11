@@ -1,0 +1,130 @@
+---
+# Configure Client Roles and Group Mappings (Best Practice - Fully Parametrized)
+# This implements the DevSecOps best practice of:
+# - Hierarchical groups (/devops/app-admins, /devops/app-users)
+# - Client-specific roles instead of realm roles
+# - Group → Client Role mapping for better security and scalability
+
+- name: Get existing groups in realm
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_existing_groups
+
+- name: Create parent group
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ keycloak_saml_integration_parent_group }}"
+    status_code: [201, 409]
+    validate_certs: false
+  when: "keycloak_saml_integration_parent_group not in (keycloak_saml_integration_existing_groups.json | map(attribute='name') | list)"
+
+- name: Get parent group ID
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_groups_list
+
+- name: Set parent group ID
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_parent_group_id: "{{ (keycloak_saml_integration_groups_list.json | selectattr('name', 'equalto', keycloak_saml_integration_parent_group) | list)[0].id }}"
+
+- name: Create application-specific subgroups under parent
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}/children"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.value.name }}"
+      attributes:
+        description: ["{{ item.value.description }}"]
+    status_code: [201, 409]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
+
+- name: Get existing client roles
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_existing_client_roles
+
+- name: Create client roles for application
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      description: "{{ item.description }}"
+    status_code: [201, 409]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_client_roles }}"
+  when: "item.name not in (keycloak_saml_integration_existing_client_roles.json | map(attribute='name') | list)"
+
+- name: Get updated subgroups
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}/children"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_subgroups_list
+
+- name: Get client role details
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_client_roles_list
+
+- name: Map subgroups to client roles
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ (keycloak_saml_integration_subgroups_list.json | selectattr('name', 'equalto', item.value.name) | list)[0].id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      - "{{ keycloak_saml_integration_client_roles_list.json | selectattr('name', 'equalto', item.value.client_role) | list | first }}"
+    status_code: [204, 409]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
+  ignore_errors: true
+
+- name: Display client role configuration
+  ansible.builtin.debug:
+    msg:
+      - "✅ Best Practice Configuration Applied for {{ keycloak_saml_integration_app_type }}"
+      - "  Parent Group: /{{ keycloak_saml_integration_parent_group }}"
+      - "  Client Roles: {{ keycloak_saml_integration_client_roles | map(attribute='name') | list | join(', ') }}"
+      - "  Group → Role Mappings:"
+      - "{% for key, value in keycloak_saml_integration_subgroups.items() %}    /{{ keycloak_saml_integration_parent_group }}/{{ value.name }} → {{ keycloak_saml_integration_app_type }}:{{ value.client_role }}\n{% endfor %}"

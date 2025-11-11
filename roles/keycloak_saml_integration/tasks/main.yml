@@ -48,6 +48,11 @@
   ansible.builtin.include_tasks: create_saml_client.yml
   tags: ['keycloak', 'saml', 'client']
 
+- name: Configure client roles and hierarchical groups (Best Practice)
+  ansible.builtin.include_tasks: configure_client_roles.yml
+  when: keycloak_saml_integration_use_best_practices | default(false) | bool
+  tags: ['keycloak', 'client_roles', 'best_practice']
+
 - name: Configure SAML protocol mappers
   ansible.builtin.include_tasks: configure_protocol_mappers.yml
   tags: ['keycloak', 'saml', 'mappers']
