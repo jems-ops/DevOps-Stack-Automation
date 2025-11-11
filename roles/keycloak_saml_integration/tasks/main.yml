@@ -48,18 +48,13 @@
   ansible.builtin.include_tasks: create_saml_client.yml
   tags: ['keycloak', 'saml', 'client']
 
-- name: Configure client roles and hierarchical groups (Best Practice)
+- name: Configure client roles and hierarchical groups
   ansible.builtin.include_tasks: configure_client_roles.yml
-  when: keycloak_saml_integration_use_best_practices | default(false) | bool
-  tags: ['keycloak', 'client_roles', 'best_practice']
+  tags: ['keycloak', 'client_roles', 'groups']
 
 - name: Configure SAML protocol mappers
   ansible.builtin.include_tasks: configure_protocol_mappers.yml
   tags: ['keycloak', 'saml', 'mappers']
-
-- name: Create and configure groups
-  ansible.builtin.include_tasks: configure_groups.yml
-  tags: ['keycloak', 'groups']
 
 - name: Create test user (optional)
   ansible.builtin.include_tasks: create_test_user.yml
@@ -81,7 +76,7 @@
       - ""
       - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
       - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Groups: {{ keycloak_saml_integration_groups.admins.name }}, {{ keycloak_saml_integration_groups.users.name }}"
+      - "👥 Hierarchical Groups: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }}, /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
       - "👤 Test User: {{ keycloak_saml_integration_test_user.username }} / {{ keycloak_saml_integration_test_user.password }}"
   tags: ['summary']
   when: keycloak_saml_integration_test_user.enabled | default(false) | bool
@@ -93,6 +88,6 @@
       - ""
       - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
       - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Groups: {{ keycloak_saml_integration_groups.admins.name }}, {{ keycloak_saml_integration_groups.users.name }}"
+      - "👥 Hierarchical Groups: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }}, /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
   tags: ['summary']
   when: not (keycloak_saml_integration_test_user.enabled | default(false) | bool)

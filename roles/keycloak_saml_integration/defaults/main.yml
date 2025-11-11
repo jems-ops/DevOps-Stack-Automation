@@ -102,16 +102,7 @@ keycloak_saml_integration_protocol_mappers:
       "attribute.nameformat": "Basic"
       "single": "false"
 
-# Groups Configuration (Shared across all applications)
-keycloak_saml_integration_groups:
-  admins:
-    name: "devops-admins"
-    description: "DevOps Administrators"
-  users:
-    name: "devops-users"
-    description: "DevOps Users"
-
-# Test User Configuration (Shared across all applications)
+# Test User Configuration
 keycloak_saml_integration_test_user:
   enabled: true
   username: "demo.user"
@@ -119,9 +110,6 @@ keycloak_saml_integration_test_user:
   first_name: "Demo"
   last_name: "User"
   password: "demo123!"
-  groups:
-    - "{{ keycloak_saml_integration_groups.users.name }}"
-    - "{{ keycloak_saml_integration_groups.admins.name }}"
 
 # SAML Configuration for Applications
 keycloak_saml_integration_app_saml:
@@ -140,10 +128,7 @@ keycloak_saml_integration_use_https: true
 # Logging
 keycloak_saml_integration_debug_logging: false
 
-# Best Practice: Hierarchical Groups and Client Roles
-# Enable this to use hierarchical group structure with client roles
-keycloak_saml_integration_use_best_practices: true
-
+# Hierarchical Groups and Client Roles Configuration
 # Parent group name (all subgroups will be created under this)
 keycloak_saml_integration_parent_group: "devops"
 

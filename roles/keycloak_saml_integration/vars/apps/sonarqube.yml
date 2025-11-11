@@ -49,15 +49,6 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
-# Groups override for SonarQube (use built-in groups)
-keycloak_saml_integration_groups:
-  admins:
-    name: "sonar-administrators"
-    description: "System administrators"
-  users:
-    name: "sonar-users"
-    description: "Every authenticated user automatically belongs to this group"
-
 # SonarQube-specific SAML settings
 keycloak_saml_integration_sonarqube_saml:
   enabled: true

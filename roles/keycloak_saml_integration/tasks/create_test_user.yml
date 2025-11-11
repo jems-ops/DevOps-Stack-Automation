@@ -57,26 +57,32 @@
   ansible.builtin.set_fact:
     keycloak_saml_integration_test_user_id: "{{ keycloak_saml_integration_created_test_user.json[0].id }}"
 
-- name: Get all groups to find group IDs
+- name: Get parent group with subgroups
+  ansible.builtin.include_tasks: common/get_groups.yml
+
+- name: Get parent group ID
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_user_parent_group_id: "{{ (keycloak_saml_integration_groups_result.json | selectattr('name', 'equalto', keycloak_saml_integration_parent_group) | list)[0].id }}"
+
+- name: Get parent group details with subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_user_parent_group_id }}"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
     status_code: 200
     validate_certs: false
-  register: keycloak_saml_integration_all_groups
+  register: keycloak_saml_integration_parent_group_for_user
 
-- name: Add test user to each configured group
+- name: Add test user to hierarchical subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ (keycloak_saml_integration_all_groups.json | selectattr('name', 'equalto', item) | list)[0].id }}"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ (keycloak_saml_integration_parent_group_for_user.json.subGroups | selectattr('name', 'equalto', item.value.name) | list)[0].id }}"
     method: PUT
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
     status_code: [204]
     validate_certs: false
-  loop: "{{ keycloak_saml_integration_test_user.groups }}"
-  when: keycloak_saml_integration_test_user.groups is defined
+  loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
 
 - name: Display test user information
   ansible.builtin.debug:
@@ -86,4 +92,4 @@
       - "  Email: {{ keycloak_saml_integration_test_user.email }}"
       - "  Name: {{ keycloak_saml_integration_test_user.first_name }} {{ keycloak_saml_integration_test_user.last_name }}"
       - "  Password: {{ keycloak_saml_integration_test_user.password }}"
-      - "  Groups: {{ keycloak_saml_integration_test_user.groups | join(', ') }}"
+      - "  Groups: {% for key, value in keycloak_saml_integration_subgroups.items() %}/{{ keycloak_saml_integration_parent_group }}/{{ value.name }}{% if not loop.last %}, {% endif %}{% endfor %}"
