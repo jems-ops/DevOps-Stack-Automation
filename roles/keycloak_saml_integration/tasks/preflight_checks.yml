@@ -6,18 +6,18 @@
   ansible.builtin.systemd:
     name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: started
-  become: yes
+  become: true
   register: keycloak_saml_integration_app_service_status
 
 - name: Verify Keycloak is accessible
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/master"
     method: GET
-    validate_certs: no
+    validate_certs: false
     status_code: 200
   register: keycloak_saml_integration_keycloak_health
   failed_when: false
-  check_mode: no
+  check_mode: false
 
 - name: Display pre-flight check results
   ansible.builtin.debug:
