@@ -14,15 +14,40 @@ keycloak_saml_integration_app_config:
 keycloak_saml_integration_saml_attributes:
   full_name: "name"
 
-# Protocol Mappers (SonarQube-specific: name mapper uses username attribute)
+# Protocol Mappers (SonarQube requires username, email, name, and groups)
 keycloak_saml_integration_protocol_mappers:
+  - name: "username"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+      "attribute.name": "username"
+
+  - name: "email"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "email"
+      "attribute.name": "email"
+
   - name: "name"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
     config:
-      "attribute.name": "name"
       "attribute.nameformat": "Basic"
       "user.attribute": "username"
+      "attribute.name": "name"
+
+  - name: "groups"
+    protocol: "saml"
+    protocol_mapper: "saml-group-membership-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "attribute.name": "groups"
+      "single": "false"
+      "full.path": "false"
 
 # Groups override for SonarQube (use built-in groups)
 keycloak_saml_integration_groups:
