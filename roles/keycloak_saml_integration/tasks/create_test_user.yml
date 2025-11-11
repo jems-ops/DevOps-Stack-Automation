@@ -67,13 +67,17 @@
 
 - name: Add test user to hierarchical subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ (keycloak_saml_integration_parent_group_for_user.json.subGroups | selectattr('name', 'equalto', item.value.name) | list)[0].id }}"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ subgroup_id }}"
     method: PUT
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
     status_code: [204, 409]
     validate_certs: false
   loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
+  vars:
+    subgroup_match: "{{ keycloak_saml_integration_parent_group_for_user.json.subGroups | selectattr('name', 'equalto', item.value.name) | list }}"
+    subgroup_id: "{{ subgroup_match[0].id if subgroup_match | length > 0 else '' }}"
+  when: subgroup_match | length > 0
 
 - name: Get user's current groups
   ansible.builtin.uri:

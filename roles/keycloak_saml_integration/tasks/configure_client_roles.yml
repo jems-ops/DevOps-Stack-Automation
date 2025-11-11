@@ -35,7 +35,10 @@
 
 - name: Set parent group ID
   ansible.builtin.set_fact:
-    keycloak_saml_integration_parent_group_id: "{{ (keycloak_saml_integration_groups_list.json | selectattr('name', 'equalto', keycloak_saml_integration_parent_group) | list)[0].id }}"
+    keycloak_saml_integration_parent_group_id: "{{ parent_group_match[0].id }}"
+  vars:
+    parent_group_match: "{{ keycloak_saml_integration_groups_list.json | selectattr('name', 'equalto', keycloak_saml_integration_parent_group) | list }}"
+  failed_when: parent_group_match | length == 0
 
 - name: Create application-specific subgroups under parent
   ansible.builtin.uri:
@@ -105,18 +108,25 @@
 
 - name: Map subgroups to client roles
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ (keycloak_saml_integration_subgroups_list | selectattr('name', 'equalto', item.value.name) | list)[0].id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ subgroup_id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
-      - "{{ keycloak_saml_integration_client_roles_list.json | selectattr('name', 'equalto', item.value.client_role) | list | first }}"
+      - "{{ client_role_data }}"
     status_code: [204, 409]
     validate_certs: false
   loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
-  ignore_errors: true
+  vars:
+    subgroup_match: "{{ keycloak_saml_integration_subgroups_list | selectattr('name', 'equalto', item.value.name) | list }}"
+    subgroup_id: "{{ subgroup_match[0].id if subgroup_match | length > 0 else '' }}"
+    role_match: "{{ keycloak_saml_integration_client_roles_list.json | selectattr('name', 'equalto', item.value.client_role) | list }}"
+    client_role_data: "{{ role_match[0] if role_match | length > 0 else {} }}"
+  when:
+    - subgroup_match | length > 0
+    - role_match | length > 0
 
 - name: Display client role configuration
   ansible.builtin.debug:
