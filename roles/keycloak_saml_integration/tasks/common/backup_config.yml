@@ -1,0 +1,16 @@
+---
+# Reusable task: Backup configuration file
+# Parameters:
+#   - config_path: Full path to config file
+#   - config_owner: Owner of the config file
+#   - config_group: Group of the config file
+
+- name: Backup existing configuration file
+  ansible.builtin.copy:
+    src: "{{ config_path }}"
+    dest: "{{ config_path }}.backup.{{ ansible_date_time.epoch }}"
+    remote_src: true
+    owner: "{{ config_owner }}"
+    group: "{{ config_group }}"
+    mode: '0644'
+  become: true

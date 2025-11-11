@@ -6,7 +6,7 @@
     keycloak_saml_integration_sonarqube_saml_active: "{{ keycloak_saml_integration_sonarqube_saml }}"
   tags: ['always']
 
-- name: Stop SonarQube service for configuration update
+- name: Stop SonarQube service
   ansible.builtin.systemd:
     name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: stopped
@@ -29,15 +29,12 @@
   become: true
   ignore_errors: yes
 
-- name: Backup existing sonar.properties
-  ansible.builtin.copy:
-    src: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
-    dest: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}.backup.{{ ansible_date_time.epoch }}"
-    remote_src: yes
-    owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
-    group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
-    mode: '0644'
-  become: true
+- name: Backup SonarQube configuration
+  ansible.builtin.include_tasks: common/backup_config.yml
+  vars:
+    config_path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    config_owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    config_group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
 
 - name: Generate SonarQube configuration with SAML from template
   ansible.builtin.template:
