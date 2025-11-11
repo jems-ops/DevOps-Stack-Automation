@@ -14,15 +14,3 @@ keycloak_saml_integration_app_config:
 keycloak_saml_integration_saml_plugin:
   version: "4.429.v9a_781a_61f1da_"
   class: "org.jenkinsci.plugins.saml.SamlSecurityRealm"
-# SAML Attribute Mapping (Jenkins-specific)
-keycloak_saml_integration_saml_attributes:
-  username: "username"
-  email: "email"
-  full_name: "displayName"
-  groups: "groups"
-
-# SAML Security Settings
-keycloak_saml_integration_saml_security:
-  maximum_authentication_lifetime: 7776000  # 90 days
-  force_authentication: false
-  sp_entity_id: "jenkins"

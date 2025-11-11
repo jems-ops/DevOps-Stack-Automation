@@ -12,21 +12,10 @@ keycloak_saml_integration_app_config:
 
 # SAML Attribute Mapping (SonarQube uses 'name' for full_name)
 keycloak_saml_integration_saml_attributes:
-  username: "username"
-  email: "email"
   full_name: "name"
-  groups: "groups"
 
-# Protocol Mappers (SonarQube-specific: only 3 mappers, name uses username attribute)
+# Protocol Mappers (SonarQube-specific: name mapper uses username attribute)
 keycloak_saml_integration_protocol_mappers:
-  - name: "username"
-    protocol: "saml"
-    protocol_mapper: "saml-user-property-mapper"
-    config:
-      "attribute.name": "username"
-      "attribute.nameformat": "Basic"
-      "user.attribute": "username"
-
   - name: "name"
     protocol: "saml"
     protocol_mapper: "saml-user-property-mapper"
@@ -35,24 +24,14 @@ keycloak_saml_integration_protocol_mappers:
       "attribute.nameformat": "Basic"
       "user.attribute": "username"
 
-  - name: "groups"
-    protocol: "saml"
-    protocol_mapper: "saml-group-membership-mapper"
-    config:
-      "attribute.name": "groups"
-      "attribute.nameformat": "Basic"
-      "single": "false"
-      "full.path": "false"
-
-# Test User (SonarQube-specific username format)
-keycloak_saml_integration_test_user:
-  username: "demo.user"
-
-# SAML Security Settings
-keycloak_saml_integration_saml_security:
-  maximum_authentication_lifetime: 7776000  # 90 days
-  force_authentication: false
-  sp_entity_id: "sonarqube"
+# Groups override for SonarQube (use built-in groups)
+keycloak_saml_integration_groups:
+  admins:
+    name: "sonar-administrators"
+    description: "System administrators"
+  users:
+    name: "sonar-users"
+    description: "Every authenticated user automatically belongs to this group"
 
 # SonarQube-specific SAML settings
 keycloak_saml_integration_sonarqube_saml:

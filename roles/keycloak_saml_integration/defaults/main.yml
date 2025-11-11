@@ -94,20 +94,20 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
-# Groups Configuration
+# Groups Configuration (Shared across all applications)
 keycloak_saml_integration_groups:
   admins:
-    name: "{{ keycloak_saml_integration_app_type }}-admins"
-    description: "{{ keycloak_saml_integration_app_name | capitalize }} Administrators"
+    name: "devops-admins"
+    description: "DevOps Administrators"
   users:
-    name: "{{ keycloak_saml_integration_app_type }}-users"
-    description: "{{ keycloak_saml_integration_app_name | capitalize }} Users"
+    name: "devops-users"
+    description: "DevOps Users"
 
-# Test User Configuration
+# Test User Configuration (Shared across all applications)
 keycloak_saml_integration_test_user:
   enabled: true
-  username: "{{ keycloak_saml_integration_app_type }}-demo"
-  email: "{{ keycloak_saml_integration_app_type }}-demo@example.com"
+  username: "demo.user"
+  email: "demo.user@example.com"
   first_name: "Demo"
   last_name: "User"
   password: "demo123!"
