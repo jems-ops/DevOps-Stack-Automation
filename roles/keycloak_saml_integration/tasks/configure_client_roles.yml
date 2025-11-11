@@ -85,15 +85,19 @@
   loop: "{{ keycloak_saml_integration_client_roles }}"
   when: "item.name not in (keycloak_saml_integration_existing_client_roles.json | map(attribute='name') | list)"
 
-- name: Get updated subgroups
+- name: Get parent group with subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}/children"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
     status_code: 200
     validate_certs: false
-  register: keycloak_saml_integration_subgroups_list
+  register: keycloak_saml_integration_parent_group_details
+
+- name: Set subgroups list
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_subgroups_list: "{{ keycloak_saml_integration_parent_group_details.json.subGroups | default([]) }}"
 
 - name: Get client role details
   ansible.builtin.uri:
@@ -107,7 +111,7 @@
 
 - name: Map subgroups to client roles
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ (keycloak_saml_integration_subgroups_list.json | selectattr('name', 'equalto', item.value.name) | list)[0].id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ (keycloak_saml_integration_subgroups_list | selectattr('name', 'equalto', item.value.name) | list)[0].id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
