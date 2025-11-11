@@ -1,7 +1,7 @@
 ---
-# Create Keycloak SAML Client for Jenkins
+# Create Keycloak SAML Client
 
-- name: Check if Jenkins SAML client already exists
+- name: Check if SAML client already exists
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
     method: GET
@@ -15,7 +15,7 @@
   ansible.builtin.set_fact:
     keycloak_saml_integration_existing_saml_client: "{{ keycloak_saml_integration_existing_clients.json | selectattr('clientId', 'equalto', keycloak_saml_integration_client.client_id) | list }}"
 
-- name: Update existing Jenkins SAML client
+- name: Update existing SAML client
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_existing_saml_client[0].id }}"
     method: PUT
@@ -49,7 +49,7 @@
     validate_certs: false
   when: keycloak_saml_integration_existing_saml_client | length > 0
 
-- name: Create new Jenkins SAML client
+- name: Create new SAML client
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
     method: POST
@@ -97,6 +97,6 @@
   ansible.builtin.set_fact:
     keycloak_saml_integration_saml_client_id: "{{ (keycloak_saml_integration_updated_clients.json | selectattr('clientId', 'equalto', keycloak_saml_integration_client.client_id) | list)[0].id }}"
 
-- name: Verify Jenkins SAML client creation
+- name: Verify SAML client creation
   ansible.builtin.debug:
-    msg: "Jenkins SAML client '{{ keycloak_saml_integration_client.client_id }}' configured successfully with ID: {{ keycloak_saml_integration_saml_client_id }}"
+    msg: "{{ keycloak_saml_integration_app_type | capitalize }} SAML client '{{ keycloak_saml_integration_client.client_id }}' configured successfully with ID: {{ keycloak_saml_integration_saml_client_id }}"
