@@ -1,0 +1,61 @@
+---
+# Configure Jenkins SAML Authentication
+
+- name: Stop Jenkins service
+  ansible.builtin.systemd:
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
+    state: stopped
+  become: true
+
+- name: Wait for Jenkins to stop
+  ansible.builtin.wait_for:
+    port: 8080
+    host: 127.0.0.1
+    state: stopped
+    timeout: 60
+
+- name: Backup Jenkins configuration
+  ansible.builtin.include_tasks: common/backup_config.yml
+  vars:
+    config_path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    config_owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    config_group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
+
+- name: Generate complete Jenkins configuration with SAML from template
+  ansible.builtin.template:
+    src: jenkins-saml-config.xml.j2
+    dest: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
+    mode: '0644'
+    backup: yes
+  become: true
+
+- name: Remove cached SAML metadata files to force refresh
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/org.jenkinsci.plugins.saml.SamlSecurityRealm.xml"
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/saml-idp-metadata.xml"
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/saml-sp-metadata.xml"
+  become: true
+  ignore_errors: true
+
+- name: Start Jenkins service
+  ansible.builtin.systemd:
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
+    state: started
+    enabled: yes
+  become: true
+
+- name: Wait for Jenkins to start
+  ansible.builtin.wait_for:
+    port: 8080
+    host: 127.0.0.1
+    state: started
+    timeout: 300
+
+- name: Display Jenkins SAML login URL
+  ansible.builtin.debug:
+    msg: "🔐 Jenkins SAML Login: {{ keycloak_saml_integration_app.base_url }}/securityRealm/commenceLogin"

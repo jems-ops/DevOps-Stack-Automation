@@ -1,0 +1,62 @@
+---
+# SonarQube-specific SAML Integration Configuration
+
+# Application Configuration
+keycloak_saml_integration_app_config:
+  home: "/opt/sonarqube"
+  config_file: "conf/sonar.properties"
+  service_name: "sonarqube"
+  user: "sonar"
+  group: "sonar"
+  saml_callback_url: "/oauth2/callback/saml"
+
+# SAML Attribute Mapping (SonarQube uses 'name' for full_name)
+keycloak_saml_integration_saml_attributes:
+  full_name: "name"
+
+# Protocol Mappers (SonarQube requires username, email, name, and groups)
+keycloak_saml_integration_protocol_mappers:
+  - name: "username"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+      "attribute.name": "username"
+
+  - name: "email"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "email"
+      "attribute.name": "email"
+
+  - name: "name"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+      "attribute.name": "name"
+
+  - name: "groups"
+    protocol: "saml"
+    protocol_mapper: "saml-group-membership-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "attribute.name": "groups"
+      "single": "false"
+      "full.path": "false"
+
+# SonarQube-specific SAML settings
+keycloak_saml_integration_sonarqube_saml:
+  enabled: true
+  application_id: "sonarqube"
+  provider_name: "Keycloak SAML"
+  sign_requests_enabled: false
+  user_login_attribute: "username"
+  user_name_attribute: "name"
+  user_email_attribute: "email"
+  group_name_attribute: "groups"
+  sign_up_enabled: true

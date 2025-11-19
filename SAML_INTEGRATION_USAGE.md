@@ -7,6 +7,16 @@ This repository contains a unified SAML integration playbook that works for any 
 Use the single playbook `configure-keycloak-saml-integration.yml` with the `-e app=<app_name>` parameter:
 
 ```bash
+# For Jenkins
+ansible-playbook playbooks/configure-keycloak-saml-integration.yml \
+  -e "app=jenkins" \
+  -i inventory
+
+# For SonarQube
+ansible-playbook playbooks/configure-keycloak-saml-integration.yml \
+  -e "app=sonarqube" \
+  -i inventory
+
 # For Artifactory
 ansible-playbook playbooks/configure-keycloak-saml-integration.yml \
   -e "app=artifactory" \
@@ -20,8 +30,10 @@ ansible-playbook playbooks/configure-keycloak-saml-integration.yml \
 
 ## Supported Applications
 
-- **Artifactory** (On-premises)
-- **Nexus Repository Manager**
+- **Jenkins** (CI/CD Server)
+- **SonarQube** (Code Quality)
+- **Artifactory** (Artifact Repository - On-premises)
+- **Nexus Repository Manager** (Artifact Repository)
 
 ## File Structure
 
@@ -32,11 +44,17 @@ ansible-playbook playbooks/configure-keycloak-saml-integration.yml \
 │   └── saml_integration.yml                      # Application URLs and settings
 ├── roles/keycloak_saml_integration/
 │   ├── vars/apps/
+│   │   ├── jenkins.yml                           # Jenkins-specific config
+│   │   ├── sonarqube.yml                         # SonarQube-specific config
 │   │   ├── artifactory.yml                       # Artifactory-specific config
 │   │   └── nexus.yml                             # Nexus-specific config
 │   ├── templates/
+│   │   ├── jenkins-saml-config.xml.j2           # Jenkins SAML template
+│   │   ├── sonarqube-saml-config.properties.j2  # SonarQube SAML template
 │   │   └── artifactory-saml-config.xml.j2       # Artifactory SAML template
 │   └── tasks/
+│       ├── configure_jenkins_saml.yml            # Jenkins SAML tasks
+│       ├── configure_sonarqube_saml.yml          # SonarQube SAML tasks
 │       ├── configure_artifactory_saml.yml        # Artifactory SAML tasks
 │       ├── configure_nexus_saml.yml              # Nexus SAML tasks
 │       ├── configure_client_roles.yml            # Keycloak roles
@@ -53,8 +71,8 @@ Contains application URLs and base configuration:
 # Artifactory (on-premises)
 artifactory_hostname: "{{ groups['artifactory_servers'][0] }}"
 artifactory_base_url: "http://{{ artifactory_hostname }}"
-artifactory_admin_user: "admin"
-artifactory_admin_password: "Artifactory@2025"
+artifactory_admin_user: "{{ vault_artifactory_admin_user }}"
+artifactory_admin_password: "{{ vault_artifactory_admin_password }}"
 
 # Nexus (on-premises)
 nexus_hostname: "{{ groups['nexus_servers'][0] }}"
@@ -67,10 +85,16 @@ keycloak_base_url: "http://{{ keycloak_hostname }}"
 
 ### 2. App-specific vars
 
-**roles/keycloak_saml_integration/vars/apps/artifactory.yml**
+**roles/keycloak_saml_integration/vars/apps/jenkins.yml**
 - Service name, home directory
 - Admin credentials
 - SAML-specific settings
+
+**roles/keycloak_saml_integration/vars/apps/sonarqube.yml**
+- Similar structure for SonarQube
+
+**roles/keycloak_saml_integration/vars/apps/artifactory.yml**
+- Similar structure for Artifactory
 
 **roles/keycloak_saml_integration/vars/apps/nexus.yml**
 - Similar structure for Nexus
@@ -122,7 +146,7 @@ After running the playbook:
 
 1. Open `http://<app>.local` in your browser
 2. Look for "Login via SSO" or SAML login option
-3. Login with Keycloak credentials (admin/admin123)
+3. Login with Keycloak credentials (username/password from vault)
 4. User should be auto-created with appropriate roles
 
 ## Troubleshooting

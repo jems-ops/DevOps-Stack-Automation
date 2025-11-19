@@ -1,0 +1,65 @@
+---
+# Configure SonarQube SAML Authentication
+
+- name: Set SonarQube-specific variables
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_sonarqube_saml_active: "{{ keycloak_saml_integration_sonarqube_saml }}"
+  tags: ['always']
+
+- name: Stop SonarQube service
+  ansible.builtin.systemd:
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
+    state: stopped
+  become: true
+
+- name: Wait for SonarQube to stop
+  ansible.builtin.wait_for:
+    port: 9000
+    host: 127.0.0.1
+    state: stopped
+    timeout: 60
+
+- name: Clear SonarQube cache and temp directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/data/es7"
+    - "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/temp"
+  become: true
+  ignore_errors: yes
+
+- name: Backup SonarQube configuration
+  ansible.builtin.include_tasks: common/backup_config.yml
+  vars:
+    config_path: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    config_owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    config_group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
+
+- name: Generate SonarQube configuration with SAML from template
+  ansible.builtin.template:
+    src: sonarqube-saml-config.properties.j2
+    dest: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].config_file }}"
+    owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
+    mode: '0644'
+    backup: yes
+  become: true
+
+- name: Start SonarQube service
+  ansible.builtin.systemd:
+    name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
+    state: started
+    enabled: yes
+  become: true
+
+- name: Wait for SonarQube to start
+  ansible.builtin.wait_for:
+    port: 9000
+    host: 127.0.0.1
+    state: started
+    timeout: 300
+
+- name: Display SonarQube SAML login URL
+  ansible.builtin.debug:
+    msg: "🔐 SonarQube SAML Login: {{ keycloak_saml_integration_app.base_url }} (SSO button on login page)"
