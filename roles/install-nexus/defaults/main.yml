@@ -1,0 +1,41 @@
+---
+# Default variables for Nexus Repository Manager installation
+
+# Nexus configuration
+nexus_version: "3.86.0-08"
+nexus_edition: "pro"  # oss or pro
+nexus_download_url: "https://download.sonatype.com/nexus/3/nexus-{{ nexus_version }}-unix.tar.gz"
+nexus_local_file: ""  # Optional: path to local tarball file
+nexus_user: nexus
+nexus_group: nexus
+nexus_home: /opt/nexus
+nexus_data_dir: /opt/sonatype-work
+nexus_tmp_dir: /tmp/nexus-install
+
+# Java configuration (Nexus 3.86+ requires Java 11+)
+java_package: java-11-openjdk-devel
+
+# Nexus service configuration
+nexus_port: 8081
+nexus_context_path: /
+nexus_service_enabled: true
+nexus_service_state: started
+
+# System configuration
+nexus_max_heap_size: 2703m
+nexus_min_heap_size: 2703m
+nexus_max_direct_memory: 2703m
+
+# Required packages
+nexus_required_packages:
+  - wget
+  - tar
+  - curl
+
+# Nexus application settings
+nexus_application_host: 0.0.0.0
+nexus_application_port: "{{ nexus_port }}"
+nexus_webapp_context_path: "{{ nexus_context_path }}"
+
+# Admin credentials (change after first login)
+nexus_admin_password_file: "{{ nexus_data_dir }}/nexus3/admin.password"

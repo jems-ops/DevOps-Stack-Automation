@@ -5,17 +5,18 @@
 # Dynamic backend servers configuration
 # server_name can be either a string or a list of server names
 site_backends:
-  - server_name: "jenkins.example.com"
+  - server_name: "jenkins.local"
     ip: "192.168.201.14"
     port: "8080"
-    # Test per-backend rewrite rule
-    rewrite_rule: "^/test-jenkins/(.*) /$1 break"
-  - server_name: "sonar.example.com"
+  - server_name: "sonar.local"
     ip: "192.168.201.16"
     port: "9000"
-
-# Test global rewrite rule
-site_rewrite_rule: "^/health /api/health redirect"
+  - server_name: "nexus.local"
+    ip: "192.168.201.11"
+    port: "8081"
+  - server_name: "keycloak.local"
+    ip: "192.168.201.12"
+    port: "8080"
 
 # Example with multiple server names (aliases):
 # site_backends:

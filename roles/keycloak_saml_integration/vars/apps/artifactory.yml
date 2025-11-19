@@ -4,14 +4,16 @@
 # Application Configuration
 keycloak_saml_integration_app_config:
   home: "/opt/jfrog/artifactory"
-  config_file: "var/etc/artifactory/artifactory.config.xml"
+  config_file: "etc/security/security.xml"
   service_name: "artifactory"
   user: "artifactory"
   group: "artifactory"
   saml_callback_url: "/webapp/saml/loginResponse"
 
-# Note: Protocol mappers, groups, test user, and SAML security settings
-# are inherited from defaults/main.yml with dynamic app_type values
+# Artifactory admin credentials for API access
+keycloak_saml_integration_artifactory_admin:
+  user: "admin"
+  password: "Artifactory@2025"
 
 # Artifactory-specific SAML settings
 keycloak_saml_integration_artifactory_saml:
@@ -21,3 +23,5 @@ keycloak_saml_integration_artifactory_saml:
   auto_create_user: true
   sync_groups: true
   use_encrypted_assertion: false
+  auto_redirect: false
+  verify_audience_restriction: false

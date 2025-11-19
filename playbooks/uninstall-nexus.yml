@@ -1,0 +1,103 @@
+---
+- name: Uninstall Nexus Repository Manager
+  hosts: nexus_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    nexus_home: /opt/nexus
+    nexus_data_dir: /opt/sonatype-work
+    nexus_backup_dir: /opt/nexus-backup-{{ ansible_date_time.epoch }}
+
+  tasks:
+    - name: Display uninstall information
+      ansible.builtin.debug:
+        msg: |
+          🗑️  Uninstalling Nexus Repository Manager
+          📦 Target: {{ inventory_hostname }}
+          🏠 Nexus Home: {{ nexus_home }}
+          💾 Data Directory: {{ nexus_data_dir }}
+          📁 Backup Location: {{ nexus_backup_dir }}
+
+    - name: Stop Nexus service
+      ansible.builtin.systemd:
+        name: nexus
+        state: stopped
+      ignore_errors: true
+
+    - name: Disable Nexus service
+      ansible.builtin.systemd:
+        name: nexus
+        enabled: false
+      ignore_errors: true
+
+    - name: Backup Nexus data directory
+      ansible.builtin.command:
+        cmd: "cp -r {{ nexus_data_dir }} {{ nexus_backup_dir }}"
+        creates: "{{ nexus_backup_dir }}"
+      when: nexus_data_dir is exists
+      ignore_errors: true
+
+    - name: Remove Nexus systemd service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/nexus.service
+        state: absent
+      notify: reload systemd
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Find Nexus directories in /opt
+      ansible.builtin.find:
+        paths: /opt
+        patterns: "nexus-*"
+        file_type: directory
+      register: nexus_dirs
+
+    - name: Remove Nexus installation directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ nexus_dirs.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Remove Nexus symlink
+      ansible.builtin.file:
+        path: "{{ nexus_home }}"
+        state: absent
+
+    - name: Remove Nexus data directory
+      ansible.builtin.file:
+        path: "{{ nexus_data_dir }}"
+        state: absent
+
+    - name: Remove firewall rule for Nexus
+      ansible.posix.firewalld:
+        port: 8081/tcp
+        permanent: true
+        state: disabled
+        immediate: true
+      ignore_errors: true
+
+    - name: Display uninstall completion
+      ansible.builtin.debug:
+        msg: |
+          ✅ Nexus Uninstallation Complete!
+
+          📁 Backup saved to: {{ nexus_backup_dir }}
+
+          🧹 Removed:
+          • Nexus service
+          • Installation directories
+          • Data directory (backed up)
+          • Firewall rules
+
+          ℹ️  Note: Nexus user and group were preserved
+          ℹ️  Note: Java packages were not removed
+
+  handlers:
+    - name: reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

@@ -1,0 +1,75 @@
+---
+# Nexus-specific SAML Integration Configuration
+
+# Application Configuration
+keycloak_saml_integration_app_config:
+  home: "/opt/nexus"
+  config_file: "etc/nexus.properties"
+  service_name: "nexus"
+  user: "nexus"
+  group: "nexus"
+  saml_callback_url: "/service/rest/v1/security/saml/assert"
+
+# Protocol Mappers (Nexus requires username, email, firstName, lastName, and groups)
+keycloak_saml_integration_protocol_mappers:
+  - name: "username"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+      "attribute.name": "username"
+
+  - name: "email"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "email"
+      "attribute.name": "email"
+
+  - name: "firstName"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "firstName"
+      "attribute.name": "firstName"
+
+  - name: "lastName"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "user.attribute": "lastName"
+      "attribute.name": "lastName"
+
+  - name: "groups"
+    protocol: "saml"
+    protocol_mapper: "saml-group-membership-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "attribute.name": "groups"
+      "single": "false"
+      "full.path": "false"
+
+  - name: "roles"
+    protocol: "saml"
+    protocol_mapper: "saml-role-list-mapper"
+    config:
+      "attribute.nameformat": "Basic"
+      "attribute.name": "roles"
+      "single": "false"
+
+# Nexus-specific SAML settings
+keycloak_saml_integration_nexus_saml:
+  enabled: true
+  entity_id: "nexus"
+  validate_response_signature: true
+  validate_assertion_signature: true
+  idp_metadata_url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor"
+  username_attribute: "username"
+  first_name_attribute: "firstName"
+  last_name_attribute: "lastName"
+  email_attribute: "email"
+  groups_attribute: "groups"

@@ -1,0 +1,20 @@
+---
+- name: Install Nexus Repository Manager
+  hosts: nexus_servers
+  become: true
+  gather_facts: true
+
+  roles:
+    - install-nexus
+
+  post_tasks:
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg: |
+          🚀 Nexus Repository Manager Deployment Complete!
+
+          📍 Server: {{ inventory_hostname }}
+          🌐 Access URL: http://{{ inventory_hostname }}:{{ nexus_port }}
+          📦 Version: {{ nexus_version }}
+
+          ⏭️  Next: Configure nginx reverse proxy and SAML SSO

@@ -1,0 +1,51 @@
+---
+# Configure Nexus SAML Authentication
+# Note: Nexus Repository Manager 3 requires manual SAML configuration through the UI
+
+- name: Display Nexus SAML configuration instructions
+  ansible.builtin.debug:
+    msg: |
+      ⚠️  Nexus SAML Configuration Requires Manual Setup
+
+      📋 Keycloak Configuration: COMPLETE ✓
+      • SAML Client Created: {{ keycloak_saml_integration_client.client_id }}
+      • Client ID (UUID): {{ keycloak_saml_integration_saml_client_id }}
+      • Hierarchical Groups Created
+      • Protocol Mappers Configured
+
+      🔧 Manual Steps Required in Nexus UI:
+
+      1. Access Nexus: {{ keycloak_saml_integration_app.base_url }}
+      2. Login as admin
+      3. Navigate to: Administration → Security → Realms
+      4. Click "Create realm" → Select "SAML"
+
+      5. Configure SAML Realm:
+         • Name: Keycloak
+         • IdP Metadata URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
+         • Entity ID: {{ keycloak_saml_integration_client.client_id }}
+         • Username Attribute: {{ keycloak_saml_integration_nexus_saml.username_attribute }}
+         • First Name Attribute: {{ keycloak_saml_integration_nexus_saml.first_name_attribute }}
+         • Last Name Attribute: {{ keycloak_saml_integration_nexus_saml.last_name_attribute }}
+         • Email Attribute: {{ keycloak_saml_integration_nexus_saml.email_attribute }}
+         • Groups Attribute: {{ keycloak_saml_integration_nexus_saml.groups_attribute }}
+
+      6. Validate Response Signature: {{ keycloak_saml_integration_nexus_saml.validate_response_signature }}
+      7. Validate Assertion Signature: {{ keycloak_saml_integration_nexus_saml.validate_assertion_signature }}
+
+      8. Save and Activate the SAML realm
+
+      9. Map Groups to Roles:
+         • Navigate to: Administration → Security → Roles
+         • Create external role mappings:
+           - /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }} → nx-admin
+           - /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }} → nx-developer
+
+      🔗 Useful Resources:
+      • Nexus SAML Documentation: https://help.sonatype.com/repomanager3/nexus-repository-administration/access-control/saml
+      • Keycloak SAML Descriptor: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
+
+      👤 Test User Credentials:
+      • Username: {{ keycloak_saml_integration_test_user.username }}
+      • Password: {{ keycloak_saml_integration_test_user.password }}
+      • Groups: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }}, /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}

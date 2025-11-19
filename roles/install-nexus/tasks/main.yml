@@ -1,0 +1,182 @@
+---
+- name: Display Nexus installation information
+  ansible.builtin.debug:
+    msg: |
+      📦 Installing Nexus Repository Manager on {{ inventory_hostname }}
+      📅 Installation time: {{ ansible_date_time.iso8601 }}
+      🏠 Nexus Home: {{ nexus_home }}
+      🔌 Nexus Port: {{ nexus_port }}
+      📊 Version: {{ nexus_version }}
+
+- name: Update package cache
+  ansible.builtin.dnf:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.dnf:
+    name: "{{ nexus_required_packages }}"
+    state: present
+
+- name: Install Java OpenJDK
+  ansible.builtin.dnf:
+    name: "{{ java_package }}"
+    state: present
+
+- name: Create Nexus group
+  ansible.builtin.group:
+    name: "{{ nexus_group }}"
+    state: present
+
+- name: Create Nexus user
+  ansible.builtin.user:
+    name: "{{ nexus_user }}"
+    group: "{{ nexus_group }}"
+    home: "{{ nexus_home }}"
+    shell: /bin/bash
+    system: true
+    create_home: false
+
+- name: Check if Nexus is already installed
+  ansible.builtin.stat:
+    path: "{{ nexus_home }}"
+  register: nexus_installed
+
+- name: Create temporary directory
+  ansible.builtin.file:
+    path: "{{ nexus_tmp_dir }}"
+    state: directory
+    mode: '0755'
+  when: not nexus_installed.stat.exists
+
+- name: Upload local Nexus tarball
+  ansible.builtin.copy:
+    src: "{{ nexus_local_file }}"
+    dest: "{{ nexus_tmp_dir }}/nexus.tar.gz"
+    mode: '0644'
+  when:
+    - not nexus_installed.stat.exists
+    - nexus_local_file | length > 0
+
+- name: Download Nexus from URL
+  ansible.builtin.get_url:
+    url: "{{ nexus_download_url }}"
+    dest: "{{ nexus_tmp_dir }}/nexus.tar.gz"
+    mode: '0644'
+  when:
+    - not nexus_installed.stat.exists
+    - nexus_local_file | length == 0
+
+- name: Extract Nexus
+  ansible.builtin.unarchive:
+    src: "{{ nexus_tmp_dir }}/nexus.tar.gz"
+    dest: /opt
+    remote_src: true
+    creates: "/opt/nexus-{{ nexus_version }}"
+  when: not nexus_installed.stat.exists
+
+- name: Create symlink to Nexus
+  ansible.builtin.file:
+    src: "/opt/nexus-{{ nexus_version }}"
+    dest: "{{ nexus_home }}"
+    state: link
+    force: true
+
+- name: Set ownership of Nexus directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ nexus_user }}"
+    group: "{{ nexus_group }}"
+    recurse: true
+    state: directory
+  loop:
+    - "{{ nexus_home }}"
+    - "{{ nexus_data_dir }}"
+
+- name: Configure Nexus JVM settings
+  ansible.builtin.template:
+    src: nexus.vmoptions.j2
+    dest: "{{ nexus_home }}/bin/nexus.vmoptions"
+    owner: "{{ nexus_user }}"
+    group: "{{ nexus_group }}"
+    mode: '0644'
+  notify: restart nexus
+
+- name: Create Nexus systemd service
+  ansible.builtin.template:
+    src: nexus.service.j2
+    dest: /etc/systemd/system/nexus.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart nexus
+
+- name: Configure firewall for Nexus
+  ansible.posix.firewalld:
+    port: "{{ nexus_port }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  ignore_errors: true
+
+- name: Start and enable Nexus service
+  ansible.builtin.systemd:
+    name: nexus
+    enabled: "{{ nexus_service_enabled }}"
+    state: "{{ nexus_service_state }}"
+    daemon_reload: true
+
+- name: Wait for Nexus to start
+  ansible.builtin.wait_for:
+    port: "{{ nexus_port }}"
+    host: "{{ inventory_hostname }}"
+    delay: 15
+    timeout: 600
+  when: nexus_service_state == "started"
+
+- name: Test Nexus web interface
+  ansible.builtin.uri:
+    url: "http://{{ inventory_hostname }}:{{ nexus_port }}"
+    method: GET
+    timeout: 10
+  register: nexus_status_check
+  ignore_errors: true
+
+- name: Check for admin password file
+  ansible.builtin.stat:
+    path: "{{ nexus_admin_password_file }}"
+  register: admin_password_file
+
+- name: Read initial admin password
+  ansible.builtin.slurp:
+    src: "{{ nexus_admin_password_file }}"
+  register: nexus_admin_password_content
+  when: admin_password_file.stat.exists
+  no_log: true
+
+- name: Clean up download file
+  ansible.builtin.file:
+    path: "{{ nexus_tmp_dir }}"
+    state: absent
+
+- name: Display Nexus installation completion
+  ansible.builtin.debug:
+    msg: |
+      ✅ Nexus Repository Manager Installation Complete!
+
+      📋 Access Information:
+      • URL: http://{{ inventory_hostname }}:{{ nexus_port }}
+      • Status: {{ 'Running' if nexus_status_check.status is defined and nexus_status_check.status == 200 else 'Starting up' }}
+      • Default Login: admin
+      • Initial Password: {{ 'See ' + nexus_admin_password_file if admin_password_file.stat.exists else 'Check ' + nexus_admin_password_file }}
+
+      📊 Service Details:
+      • Nexus Home: {{ nexus_home }}
+      • Data Directory: {{ nexus_data_dir }}
+      • Version: {{ nexus_version }}
+      • Java Version: {{ java_package }}
+
+      🔧 Next Steps:
+      1. Access Nexus web interface
+      2. Complete initial setup wizard
+      3. Change default admin password
+      4. Configure repositories and security

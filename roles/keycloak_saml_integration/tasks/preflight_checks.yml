@@ -2,16 +2,27 @@
 # Pre-flight checks for SAML integration
 # Dynamically checks service status based on app_type
 
-- name: Verify application service is running
+- name: Verify application service is running (Linux only)
   ansible.builtin.systemd:
     name: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].service_name }}"
     state: started
   become: true
   register: keycloak_saml_integration_app_service_status
+  when: ansible_system == 'Linux'
+  failed_when: false
+
+- name: Check application HTTP endpoint (fallback)
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_app.base_url }}"
+    method: GET
+    validate_certs: false
+  register: keycloak_saml_integration_app_http_status
+  failed_when: false
+  check_mode: false
 
 - name: Verify Keycloak is accessible
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/master"
+    url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
     method: GET
     validate_certs: false
     status_code: 200
@@ -22,5 +33,6 @@
 - name: Display pre-flight check results
   ansible.builtin.debug:
     msg:
-      - "✅ {{ keycloak_saml_integration_app_type | capitalize }} service status: {{ app_service_status.status.ActiveState | default('unknown') }}"
-      - "✅ Keycloak accessible: {{ keycloak_health.status | default(0) == 200 }}"
+      - "✅ {{ keycloak_saml_integration_app_type | capitalize }} service active: {{ (keycloak_saml_integration_app_service_status.status.ActiveState | default('unknown')) if (ansible_system == 'Linux') else 'skipped' }}"
+      - "🌐 App HTTP status: {{ keycloak_saml_integration_app_http_status.status | default('n/a') }}"
+      - "✅ Keycloak accessible: {{ keycloak_saml_integration_keycloak_health.status | default(0) == 200 }}"

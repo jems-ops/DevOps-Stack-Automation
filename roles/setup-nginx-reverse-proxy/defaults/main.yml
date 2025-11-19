@@ -70,3 +70,9 @@ setup_nginx_reverse_proxy_sites:
       - sonar.local.com
     backend_host: "192.168.201.16"
     backend_port: "9000"
+
+  - name: nexus
+    server_name:
+      - nexus.local
+    backend_host: "192.168.201.11"
+    backend_port: "8081"

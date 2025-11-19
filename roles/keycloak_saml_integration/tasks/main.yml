@@ -15,10 +15,10 @@
   ansible.builtin.assert:
     that:
       - keycloak_saml_integration_app_type is defined
-      - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube', 'artifactory']
+      - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube', 'artifactory', 'nexus']
       - keycloak_saml_integration_keycloak.realm is defined
       - keycloak_saml_integration_keycloak.base_url is defined
-    fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube, artifactory"
+    fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube, artifactory, nexus"
     success_msg: "All required variables are defined for {{ keycloak_saml_integration_app_type | upper }} SAML integration"
   tags: ['validate']
 
@@ -50,10 +50,12 @@
 
 - name: Configure client roles and hierarchical groups
   ansible.builtin.include_tasks: configure_client_roles.yml
+  when: not (skip_client_roles | default(false) | bool)
   tags: ['keycloak', 'client_roles', 'groups']
 
 - name: Configure SAML protocol mappers
   ansible.builtin.include_tasks: configure_protocol_mappers.yml
+  when: not (skip_protocol_mappers | default(false) | bool)
   tags: ['keycloak', 'saml', 'mappers']
 
 - name: Create test user (optional)

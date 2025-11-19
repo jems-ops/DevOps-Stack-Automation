@@ -1,0 +1,97 @@
+---
+- name: Complete Nexus Deployment with Nginx and SAML SSO
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display deployment plan
+      ansible.builtin.debug:
+        msg: |
+          🚀 Nexus Complete Deployment Pipeline
+
+          📋 Deployment Steps:
+          1. Install Nexus Repository Manager
+          2. Configure Nginx Reverse Proxy
+          3. Configure Keycloak SAML Integration
+
+          🎯 Target: nexus.local (192.168.201.11)
+
+- name: Step 1 - Install Nexus Repository Manager
+  hosts: nexus_servers
+  become: true
+  gather_facts: true
+  roles:
+    - install-nexus
+
+- name: Step 2 - Configure Nginx Reverse Proxy for Nexus
+  hosts: nginx
+  become: true
+  gather_facts: true
+  vars:
+    nginx_server_name: nexus.local
+    backend_host: "192.168.201.11"
+    backend_port: "8081"
+  tasks:
+    - name: Deploy Nexus nginx configuration
+      ansible.builtin.template:
+        src: ../roles/setup-nginx-reverse-proxy/templates/nexus.conf.j2
+        dest: /etc/nginx/conf.d/nexus.conf
+        mode: '0644'
+      notify: reload nginx
+
+    - name: Test nginx configuration
+      ansible.builtin.command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Display nginx test results
+      ansible.builtin.debug:
+        msg: "{{ nginx_test.stderr_lines }}"
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+
+- name: Step 3 - Configure Keycloak SAML for Nexus
+  hosts: nexus_servers
+  become: false
+  gather_facts: true
+  vars:
+    keycloak_saml_integration_app_type: nexus
+    keycloak_saml_integration_app:
+      base_url: "https://nexus.local"
+    keycloak_saml_integration_client:
+      client_id: "nexus"
+      protocol: "saml"
+      enabled: true
+      front_channel_logout: true
+    keycloak_saml_integration_keycloak:
+      base_url: "https://keycloak.local"
+      realm: "master"
+      admin_user: "admin"
+      admin_password: "admin123"
+  roles:
+    - keycloak_saml_integration
+
+- name: Deployment Complete
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display completion summary
+      ansible.builtin.debug:
+        msg: |
+          ✅ Nexus Deployment Complete!
+
+          📍 Access Information:
+          • Nexus URL: https://nexus.local
+          • Direct Access: http://nexus.local:8081
+
+          🔐 Next Steps for SAML:
+          1. Access Nexus UI and complete SAML configuration
+          2. Test SSO login with demo.user / demo123!
+
+          📚 Documentation:
+          • Installation playbook: playbooks/install-nexus.yml
+          • SAML integration: playbooks/configure-keycloak-saml-integration.yml -e "app=nexus"
+          • Full deployment: playbooks/deploy-nexus-complete.yml
