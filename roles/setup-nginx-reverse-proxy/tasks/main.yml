@@ -12,6 +12,11 @@
     name: nginx
     state: present
 
+- name: Install python3-cryptography for SSL certificate generation
+  dnf:
+    name: python3-cryptography
+    state: present
+
 - name: Remove default nginx configuration
   file:
     path: /etc/nginx/conf.d/default.conf
