@@ -1,6 +1,6 @@
 ---
 - name: Install Jenkins on Jenkins Server
-  hosts: jenkins
+  hosts: jenkins_servers
   gather_facts: yes
   become: yes
 

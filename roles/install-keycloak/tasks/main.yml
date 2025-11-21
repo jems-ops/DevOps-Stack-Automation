@@ -47,7 +47,7 @@
     src: "{{ keycloak_install_dir }}/keycloak-{{ keycloak_version }}"
     dest: "{{ keycloak_home }}"
     state: link
-  notify: restart keycloak
+  notify: restart keycloak service
 
 - name: Ensure ownership of keycloak directory
   ansible.builtin.file:
@@ -76,7 +76,7 @@
     group: root
     mode: '0644'
   notify:
-    - restart keycloak
+    - restart keycloak service
     - reload firewalld
 
 - name: Reload systemd

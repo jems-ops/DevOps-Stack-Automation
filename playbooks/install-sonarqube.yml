@@ -1,6 +1,6 @@
 ---
 - name: Install SonarQube on SonarQube Server
-  hosts: sonarqube
+  hosts: sonarqube_servers
   gather_facts: yes
   become: yes
 

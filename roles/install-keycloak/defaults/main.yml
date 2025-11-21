@@ -12,3 +12,6 @@ keycloak_hostname_strict: false
 keycloak_jvm_opts: "-Xms512m -Xmx1024m"
 # If behind proxy/SSL-terminating LB, you may set additional start options in keycloak_extra_opts
 keycloak_extra_opts: ""
+# Admin credentials - should be defined in vault
+keycloak_admin_user: "{{ vault_keycloak_admin_user | default('admin') }}"
+keycloak_admin_password: "{{ vault_keycloak_admin_password | default('changeme') }}"
