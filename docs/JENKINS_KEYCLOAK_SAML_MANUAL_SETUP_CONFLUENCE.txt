@@ -1,0 +1,653 @@
+h1. Jenkins Keycloak SAML SSO - Manual Configuration Guide
+
+This guide provides step-by-step instructions for manually configuring SAML Single Sign-On (SSO) between Jenkins and Keycloak, based on our Ansible automation role.
+
+----
+
+h2. Prerequisites
+
+Before starting, ensure you have:
+
+* (/) Jenkins installed and accessible (e.g., {{https://jenkins.local}})
+* (/) Keycloak installed and accessible (e.g., {{https://keycloak.local}})
+* (/) Admin access to both Jenkins and Keycloak
+* (/) SAML plugin installed in Jenkins (version {{4.429.v9a_781a_61f1da_}} or later)
+* (/) Jenkins initial admin password
+
+h3. Required Information
+
+||Item||Value||Notes||
+|Jenkins URL|{{https://jenkins.local}}|Your Jenkins base URL|
+|Keycloak URL|{{https://keycloak.local}}|Your Keycloak base URL|
+|Keycloak Realm|{{master}}|Realm where client will be created|
+|Keycloak Admin User|{{admin}}|Keycloak admin username|
+|Keycloak Admin Password|From vault|Keycloak admin password|
+
+----
+
+h2. Architecture Overview
+
+{code}
+┌─────────────┐          SAML          ┌──────────────┐
+│             │◄─────Authentication────►│              │
+│   Jenkins   │                         │   Keycloak   │
+│  (Service   │    IdP Metadata         │     (IdP)    │
+│  Provider)  │◄────────────────────────│              │
+│             │                         │              │
+└─────────────┘                         └──────────────┘
+{code}
+
+*Flow:*
+# User accesses Jenkins
+# Jenkins redirects to Keycloak for authentication
+# User logs in with Keycloak credentials
+# Keycloak returns SAML assertion to Jenkins
+# Jenkins creates/updates user session with group mappings
+
+----
+
+h2. Part 1: Keycloak Configuration
+
+h3. Step 1.1: Access Keycloak Admin Console
+
+# Open browser and navigate to: {{https://keycloak.local/admin}}
+# Login with admin credentials
+# Select the *master* realm from the dropdown (or your desired realm)
+
+h3. Step 1.2: Create SAML Client for Jenkins
+
+# In the left sidebar, click *Clients*
+# Click *Create client* button
+# Fill in the *General Settings*:
+#* *Client type*: {{SAML}}
+#* *Client ID*: {{jenkins}}
+#* Click *Next*
+# Configure *Capability config*:
+#* *Client signature required*: {{Off}}
+#* *Force POST binding*: {{On}}
+#* *Front channel logout*: {{On}}
+#* *Force name ID format*: {{Off}}
+#* *Name ID format*: {{username}}
+#* *Include AuthnStatement*: {{On}}
+#* *Sign documents*: {{Off}}
+#* *Sign assertions*: {{Off}}
+#* *Signature algorithm*: {{RSA_SHA256}}
+#* *SAML signature key name*: {{CERT_SUBJECT}}
+#* *Canonicalization method*: {{EXCLUSIVE}}
+#* Click *Next*
+# Configure *Login settings*:
+#* *Root URL*: {{https://jenkins.local}}
+#* *Home URL*: {{https://jenkins.local}}
+#* *Valid redirect URIs*:
+#** {{https://jenkins.local/*}}
+#** {{https://jenkins.local/securityRealm/finishLogin}}
+#* *Valid post logout redirect URIs*: {{https://jenkins.local/*}}
+#* *IDP Initiated SSO URL name*: {{jenkins}}
+#* *IDP Initiated SSO relay state*: (leave empty)
+#* *Master SAML Processing URL*: {{https://jenkins.local/securityRealm/finishLogin}}
+#* *Assertion Consumer Service POST Binding URL*: {{https://jenkins.local/securityRealm/finishLogin}}
+#* Click *Save*
+
+h3. Step 1.3: Configure Client Scopes and Mappers
+
+# Go to *Clients* → *jenkins* → *Client scopes* tab
+# Click on *jenkins-dedicated* scope
+# Click *Add mapper* → *By configuration*
+
+h4. Mapper 1: Username
+
+* Click *User Property*
+* *Name*: {{username}}
+* *Property*: {{username}}
+* *Friendly Name*: {{Username}}
+* *SAML Attribute Name*: {{username}}
+* *SAML Attribute NameFormat*: {{Basic}}
+* Click *Save*
+
+h4. Mapper 2: Email
+
+* Click *Add mapper* → *By configuration* → *User Property*
+* *Name*: {{email}}
+* *Property*: {{email}}
+* *Friendly Name*: {{Email}}
+* *SAML Attribute Name*: {{email}}
+* *SAML Attribute NameFormat*: {{Basic}}
+* Click *Save*
+
+h4. Mapper 3: Full Name
+
+* Click *Add mapper* → *By configuration* → *User Property*
+* *Name*: {{fullName}}
+* *Property*: {{username}}
+* *Friendly Name*: {{Full Name}}
+* *SAML Attribute Name*: {{fullName}}
+* *SAML Attribute NameFormat*: {{Basic}}
+* Click *Save*
+
+h4. Mapper 4: Groups
+
+* Click *Add mapper* → *By configuration* → *Group list*
+* *Name*: {{groups}}
+* *Group attribute name*: {{groups}}
+* *Friendly Name*: {{Groups}}
+* *SAML Attribute NameFormat*: {{Basic}}
+* *Single Group Attribute*: {{On}}
+* *Full group path*: {{Off}}
+* Click *Save*
+
+h3. Step 1.4: Create Groups
+
+# In the left sidebar, click *Groups*
+# Click *Create group*
+# Create parent group:
+#* *Name*: {{devops}}
+#* Click *Create*
+# Select the {{devops}} group, then click *Create group*
+# Create admin group:
+#* *Name*: {{jenkins-admins}}
+#* Click *Create*
+# Create the {{devops}} group again, then click *Create group*
+# Create user group:
+#* *Name*: {{jenkins-users}}
+#* Click *Create*
+
+*Group Hierarchy:*
+{code}
+devops/
+├── jenkins-admins
+└── jenkins-users
+{code}
+
+h3. Step 1.5: Create Roles (Optional but Recommended)
+
+# Go to *Clients* → *jenkins* → *Roles* tab
+# Click *Create role*
+# Create admin role:
+#* *Role name*: {{admin}}
+#* *Description*: {{Jenkins Administrator}}
+#* Click *Save*
+# Click *Create role* again
+# Create user role:
+#* *Role name*: {{user}}
+#* *Description*: {{Jenkins User}}
+#* Click *Save*
+
+h3. Step 1.6: Download SAML Descriptor (IdP Metadata)
+
+# Go to *Realm settings* in the left sidebar
+# Click on *SAML 2.0 Identity Provider Metadata* endpoint or navigate to:
+{code}
+https://keycloak.local/realms/master/protocol/saml/descriptor
+{code}
+# Save the entire XML content - you'll need this for Jenkins configuration
+
+*Example URL structure:*
+{code}
+https://keycloak.local/realms/master/protocol/saml/descriptor
+{code}
+
+The XML should start with:
+{code:xml}
+<?xml version="1.0" encoding="UTF-8"?>
+<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ...>
+{code}
+
+----
+
+h2. Part 2: Jenkins Configuration
+
+h3. Step 2.1: Install SAML Plugin (if not already installed)
+
+# Log into Jenkins with initial admin password
+# Complete the initial setup wizard
+# Go to *Manage Jenkins* → *Plugins*
+# Click *Available plugins*
+# Search for {{SAML}} or {{SAML Plugin}}
+# Install *SAML Plugin* (version 4.429.v9a_781a_61f1da_ or later)
+# Restart Jenkins when prompted
+
+h3. Step 2.2: Configure SAML Security Realm
+
+h4. Method 1: Via Jenkins UI (Recommended for Testing)
+
+# Go to *Manage Jenkins* → *Security*
+# Under *Security Realm*, select *SAML 2.0*
+# Configure the following settings:
+
+*IdP Metadata:*
+* Paste the entire XML content from Keycloak's SAML descriptor (Step 1.6)
+* Or use the URL: {{https://keycloak.local/realms/master/protocol/saml/descriptor}}
+* *Metadata refresh period*: {{1440}} (minutes)
+
+*Display Name Attribute Name:*
+{code}
+fullName
+{code}
+
+*Groups Attribute Name:*
+{code}
+groups
+{code}
+
+*Maximum Authentication Lifetime:*
+{code}
+86400
+{code}
+
+*Username Attribute Name:*
+* Leave empty (uses NameID from SAML assertion)
+
+*Email Attribute Name:*
+{code}
+email
+{code}
+
+*Login Button Text:*
+{code}
+Login with SAML SSO
+{code}
+
+*User Name Case Conversion:*
+* Select: {{none}}
+
+*Data Binding Method:*
+* Select: {{HTTP POST}}
+
+*Force Authentication:*
+* Check this box: (/)
+
+*SP Entity ID:*
+{code}
+jenkins
+{code}
+
+*Advanced Configuration:*
+* *Force Authentication*: {{true}}
+* *Authn Requests Signed*: {{false}}
+* *Want Assertions Signed*: {{false}}
+* *Signature Algorithm*: {{RSA_SHA256}}
+
+{note:title=Save Configuration}
+Click *Save* to apply the configuration
+{note}
+
+h4. Method 2: Via Configuration File (For Automation)
+
+# Stop Jenkins service:
+{code:bash}
+sudo systemctl stop jenkins
+{code}
+# Backup existing configuration:
+{code:bash}
+sudo cp /var/lib/jenkins/config.xml /var/lib/jenkins/config.xml.backup
+{code}
+# Edit {{/var/lib/jenkins/config.xml}} and replace the {{<securityRealm>}} section with:
+{code:xml}
+<securityRealm class="org.jenkinsci.plugins.saml.SamlSecurityRealm" plugin="saml@4.429.v9a_781a_61f1da_">
+  <idpMetadataConfiguration>
+    <xml>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ...&gt;
+  ... (paste your escaped Keycloak metadata here) ...
+&lt;/EntityDescriptor&gt;</xml>
+    <period>1440</period>
+  </idpMetadataConfiguration>
+  <displayNameAttributeName>fullName</displayNameAttributeName>
+  <groupsAttributeName>groups</groupsAttributeName>
+  <loginButtonText>Login with SAML SSO</loginButtonText>
+  <maximumAuthenticationLifetime>86400</maximumAuthenticationLifetime>
+  <usernameAttributeName></usernameAttributeName>
+  <emailAttributeName>email</emailAttributeName>
+  <logoutUrl></logoutUrl>
+  <usernameCaseConversion>none</usernameCaseConversion>
+  <encryptionData/>
+  <authnContextClassRef/>
+  <maximumSessionLifetime>86400</maximumSessionLifetime>
+  <dataBindingMethod>HTTP_POST</dataBindingMethod>
+  <forceAuthn>true</forceAuthn>
+  <spEntityId>jenkins</spEntityId>
+  <advancedConfiguration>
+    <forceAuthn>true</forceAuthn>
+    <spEntityId>jenkins</spEntityId>
+    <authnRequestsSigned>false</authnRequestsSigned>
+    <wantAssertionsSigned>false</wantAssertionsSigned>
+    <signatureAlgorithm>RSA_SHA256</signatureAlgorithm>
+  </advancedConfiguration>
+</securityRealm>
+{code}
+
+{warning:title=XML Escaping Required}
+The XML content must be escaped:
+* Replace {{<}} with {{&lt;}}
+* Replace {{>}} with {{&gt;}}
+* Replace {{&}} with {{&amp;}}
+{warning}
+
+# Set proper ownership:
+{code:bash}
+sudo chown jenkins:jenkins /var/lib/jenkins/config.xml
+sudo chmod 644 /var/lib/jenkins/config.xml
+{code}
+# Start Jenkins:
+{code:bash}
+sudo systemctl start jenkins
+{code}
+
+h3. Step 2.3: Configure Authorization Strategy
+
+# Go to *Manage Jenkins* → *Security*
+# Under *Authorization*, select *Matrix-based security* or *Role-Based Strategy*
+
+*For Matrix-based security:*
+
+Add permissions for Keycloak groups:
+* Group name: {{jenkins-admins}}
+** (/) Administer
+** (/) Read
+** (/) All other permissions
+* Group name: {{jenkins-users}}
+** (/) Read
+** (/) Build
+** (/) Cancel
+
+{tip:title=Important: Prevent Lockout}
+Add yourself as admin before testing SSO\!
+* Add your Keycloak username with full admin rights
+* This prevents lockout
+{tip}
+
+# Click *Save*
+
+h3. Step 2.4: Configure Single Logout (Optional)
+
+To enable Single Logout (SLO) so that logging out of Jenkins also logs you out of Keycloak:
+
+h4. In Keycloak:
+
+# Go to *Clients* → *jenkins* → *Settings* tab
+# Scroll to *Logout settings*:
+#* *Valid post logout redirect URIs*: {{https://jenkins.local/*}}
+#* *Logout Service POST Binding URL*: {{https://jenkins.local/securityRealm/finishLogin}}
+#* *Logout Service Redirect Binding URL*: {{https://jenkins.local/securityRealm/finishLogin}}
+# Ensure *Front Channel Logout*: {{On}}
+# Click *Save*
+
+h4. In Jenkins:
+
+# Go to *Manage Jenkins* → *Security* → *Configure Global Security*
+# In the *SAML 2.0* security realm settings:
+#* *IdP Single Logout URL*: {{https://keycloak.local/realms/master/protocol/saml}}
+#* *Logout URL* (or *Single Logout Service URL*): Leave as {{https://jenkins.local/securityRealm/finishLogin}} (automatically set)
+# Enable: *Single Logout* (if available as checkbox)
+# Click *Save*
+
+{info:title=Note}
+After configuration, clicking logout in Jenkins will log you out of both Jenkins and Keycloak.
+{info}
+
+----
+
+h2. Part 3: Testing and Verification
+
+h3. Step 3.1: Test SSO Login
+
+# *Logout* from Jenkins (if logged in)
+# Navigate to Jenkins login page: {{https://jenkins.local}}
+# You should see a button: *Login with SAML SSO*
+# Click the button
+# You'll be redirected to Keycloak
+# Enter Keycloak credentials
+# After successful authentication, you'll be redirected back to Jenkins
+# Verify you're logged in with your Keycloak username
+
+h3. Step 3.2: Verify User Information
+
+# Click on your username in the top-right corner
+# Go to *Configure*
+# Verify the following information is populated from Keycloak:
+#* *Full Name*: Should match Keycloak profile
+#* *Email Address*: Should match Keycloak email
+#* *Groups*: Should show {{jenkins-admins}} or {{jenkins-users}}
+
+h3. Step 3.3: Test Group-Based Authorization
+
+# Create a test job
+# Logout and login with a user in the {{jenkins-users}} group
+# Verify the user can:
+#* (/) View the job
+#* (/) Build the job
+#* (x) Not configure or delete the job
+# Login with a user in the {{jenkins-admins}} group
+# Verify the admin can:
+#* (/) Configure Jenkins settings
+#* (/) Manage plugins
+#* (/) Create/delete jobs
+
+h3. Step 3.4: Check SAML Logs
+
+*In Jenkins:*
+# Go to *Manage Jenkins* → *System Log*
+# Add logger: {{org.jenkinsci.plugins.saml}} at level {{FINE}}
+# Check logs for SAML authentication events
+
+*In Keycloak:*
+# Go to *Realm settings* → *Events*
+# Enable *Save Events*: {{On}}
+# Check *Login Events* tab for authentication attempts
+
+----
+
+h2. Part 4: User and Group Management
+
+h3. Step 4.1: Create Test Users in Keycloak
+
+# In Keycloak admin console, go to *Users*
+# Click *Create user*
+# Fill in user details:
+#* *Username*: {{testuser}}
+#* *Email*: {{testuser@example.com}}
+#* *First name*: {{Test}}
+#* *Last name*: {{User}}
+#* *Email verified*: {{On}}
+#* *Enabled*: {{On}}
+# Click *Create*
+# Go to *Credentials* tab
+# Click *Set password*
+#* *Password*: (enter secure password)
+#* *Temporary*: {{Off}}
+# Click *Save*
+
+h3. Step 4.2: Assign Users to Groups
+
+# Select the user (e.g., {{testuser}})
+# Go to *Groups* tab
+# Click *Join Group*
+# Select {{devops/jenkins-users}} or {{devops/jenkins-admins}}
+# Click *Join*
+
+h3. Step 4.3: Assign Client Roles (Optional)
+
+# Select the user
+# Go to *Role mapping* tab
+# Click *Assign role*
+# Filter by: {{Filter by clients}}
+# Select {{jenkins}} client
+# Select roles: {{admin}} or {{user}}
+# Click *Assign*
+
+----
+
+h2. Troubleshooting
+
+h3. Issue 1: SAML Authentication Fails
+
+*Symptoms:*
+* Redirected to Keycloak but get an error
+* "Unable to validate SAML response"
+
+*Solutions:*
+# Verify SP Entity ID matches in both Jenkins and Keycloak ({{jenkins}})
+# Check that redirect URIs are correctly configured in Keycloak
+# Ensure clocks are synchronized between Jenkins and Keycloak servers
+# Verify IdP metadata is up-to-date in Jenkins
+
+h3. Issue 2: User Not Getting Correct Groups
+
+*Symptoms:*
+* User logs in but doesn't have expected permissions
+* Groups not showing in Jenkins user profile
+
+*Solutions:*
+# Verify group mapper is configured in Keycloak client scopes
+# Check group attribute name is {{groups}} in both Keycloak and Jenkins
+# Ensure user is actually a member of the group in Keycloak
+# Try using full group path if needed
+
+h3. Issue 3: Login Button Not Appearing
+
+*Symptoms:*
+* No "Login with SAML SSO" button on Jenkins login page
+
+*Solutions:*
+# Verify SAML plugin is installed and enabled
+# Check Jenkins configuration has SAML security realm configured
+# Restart Jenkins service
+# Clear browser cache and cookies
+
+h3. Issue 4: Getting Locked Out
+
+*Solutions:*
+
+If you get locked out, disable security temporarily:
+{code:bash}
+# Stop Jenkins
+sudo systemctl stop jenkins
+
+# Disable security
+sudo sed -i 's/<useSecurity>true<\/useSecurity>/<useSecurity>false<\/useSecurity>/g' /var/lib/jenkins/config.xml
+
+# Start Jenkins
+sudo systemctl start jenkins
+{code}
+
+Then:
+# Re-configure SAML with correct settings
+# Re-enable security
+
+h3. Issue 5: Certificate or SSL Errors
+
+*Symptoms:*
+* SSL/TLS certificate validation errors
+* "unable to find valid certification path"
+
+*Solutions:*
+
+If using self-signed certificates, import them:
+{code:bash}
+# Export Keycloak certificate
+openssl s_client -connect keycloak.local:443 -showcerts < /dev/null 2>/dev/null | openssl x509 -outform PEM > keycloak.crt
+
+# Import to Java keystore
+sudo keytool -import -alias keycloak -file keycloak.crt -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit
+
+# Restart Jenkins
+sudo systemctl restart jenkins
+{code}
+
+----
+
+h2. Security Considerations
+
+h3. Production Recommendations
+
+# *Use HTTPS Everywhere*
+#* Both Jenkins and Keycloak should use valid SSL certificates
+#* Enable HSTS headers
+# *Enable Signature Validation*
+#* Set {{wantAssertionsSigned: true}} in Jenkins SAML config
+#* Enable signature in Keycloak client settings
+# *Use Strong Credentials*
+#* Change default Keycloak admin password
+#* Use complex passwords for service accounts
+# *Enable Audit Logging*
+#* Enable event logging in Keycloak
+#* Configure Jenkins audit trail plugin
+# *Regular Updates*
+#* Keep SAML plugin updated
+#* Keep Keycloak updated to latest stable version
+# *Network Security*
+#* Use firewall rules to restrict access
+#* Consider using VPN or private networks
+# *Session Management*
+#* Configure appropriate session timeouts
+#* Enable re-authentication for sensitive operations
+
+h3. Group-Based Access Control Best Practices
+
+# *Principle of Least Privilege*
+#* Give users minimum required permissions
+#* Use separate groups for different access levels
+# *Group Naming Convention*
+#* Use clear, descriptive names
+#* Example: {{jenkins-admins}}, {{jenkins-developers}}, {{jenkins-viewers}}
+# *Regular Audits*
+#* Review group memberships quarterly
+#* Remove users who no longer need access
+
+----
+
+h2. Quick Reference
+
+h3. Jenkins SAML Configuration URLs
+
+||Purpose||URL||
+|SAML Login|{{https://jenkins.local/securityRealm/commenceLogin}}|
+|SAML Callback|{{https://jenkins.local/securityRealm/finishLogin}}|
+|Jenkins Security|{{https://jenkins.local/manage/configureSecurity}}|
+
+h3. Keycloak URLs
+
+||Purpose||URL||
+|Admin Console|{{https://keycloak.local/admin}}|
+|Realm Metadata|{{https://keycloak.local/realms/master/protocol/saml/descriptor}}|
+|Account Console|{{https://keycloak.local/realms/master/account}}|
+
+h3. Important File Locations
+
+||Component||Path||
+|Jenkins Config|{{/var/lib/jenkins/config.xml}}|
+|Jenkins Home|{{/var/lib/jenkins/}}|
+|Jenkins Logs|{{/var/log/jenkins/jenkins.log}}|
+|Keycloak Config|{{/opt/keycloak/conf/}}|
+
+----
+
+h2. Automated Configuration
+
+If you want to automate this configuration instead of doing it manually, use our Ansible playbook:
+
+{code:bash}
+ansible-playbook playbooks/configure-keycloak-saml-integration.yml \
+  -e "app=jenkins" \
+  -i inventory
+{code}
+
+See [SAML_INTEGRATION_USAGE.md|../SAML_INTEGRATION_USAGE.md] for more details.
+
+----
+
+h2. Additional Resources
+
+* [Jenkins SAML Plugin Documentation|https://plugins.jenkins.io/saml/]
+* [Keycloak SAML Documentation|https://www.keycloak.org/docs/latest/server_admin/#_saml]
+* [SAML 2.0 Specification|http://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.html]
+
+----
+
+{panel:title=Document Information|borderStyle=solid|borderColor=#ccc|titleBGColor=#f7f7f7|bgColor=#fff}
+*Last Updated:* 2025-11-24
+
+*Tested Versions:*
+* Jenkins: 2.479+
+* Keycloak: 22.0.5+
+* SAML Plugin: 4.429.v9a_781a_61f1da_
+{panel}
