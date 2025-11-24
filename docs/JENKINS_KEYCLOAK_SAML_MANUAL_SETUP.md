@@ -375,6 +375,31 @@ Add permissions for Keycloak groups:
 
 4. Click **Save**
 
+### Step 2.4: Configure Single Logout (Optional)
+
+To enable Single Logout (SLO) so that logging out of Jenkins also logs you out of Keycloak:
+
+#### In Keycloak:
+
+1. Go to **Clients** → **jenkins** → **Settings** tab
+2. Scroll to **Logout settings**:
+   - **Valid post logout redirect URIs**: `https://jenkins.local/*`
+   - **Logout Service POST Binding URL**: `https://jenkins.local/securityRealm/finishLogin`
+   - **Logout Service Redirect Binding URL**: `https://jenkins.local/securityRealm/finishLogin`
+3. Ensure **Front Channel Logout**: `On`
+4. Click **Save**
+
+#### In Jenkins:
+
+1. Go to **Manage Jenkins** → **Security** → **Configure Global Security**
+2. In the **SAML 2.0** security realm settings:
+   - **IdP Single Logout URL**: `https://keycloak.local/realms/master/protocol/saml`
+   - **Logout URL** (or **Single Logout Service URL**): Leave as `https://jenkins.local/securityRealm/finishLogin` (automatically set)
+3. Enable: **Single Logout** (if available as checkbox)
+4. Click **Save**
+
+**Note**: After configuration, clicking logout in Jenkins will log you out of both Jenkins and Keycloak.
+
 ---
 
 ## Part 3: Testing and Verification
@@ -644,7 +669,7 @@ See [SAML_INTEGRATION_USAGE.md](../SAML_INTEGRATION_USAGE.md) for more details.
 
 ---
 
-**Last Updated**: 2025-11-22
+**Last Updated**: 2025-11-24
 **Tested Versions**:
 - Jenkins: 2.479+
 - Keycloak: 22.0.5+
