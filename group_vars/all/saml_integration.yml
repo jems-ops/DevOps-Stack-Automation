@@ -22,4 +22,5 @@ artifactory_admin_password: "Artifactory@2025"
 
 # Keycloak host resolution from inventory
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
-keycloak_base_url: "http://{{ keycloak_hostname }}"
+keycloak_base_url: "https://{{ keycloak_hostname }}"
+keycloak_admin_api_url: "https://{{ keycloak_hostname }}"  # Admin API access via HTTPS

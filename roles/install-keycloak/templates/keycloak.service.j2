@@ -12,7 +12,7 @@ Environment="KEYCLOAK_HOME={{ keycloak_home }}"
 Environment="KEYCLOAK_ADMIN={{ keycloak_admin_user }}"
 Environment="KEYCLOAK_ADMIN_PASSWORD={{ keycloak_admin_password }}"
 WorkingDirectory={{ keycloak_home }}
-ExecStart={{ keycloak_home }}/bin/kc.sh start-dev --http-port={{ keycloak_http_port }}
+ExecStart={{ keycloak_home }}/bin/kc.sh start-dev --http-port={{ keycloak_http_port }} --proxy edge
 Restart=on-failure
 RestartSec=10s
 

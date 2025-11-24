@@ -3,7 +3,7 @@
 
 - name: Check if test user already exists
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users?username={{ keycloak_saml_integration_test_user.username }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users?username={{ keycloak_saml_integration_test_user.username }}"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -13,7 +13,7 @@
 
 - name: Create test user if not exists
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -36,7 +36,7 @@
 
 - name: Get test user ID
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users?username={{ keycloak_saml_integration_test_user.username }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users?username={{ keycloak_saml_integration_test_user.username }}"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -57,7 +57,7 @@
 
 - name: Get parent group details with subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_user_parent_group_id }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_user_parent_group_id }}"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -67,7 +67,7 @@
 
 - name: Add test user to hierarchical subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ subgroup_id }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups/{{ subgroup_id }}"
     method: PUT
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -81,7 +81,7 @@
 
 - name: Get user's current groups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/users/{{ keycloak_saml_integration_test_user_id }}/groups"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"

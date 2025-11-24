@@ -17,7 +17,7 @@
       - keycloak_saml_integration_app_type is defined
       - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube', 'artifactory', 'nexus']
       - keycloak_saml_integration_keycloak.realm is defined
-      - keycloak_saml_integration_keycloak.base_url is defined
+      - keycloak_saml_integration_keycloak.admin_api_url is defined
     fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube, artifactory, nexus"
     success_msg: "All required variables are defined for {{ keycloak_saml_integration_app_type | upper }} SAML integration"
   tags: ['validate']
@@ -27,7 +27,7 @@
     msg:
       - "🔐 {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML Integration"
       - "🏗️  Application: {{ keycloak_saml_integration_app.base_url }}"
-      - "🔑 Keycloak: {{ keycloak_saml_integration_keycloak.base_url }}"
+      - "🔑 Keycloak: {{ keycloak_saml_integration_keycloak.admin_api_url }}"
       - "🏛️  Realm: {{ keycloak_saml_integration_keycloak.realm }}"
       - "👤 SAML Client: {{ keycloak_saml_integration_client.client_id }}"
   tags: ['info']

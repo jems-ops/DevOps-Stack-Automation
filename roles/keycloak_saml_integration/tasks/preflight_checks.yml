@@ -22,7 +22,7 @@
 
 - name: Verify Keycloak is accessible
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
     method: GET
     validate_certs: false
     status_code: 200

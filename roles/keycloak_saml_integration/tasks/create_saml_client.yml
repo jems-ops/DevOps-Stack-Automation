@@ -3,7 +3,7 @@
 
 - name: Check if SAML client already exists
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -17,7 +17,7 @@
 
 - name: Update existing SAML client
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_existing_saml_client[0].id }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_existing_saml_client[0].id }}"
     method: PUT
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -51,7 +51,7 @@
 
 - name: Create new SAML client
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -85,7 +85,7 @@
 
 - name: Get updated client list to retrieve client ID
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"

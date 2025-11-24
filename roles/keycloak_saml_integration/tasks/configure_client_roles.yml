@@ -14,7 +14,7 @@
 
 - name: Create parent group
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -42,7 +42,7 @@
 
 - name: Create application-specific subgroups under parent
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}/children"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}/children"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -58,7 +58,7 @@
 
 - name: Get existing client roles
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -68,7 +68,7 @@
 
 - name: Create client roles for application
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -84,7 +84,7 @@
 
 - name: Get parent group with subgroups
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ keycloak_saml_integration_parent_group_id }}"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -98,7 +98,7 @@
 
 - name: Get client role details
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/roles"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -108,7 +108,7 @@
 
 - name: Map subgroups to client roles
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.base_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ subgroup_id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups/{{ subgroup_id }}/role-mappings/clients/{{ keycloak_saml_integration_saml_client_id }}"
     method: POST
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"

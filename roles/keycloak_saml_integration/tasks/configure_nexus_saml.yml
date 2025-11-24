@@ -22,7 +22,7 @@
 
       5. Configure SAML Realm:
          • Name: Keycloak
-         • IdP Metadata URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
+         • IdP Metadata URL: {{ keycloak_saml_integration_keycloak.admin_api_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
          • Entity ID: {{ keycloak_saml_integration_client.client_id }}
          • Username Attribute: {{ keycloak_saml_integration_nexus_saml.username_attribute }}
          • First Name Attribute: {{ keycloak_saml_integration_nexus_saml.first_name_attribute }}
@@ -43,7 +43,7 @@
 
       🔗 Useful Resources:
       • Nexus SAML Documentation: https://help.sonatype.com/repomanager3/nexus-repository-administration/access-control/saml
-      • Keycloak SAML Descriptor: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
+      • Keycloak SAML Descriptor: {{ keycloak_saml_integration_keycloak.admin_api_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
 
       👤 Test User Credentials:
       • Username: {{ keycloak_saml_integration_test_user.username }}
