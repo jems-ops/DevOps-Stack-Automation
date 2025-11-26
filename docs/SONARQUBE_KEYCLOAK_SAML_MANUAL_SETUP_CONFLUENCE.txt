@@ -1,0 +1,622 @@
+h1. SonarQube Keycloak SAML SSO - Manual Configuration Guide
+
+This guide provides step-by-step instructions for manually configuring SAML Single Sign-On (SSO) between SonarQube and Keycloak, based on our Ansible automation role.
+
+----
+
+h2. Prerequisites
+
+Before starting, ensure you have:
+
+* (/) SonarQube installed and accessible (e.g., {{https://sonar.local}})
+* (/) Keycloak installed and accessible (e.g., {{https://keycloak.local}})
+* (/) Admin access to both SonarQube and Keycloak
+* (/) SonarQube version 10.3.0 or later (with built-in SAML support)
+* (/) SonarQube admin password
+
+h3. Required Information
+
+||Item||Value||Notes||
+|SonarQube URL|{{https://sonar.local}}|Your SonarQube base URL|
+|Keycloak URL|{{https://keycloak.local}}|Your Keycloak base URL|
+|Keycloak Realm|{{master}}|Realm where client will be created|
+|Keycloak Admin User|{{admin}}|Keycloak admin username|
+|Keycloak Admin Password|{{Admin@2025}}|Keycloak admin password|
+|SonarQube Admin User|{{admin}}|SonarQube admin username|
+|SonarQube Admin Password|{{Sonar@2025}}|SonarQube admin password|
+
+----
+
+h2. Architecture Overview
+
+{code}
+┌─────────────┐          SAML          ┌──────────────┐
+│             │◄─────Authentication────►│              │
+│  SonarQube  │                         │   Keycloak   │
+│  (Service   │    IdP Metadata         │     (IdP)    │
+│  Provider)  │◄────────────────────────│              │
+│             │                         │              │
+└─────────────┘                         └──────────────┘
+{code}
+
+*Flow:*
+# User accesses SonarQube
+# User clicks "Log in with SAML" button
+# SonarQube redirects to Keycloak for authentication
+# User logs in with Keycloak credentials
+# Keycloak returns SAML assertion to SonarQube
+# SonarQube creates/updates user session with group mappings
+
+----
+
+h2. Part 1: Keycloak Configuration
+
+h3. Step 1.1: Access Keycloak Admin Console
+
+# Open browser and navigate to: {{https://keycloak.local/admin}}
+# Login with admin credentials ({{admin}} / {{Admin@2025}})
+# Select the *master* realm from the dropdown (or your desired realm)
+
+h3. Step 1.2: Create SAML Client for SonarQube
+
+# In the left sidebar, click *Clients*
+# Click *Create client* button
+# Fill in the *General Settings*:
+#* *Client type*: {{SAML}}
+#* *Client ID*: {{sonarqube}}
+#* Click *Next*
+# Configure *Capability config*:
+#* *Client signature required*: {{Off}}
+#* *Force POST binding*: {{On}}
+#* *Front channel logout*: {{On}}
+#* *Force name ID format*: {{Off}}
+#* *Name ID format*: {{username}}
+#* *Include AuthnStatement*: {{On}}
+#* *Sign documents*: {{Off}}
+#* *Sign assertions*: {{On}}
+#* *Signature algorithm*: {{RSA_SHA256}}
+#* *SAML signature key name*: {{CERT_SUBJECT}}
+#* *Canonicalization method*: {{EXCLUSIVE}}
+#* Click *Next*
+# Configure *Login settings*:
+#* *Root URL*: {{https://sonar.local}}
+#* *Home URL*: {{https://sonar.local}}
+#* *Valid redirect URIs*: {{https://sonar.local/*}} and {{https://sonar.local/oauth2/callback/saml}}
+#* *Valid post logout redirect URIs*: {{https://sonar.local/*}}
+#* *IDP Initiated SSO URL name*: {{sonarqube}}
+#* *Master SAML Processing URL*: {{https://sonar.local/oauth2/callback/saml}}
+#* *Assertion Consumer Service POST Binding URL*: {{https://sonar.local/oauth2/callback/saml}}
+#* Click *Save*
+
+h3. Step 1.3: Delete Default Protocol Mappers
+
+{warning:title=IMPORTANT}
+SonarQube's SAML library is strict about duplicate attributes. We must remove Keycloak's default mappers before creating our own.
+{warning}
+
+# Go to *Clients* → *sonarqube* → *Client scopes* tab
+# Click on *sonarqube-dedicated* scope
+# Click on the *Mappers* tab
+# Delete ALL existing mappers if any exist (role list, X500 email, X500 givenName, X500 surname, etc.)
+
+h3. Step 1.4: Configure Custom Protocol Mappers
+
+Now add our custom mappers for SonarQube:
+
+h4. Mapper 1: Username
+
+# Click *Add mapper* → *By configuration* → *User Property*
+# Configure:
+#* *Name*: {{username}}
+#* *Property*: {{username}}
+#* *Friendly Name*: {{Username}}
+#* *SAML Attribute Name*: {{username}}
+#* *SAML Attribute NameFormat*: {{Basic}}
+# Click *Save*
+
+h4. Mapper 2: Email
+
+# Click *Add mapper* → *By configuration* → *User Property*
+# Configure:
+#* *Name*: {{email}}
+#* *Property*: {{email}}
+#* *Friendly Name*: {{Email}}
+#* *SAML Attribute Name*: {{email}}
+#* *SAML Attribute NameFormat*: {{Basic}}
+# Click *Save*
+
+h4. Mapper 3: Name (Display Name)
+
+# Click *Add mapper* → *By configuration* → *User Property*
+# Configure:
+#* *Name*: {{name}}
+#* *Property*: {{username}}
+#* *Friendly Name*: {{Name}}
+#* *SAML Attribute Name*: {{name}}
+#* *SAML Attribute NameFormat*: {{Basic}}
+# Click *Save*
+
+{info}
+We map {{username}} to the {{name}} attribute because SonarQube uses this for display name.
+{info}
+
+h4. Mapper 4: Groups
+
+# Click *Add mapper* → *By configuration* → *Group list*
+# Configure:
+#* *Name*: {{groups}}
+#* *Group attribute name*: {{groups}}
+#* *Friendly Name*: {{Groups}}
+#* *SAML Attribute NameFormat*: {{Basic}}
+#* *Single Group Attribute*: {{Off}}
+#* *Full group path*: {{Off}}
+# Click *Save*
+
+{warning:title=CRITICAL}
+Set "Single Group Attribute" to {{Off}} and "Full group path" to {{Off}} to avoid duplicate attribute errors.
+{warning}
+
+h3. Step 1.5: Create Groups
+
+# In the left sidebar, click *Groups*
+# Click *Create group*
+# Create parent group:
+#* *Name*: {{devops}}
+#* Click *Create*
+# Select the {{devops}} group, then click *Create group*
+# Create admin group:
+#* *Name*: {{sonarqube-admins}}
+#* Click *Create*
+# Go back to {{devops}} group, then click *Create group*
+# Create user group:
+#* *Name*: {{sonarqube-users}}
+#* Click *Create*
+
+*Group Hierarchy:*
+{code}
+devops/
+├── sonarqube-admins
+└── sonarqube-users
+{code}
+
+h3. Step 1.6: Create Roles (Optional but Recommended)
+
+# Go to *Clients* → *sonarqube* → *Roles* tab
+# Click *Create role*
+# Create admin role:
+#* *Role name*: {{admin}}
+#* *Description*: {{SonarQube Administrator}}
+#* Click *Save*
+# Click *Create role* again
+# Create user role:
+#* *Role name*: {{user}}
+#* *Description*: {{SonarQube User}}
+#* Click *Save*
+
+h3. Step 1.7: Create Test User
+
+# In the left sidebar, click *Users*
+# Click *Create new user*
+# Fill in user details:
+#* *Username*: {{demo.user}}
+#* *Email*: {{demo@example.com}}
+#* *First name*: {{Demo}}
+#* *Last name*: {{User}}
+#* *Email verified*: {{On}}
+#* *Enabled*: {{On}}
+# Click *Create*
+# Set user password:
+#* Go to the *Credentials* tab
+#* Click *Set password*
+#* *Password*: {{demo123!}}
+#* *Password confirmation*: {{demo123!}}
+#* *Temporary*: {{Off}}
+#* Click *Save*
+# Assign user to groups:
+#* Go to the *Groups* tab
+#* Click *Join Group*
+#* Select {{devops/sonarqube-users}}
+#* Click *Join*
+# Assign user to roles:
+#* Go to the *Role mapping* tab
+#* Click *Assign role*
+#* Filter by clients: select *sonarqube*
+#* Select {{user}} role
+#* Click *Assign*
+
+----
+
+h2. Part 2: SonarQube Configuration
+
+h3. Step 2.1: Access SonarQube as Admin
+
+# Open browser and navigate to: {{https://sonar.local}}
+# Click *Log in*
+# Login with admin credentials ({{admin}} / {{Sonar@2025}})
+
+h3. Step 2.2: Configure SAML in sonar.properties
+
+SonarQube's SAML configuration is done via the {{sonar.properties}} file, not through the UI.
+
+# SSH into the SonarQube server
+# Stop SonarQube service:
+{code:bash}
+sudo systemctl stop sonarqube
+{code}
+# Backup the current configuration:
+{code:bash}
+sudo cp /opt/sonarqube/conf/sonar.properties /opt/sonarqube/conf/sonar.properties.backup
+{code}
+# Edit the configuration file:
+{code:bash}
+sudo vi /opt/sonarqube/conf/sonar.properties
+{code}
+# Add the following SAML configuration at the end of the file:
+
+{code:properties}
+# SAML Authentication Configuration
+sonar.auth.saml.enabled=true
+sonar.auth.saml.applicationId=sonarqube
+sonar.auth.saml.providerName=Keycloak SAML
+sonar.auth.saml.providerId=https://keycloak.local/realms/master
+sonar.auth.saml.loginUrl=https://keycloak.local/realms/master/protocol/saml
+sonar.auth.saml.certificate.secured=
+
+# User Attribute Mappings
+sonar.auth.saml.user.login=username
+sonar.auth.saml.user.name=name
+sonar.auth.saml.user.email=email
+
+# Group Mapping
+sonar.auth.saml.group.name=groups
+
+# Service Provider Configuration
+sonar.auth.saml.sp.entityId=sonarqube
+
+# Auto-create users from SAML
+sonar.auth.saml.user.signUpEnabled=true
+
+# Default group for new SAML users
+sonar.auth.saml.user.defaultGroup=sonarqube-users
+{code}
+
+# Save and exit the editor
+# Start SonarQube service:
+{code:bash}
+sudo systemctl start sonarqube
+{code}
+# Wait for SonarQube to fully start (check logs):
+{code:bash}
+sudo tail -f /opt/sonarqube/logs/sonar.log
+{code}
+Wait until you see: {{SonarQube is operational}}
+
+h3. Step 2.3: Verify SAML Configuration
+
+# Navigate to {{https://sonar.local}}
+# You should now see a *Log in with SAML* button on the login page
+# Do NOT login yet - we need to configure Keycloak certificate first
+
+h3. Step 2.4: Get Keycloak SAML Certificate
+
+# Download Keycloak's SAML signing certificate:
+{code:bash}
+curl -k https://keycloak.local/realms/master/protocol/saml/descriptor \
+  | grep -oP '(?<=<ds:X509Certificate>).*(?=</ds:X509Certificate>)' \
+  > /tmp/keycloak-cert.txt
+{code}
+# Or manually:
+#* Navigate to: {{https://keycloak.local/realms/master/protocol/saml/descriptor}}
+#* Find the {{<ds:X509Certificate>}} element
+#* Copy the certificate value (between the tags)
+# Update {{sonar.properties}} with the certificate:
+{code:bash}
+sudo vi /opt/sonarqube/conf/sonar.properties
+{code}
+# Find the line {{sonar.auth.saml.certificate.secured=}} and paste the certificate value:
+{code:properties}
+sonar.auth.saml.certificate.secured=MIICnzCCAYcCBgGTg8...paste_full_cert_here...
+{code}
+# Save and restart SonarQube:
+{code:bash}
+sudo systemctl restart sonarqube
+{code}
+
+----
+
+h2. Part 3: Testing and Verification
+
+h3. Step 3.1: Test SAML Login
+
+# Navigate to {{https://sonar.local}}
+# Click *Log in with SAML*
+# You will be redirected to Keycloak
+# Login with test user credentials:
+#* Username: {{demo.user}}
+#* Password: {{demo123!}}
+# After successful authentication, you should be redirected back to SonarQube
+# Verify you are logged in as {{demo.user}}
+
+h3. Step 3.2: Verify User Creation
+
+# Login to SonarQube as admin ({{admin}} / {{Sonar@2025}})
+# Go to *Administration* → *Security* → *Users*
+# Verify that {{demo.user}} was created automatically
+# Check that the user has:
+#* (/) Username: {{demo.user}}
+#* (/) Email: {{demo@example.com}}
+#* (/) Groups: {{sonarqube-users}}
+
+h3. Step 3.3: Verify Group Synchronization
+
+# In SonarQube admin console, go to *Administration* → *Security* → *Groups*
+# Create the {{sonarqube-users}} group if it doesn't exist:
+#* Click *Create Group*
+#* *Name*: {{sonarqube-users}}
+#* *Description*: {{SonarQube Users from SAML}}
+#* Click *Create*
+# Create the {{sonarqube-admins}} group:
+#* Click *Create Group*
+#* *Name*: {{sonarqube-admins}}
+#* *Description*: {{SonarQube Administrators from SAML}}
+#* Click *Create*
+# Assign permissions to {{sonarqube-admins}}:
+#* Select {{sonarqube-admins}} group
+#* Go to *Permissions* tab
+#* Grant *Administer System* permission
+# Assign permissions to {{sonarqube-users}}:
+#* Select {{sonarqube-users}} group
+#* Grant appropriate permissions (e.g., *Browse*, *Execute Analysis*)
+
+h3. Step 3.4: Test Admin Access
+
+# In Keycloak, add {{demo.user}} to the {{sonarqube-admins}} group:
+#* Go to *Users* → *demo.user* → *Groups*
+#* Click *Join Group*
+#* Select {{devops/sonarqube-admins}}
+#* Click *Join*
+# In SonarQube, logout {{demo.user}}
+# Login again with SAML as {{demo.user}}
+# Verify that {{demo.user}} now has admin permissions in SonarQube
+# Check *Administration* menu is visible
+
+----
+
+h2. Part 4: User and Group Management
+
+h3. Creating Additional Users
+
+# In Keycloak Admin Console, go to *Users*
+# Click *Create new user*
+# Fill in user details and credentials
+# Assign to appropriate groups:
+#* {{devops/sonarqube-users}} for regular users
+#* {{devops/sonarqube-admins}} for administrators
+
+h3. Group Mapping Strategy
+
+||Keycloak Group||SonarQube Group||Permissions||
+|{{devops/sonarqube-admins}}|{{sonarqube-admins}}|Full admin access|
+|{{devops/sonarqube-users}}|{{sonarqube-users}}|Browse, Execute Analysis|
+
+h3. Managing Permissions
+
+# Go to *Administration* → *Security* → *Global Permissions*
+# Configure permissions for groups:
+#* {{sonarqube-admins}}: Grant all permissions
+#* {{sonarqube-users}}: Grant browse and analysis permissions
+
+----
+
+h2. Troubleshooting
+
+h3. Issue 1: "Found an Attribute element with duplicated Name"
+
+*Symptoms:* Error in SonarQube logs when trying to login with SAML.
+
+*Cause:* Keycloak has built-in default protocol mappers that conflict with custom mappers.
+
+*Solution:*
+# In Keycloak, go to *Clients* → *sonarqube* → *Client scopes* → *sonarqube-dedicated* → *Mappers*
+# Delete ALL existing mappers
+# Add only the 4 custom mappers as described in Step 1.4
+# Ensure "Single Group Attribute" is set to {{Off}} for the groups mapper
+
+h3. Issue 2: "You're not authorized to access this page"
+
+*Symptoms:* User can login via SAML but gets unauthorized error.
+
+*Cause:* User's groups from Keycloak don't exist in SonarQube, or don't have permissions.
+
+*Solution:*
+# Create the groups in SonarQube: {{sonarqube-users}}, {{sonarqube-admins}}
+# Assign appropriate permissions to these groups
+# Verify the user is in the correct groups in Keycloak
+# Logout and login again
+
+h3. Issue 3: SAML Button Not Appearing
+
+*Symptoms:* No "Log in with SAML" button on SonarQube login page.
+
+*Cause:* SAML not properly enabled in {{sonar.properties}}.
+
+*Solution:*
+# Check {{/opt/sonarqube/conf/sonar.properties}}
+# Verify {{sonar.auth.saml.enabled=true}}
+# Restart SonarQube: {{sudo systemctl restart sonarqube}}
+# Check logs: {{sudo tail -f /opt/sonarqube/logs/web.log}}
+
+h3. Issue 4: Invalid SAML Response
+
+*Symptoms:* Error about invalid signature or certificate.
+
+*Cause:* Missing or incorrect Keycloak certificate in SonarQube configuration.
+
+*Solution:*
+# Download fresh certificate from Keycloak:
+{code:bash}
+curl -k https://keycloak.local/realms/master/protocol/saml/descriptor
+{code}
+# Extract the X509Certificate value
+# Update {{sonar.auth.saml.certificate.secured}} in {{sonar.properties}}
+# Restart SonarQube
+
+h3. Issue 5: Groups Not Synchronized
+
+*Symptoms:* User can login but doesn't have correct groups.
+
+*Cause:* Group mapper not configured correctly or groups don't exist in SonarQube.
+
+*Solution:*
+# Verify groups mapper in Keycloak:
+#* *Single Group Attribute*: {{Off}}
+#* *Full group path*: {{Off}}
+# Create matching groups in SonarQube
+# Check user's group membership in Keycloak
+# Logout and login again to refresh SAML assertion
+
+h3. Checking Logs
+
+*SonarQube Logs:*
+{code:bash}
+# Web logs (SAML authentication)
+sudo tail -f /opt/sonarqube/logs/web.log
+
+# Main SonarQube log
+sudo tail -f /opt/sonarqube/logs/sonar.log
+{code}
+
+*Keycloak Logs* (if on separate server):
+{code:bash}
+# Keycloak server logs
+sudo journalctl -u keycloak -f
+{code}
+
+----
+
+h2. Security Considerations
+
+h3. 1. Certificate Validation
+
+* Always use {{sonar.auth.saml.certificate.secured}} to validate Keycloak's signature
+* Never set {{Sign assertions}} to {{Off}} in production
+* Use HTTPS for both SonarQube and Keycloak
+
+h3. 2. User Provisioning
+
+* Enable {{sonar.auth.saml.user.signUpEnabled=true}} to auto-create users
+* Set {{sonar.auth.saml.user.defaultGroup}} to control default permissions
+* Regularly audit user accounts in SonarQube
+
+h3. 3. Group Synchronization
+
+* Keep Keycloak groups in sync with SonarQube groups
+* Use descriptive group names that clearly indicate access level
+* Document group-to-permission mappings
+
+h3. 4. Session Management
+
+* Configure appropriate session timeouts in SonarQube
+* Enable Front Channel Logout in Keycloak for proper logout
+* Test logout functionality regularly
+
+h3. 5. Monitoring and Auditing
+
+* Monitor SonarQube logs for SAML authentication failures
+* Enable audit logging in both SonarQube and Keycloak
+* Set up alerts for suspicious authentication patterns
+
+h3. 6. Backup and Recovery
+
+* Regularly backup {{sonar.properties}} configuration
+* Document all SAML configuration settings
+* Keep Keycloak certificate up to date
+
+----
+
+h2. Configuration Reference
+
+h3. Complete sonar.properties SAML Section
+
+{code:properties}
+# SAML Authentication
+sonar.auth.saml.enabled=true
+sonar.auth.saml.applicationId=sonarqube
+sonar.auth.saml.providerName=Keycloak SAML
+sonar.auth.saml.providerId=https://keycloak.local/realms/master
+sonar.auth.saml.loginUrl=https://keycloak.local/realms/master/protocol/saml
+sonar.auth.saml.certificate.secured=<KEYCLOAK_CERT_HERE>
+
+# User Attributes
+sonar.auth.saml.user.login=username
+sonar.auth.saml.user.name=name
+sonar.auth.saml.user.email=email
+sonar.auth.saml.user.signUpEnabled=true
+sonar.auth.saml.user.defaultGroup=sonarqube-users
+
+# Group Mapping
+sonar.auth.saml.group.name=groups
+
+# Service Provider
+sonar.auth.saml.sp.entityId=sonarqube
+{code}
+
+h3. Keycloak Client Configuration Summary
+
+||Setting||Value||
+|Client ID|{{sonarqube}}|
+|Client Protocol|{{SAML}}|
+|Sign Assertions|{{On}}|
+|Force POST Binding|{{On}}|
+|Front Channel Logout|{{On}}|
+|Name ID Format|{{username}}|
+|Valid Redirect URIs|{{https://sonar.local/*}}|
+|Master SAML Processing URL|{{https://sonar.local/oauth2/callback/saml}}|
+
+h3. Protocol Mappers Summary
+
+||Mapper Name||Type||User Property||SAML Attribute||Notes||
+|username|User Property|username|username|Login identifier|
+|email|User Property|email|email|User email|
+|name|User Property|username|name|Display name|
+|groups|Group List|\-|groups|Group membership|
+
+----
+
+h2. Appendix: Automation with Ansible
+
+This manual configuration can be automated using our Ansible role:
+
+{code:bash}
+# Run from the feature/sonarqube-keycloak-saml-role branch
+ansible-playbook -i inventory \
+  playbooks/configure-sonarqube-keycloak-saml-role.yml \
+  --ask-pass
+{code}
+
+The role automatically:
+* Creates Keycloak SAML client with proper configuration
+* Deletes default protocol mappers
+* Creates custom protocol mappers
+* Configures SonarQube sonar.properties
+* Creates test users and groups
+* Restarts SonarQube service
+
+----
+
+h2. Additional Resources
+
+* [SonarQube SAML Documentation|https://docs.sonarqube.org/latest/instance-administration/authentication/saml/]
+* [Keycloak SAML Documentation|https://www.keycloak.org/docs/latest/server_admin/#saml-clients]
+* [SAML 2.0 Specification|http://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.html]
+
+----
+
+{panel:title=Document Information|borderStyle=solid}
+*Document Version:* 1.0
+*Last Updated:* 2025-01-26
+*Tested With:*
+* SonarQube: 10.3.0.82913
+* Keycloak: 26.0.7
+* PostgreSQL: 15.x
+{panel}
