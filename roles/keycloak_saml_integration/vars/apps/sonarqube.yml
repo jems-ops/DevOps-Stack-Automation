@@ -56,7 +56,7 @@ keycloak_saml_integration_sonarqube_saml:
   provider_name: "Keycloak SAML"
   sign_requests_enabled: false
   user_login_attribute: "username"
-  user_name_attribute: "name"
+  user_name_attribute: "username"
   user_email_attribute: "email"
   group_name_attribute: "groups"
   sign_up_enabled: true

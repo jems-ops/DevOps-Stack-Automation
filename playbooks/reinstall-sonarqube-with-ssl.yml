@@ -1,0 +1,139 @@
+---
+- name: Clean up existing SonarQube installation
+  hosts: sonarqube_servers
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Stop SonarQube service
+      systemd:
+        name: sonarqube
+        state: stopped
+      ignore_errors: yes
+
+    - name: Remove SonarQube directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/sonarqube
+        - /opt/sonarqube-*
+        - /opt/sonar*
+
+    - name: Remove sonar user
+      user:
+        name: sonar
+        state: absent
+        remove: yes
+      ignore_errors: yes
+
+    - name: Drop SonarQube database
+      postgresql_db:
+        name: sonarqube
+        state: absent
+      become_user: postgres
+      ignore_errors: yes
+
+    - name: Drop SonarQube database user
+      postgresql_user:
+        name: sonar
+        state: absent
+      become_user: postgres
+      ignore_errors: yes
+
+- name: Install SonarQube
+  hosts: sonarqube_servers
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - install-sonarqube
+
+- name: Configure nginx reverse proxy with SSL for SonarQube
+  hosts: nginx
+  gather_facts: yes
+  become: yes
+
+  vars:
+    nginx_server_name: sonar.local
+    nginx_http_port: 80
+    nginx_https_port: 443
+    sonarqube_backend_host: "{{ groups['sonarqube_servers'][0].split('.')[0] }}"
+    sonarqube_backend_port: 9000
+    ssl_cert_file: "/etc/nginx/tls/{{ nginx_server_name }}.crt"
+    ssl_key_file: "/etc/nginx/tls/{{ nginx_server_name }}.key"
+    ssl_dhparam_file: "/etc/nginx/tls/dhparam.pem"
+    ssl_protocols: "TLSv1.2 TLSv1.3"
+    ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+    ssl_prefer_server_ciphers: "off"
+
+  tasks:
+    - name: Get SonarQube backend IP
+      set_fact:
+        sonarqube_backend_host: "{{ hostvars[groups['sonarqube_servers'][0]]['ansible_default_ipv4']['address'] }}"
+
+    - name: Deploy SonarQube nginx SSL configuration
+      template:
+        src: ../roles/install-ssl-cert/templates/sonarqube-ssl.conf.j2
+        dest: /etc/nginx/conf.d/sonarqube-ssl.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload nginx
+
+    - name: Ensure SSL certificate exists for sonar.local
+      stat:
+        path: "{{ ssl_cert_file }}"
+      register: sonar_ssl_cert
+
+    - name: Generate self-signed SSL certificate if not exists
+      command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout {{ ssl_key_file }}
+        -out {{ ssl_cert_file }}
+        -subj "/C=US/ST=California/L=San Francisco/O=DevOps/CN={{ nginx_server_name }}"
+      when: not sonar_ssl_cert.stat.exists
+
+    - name: Ensure dhparam file exists
+      stat:
+        path: "{{ ssl_dhparam_file }}"
+      register: dhparam_file
+
+    - name: Generate dhparam if not exists
+      command: openssl dhparam -out {{ ssl_dhparam_file }} 2048
+      when: not dhparam_file.stat.exists
+
+    - name: Test nginx configuration
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Display nginx test result
+      debug:
+        var: nginx_test.stderr_lines
+
+  handlers:
+    - name: Reload nginx
+      systemd:
+        name: nginx
+        state: reloaded
+
+- name: Display completion message
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Show installation summary
+      debug:
+        msg: |
+          ✅ SonarQube reinstallation complete!
+          
+          📊 Access URLs:
+          • SonarQube HTTPS: https://sonar.local
+          • SonarQube HTTP (redirects): http://sonar.local
+          • Default credentials: admin/admin
+          
+          🔧 Next steps:
+          1. Access SonarQube and change default password
+          2. Configure quality profiles and rules
+          3. Set up SAML SSO integration (optional)

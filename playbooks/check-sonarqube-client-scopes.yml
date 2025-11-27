@@ -1,0 +1,70 @@
+---
+- name: Check SonarQube Client Scopes and Mappers
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+    - ../vault.yml
+  tasks:
+    - name: Get Keycloak access token
+      uri:
+        url: "https://keycloak.local/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ vault_keycloak_admin_user }}"
+          password: "{{ vault_keycloak_admin_password }}"
+          grant_type: "password"
+          client_id: "admin-cli"
+        validate_certs: no
+        return_content: yes
+      register: keycloak_token
+
+    - name: Get SonarQube client details
+      uri:
+        url: "https://keycloak.local/admin/realms/master/clients/9c0700bf-1662-46e9-a172-7a8308cdd79c"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token.json.access_token }}"
+          Content-Type: "application/json"
+        validate_certs: no
+        return_content: yes
+      register: client_details
+
+    - name: Show default client scopes
+      debug:
+        msg: "Default scopes: {{ client_details.json.defaultClientScopes }}"
+
+    - name: Show optional client scopes
+      debug:
+        msg: "Optional scopes: {{ client_details.json.optionalClientScopes }}"
+
+    - name: Get all client scopes
+      uri:
+        url: "https://keycloak.local/admin/realms/master/client-scopes"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token.json.access_token }}"
+          Content-Type: "application/json"
+        validate_certs: no
+        return_content: yes
+      register: all_scopes
+
+    - name: Check protocol mappers for each scope
+      uri:
+        url: "https://keycloak.local/admin/realms/master/client-scopes/{{ item.id }}/protocol-mappers/models"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token.json.access_token }}"
+          Content-Type: "application/json"
+        validate_certs: no
+        return_content: yes
+      register: scope_mappers
+      loop: "{{ all_scopes.json }}"
+      when: item.protocol == "saml" and (item.name in client_details.json.defaultClientScopes or item.name in client_details.json.optionalClientScopes)
+
+    - name: Display SAML mappers from scopes
+      debug:
+        msg: "Scope: {{ item.item.name }} - Mappers: {{ item.json | selectattr('protocol', 'equalto', 'saml') | map(attribute='name') | list }}"
+      loop: "{{ scope_mappers.results }}"
+      when: not item.skipped | default(false)

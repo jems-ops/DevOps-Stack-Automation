@@ -135,17 +135,11 @@ keycloak_saml_integration_parent_group: "devops"
 
 # Client roles to create for each application
 keycloak_saml_integration_client_roles:
-  - name: "admin"
-    description: "Administrator role for {{ keycloak_saml_integration_app_type }}"
   - name: "user"
     description: "User role for {{ keycloak_saml_integration_app_type }}"
 
 # Subgroup definitions (will be created under parent group)
 keycloak_saml_integration_subgroups:
-  admins:
-    name: "{{ keycloak_saml_integration_app_type }}-admins"
-    description: "{{ keycloak_saml_integration_app_type | capitalize }} Administrators"
-    client_role: "admin"  # Maps to which client role
   users:
     name: "{{ keycloak_saml_integration_app_type }}-users"
     description: "{{ keycloak_saml_integration_app_type | capitalize }} Users"

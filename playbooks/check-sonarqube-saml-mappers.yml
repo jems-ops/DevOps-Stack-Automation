@@ -1,0 +1,50 @@
+---
+- name: Check SonarQube SAML Protocol Mappers
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Get Keycloak access token
+      uri:
+        url: "https://keycloak.local/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
+          password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+          grant_type: "password"
+          client_id: "admin-cli"
+        validate_certs: no
+        return_content: yes
+      register: keycloak_token
+
+    - name: Get SonarQube client ID
+      uri:
+        url: "https://keycloak.local/admin/realms/master/clients?clientId=sonarqube"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token.json.access_token }}"
+          Content-Type: "application/json"
+        validate_certs: no
+        return_content: yes
+      register: sonarqube_client
+
+    - name: Get SonarQube client protocol mappers
+      uri:
+        url: "https://keycloak.local/admin/realms/master/clients/{{ sonarqube_client.json[0].id }}/protocol-mappers/models"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ keycloak_token.json.access_token }}"
+          Content-Type: "application/json"
+        validate_certs: no
+        return_content: yes
+      register: protocol_mappers
+
+    - name: Display protocol mappers
+      debug:
+        msg: "{{ protocol_mappers.json | to_nice_json }}"
+
+    - name: Show SAML mappers summary
+      debug:
+        msg: "{{ item.name }} ({{ item.protocolMapper }}) - attribute: {{ item.config['attribute.name'] | default('N/A') }}"
+      loop: "{{ protocol_mappers.json | selectattr('protocol', 'equalto', 'saml') | list }}"

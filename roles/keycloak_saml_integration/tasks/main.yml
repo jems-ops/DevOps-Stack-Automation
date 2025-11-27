@@ -78,7 +78,7 @@
       - ""
       - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
       - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Hierarchical Groups: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }}, /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
+      - "👥 Group: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
       - "👤 Test User: {{ keycloak_saml_integration_test_user.username }} / {{ keycloak_saml_integration_test_user.password }}"
   tags: ['summary']
   when: keycloak_saml_integration_test_user.enabled | default(false) | bool
@@ -90,6 +90,6 @@
       - ""
       - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
       - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Hierarchical Groups: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }}, /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
+      - "👥 Group: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
   tags: ['summary']
   when: not (keycloak_saml_integration_test_user.enabled | default(false) | bool)
