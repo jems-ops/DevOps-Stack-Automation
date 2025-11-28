@@ -1,0 +1,96 @@
+---
+- name: Configure Artifactory with Nginx Reverse Proxy and SSL
+  hosts: nginx
+  become: yes
+  vars:
+    nginx_server_name: "artifactory.local"
+    artifactory_backend_host: "192.168.56.11"
+    artifactory_backend_port: "8080"
+    ssl_template: "artifactory-ssl.conf.j2"
+    nginx_config_file: "/etc/nginx/conf.d/artifactory.local.conf"
+    
+    # SSL configuration
+    nginx_https_port: 443
+    nginx_http_port: 80
+    ssl_cert_dir: /etc/nginx/tls
+    ssl_cert_file: "{{ ssl_cert_dir }}/{{ nginx_server_name }}.crt"
+    ssl_key_file: "{{ ssl_cert_dir }}/{{ nginx_server_name }}.key"
+    ssl_dhparam_file: "{{ ssl_cert_dir }}/dhparam.pem"
+    ssl_protocols: "TLSv1.2 TLSv1.3"
+    ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+    ssl_prefer_server_ciphers: "off"
+    
+  tasks:
+    - name: Display configuration
+      ansible.builtin.debug:
+        msg:
+          - "🔧 Configuring Nginx Reverse Proxy for Artifactory"
+          - "🌐 Server name: {{ nginx_server_name }}"
+          - "🔙 Backend: {{ artifactory_backend_host }}:{{ artifactory_backend_port }}"
+          - "📝 Config file: {{ nginx_config_file }}"
+
+    - name: Ensure SSL certificate directory exists
+      ansible.builtin.file:
+        path: "{{ ssl_cert_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check if SSL certificate exists
+      ansible.builtin.stat:
+        path: "{{ ssl_cert_file }}"
+      register: ssl_cert_stat
+
+    - name: Generate self-signed SSL certificate for Artifactory
+      ansible.builtin.command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout {{ ssl_key_file }}
+        -out {{ ssl_cert_file }}
+        -subj "/C=US/ST=California/L=San Francisco/O=DevOps Automation/OU=IT/CN={{ nginx_server_name }}"
+      when: not ssl_cert_stat.stat.exists
+
+    - name: Ensure dhparam file exists
+      ansible.builtin.stat:
+        path: "{{ ssl_dhparam_file }}"
+      register: dhparam_stat
+
+    - name: Generate dhparam if it doesn't exist
+      ansible.builtin.command: openssl dhparam -out {{ ssl_dhparam_file }} 2048
+      when: not dhparam_stat.stat.exists
+
+    - name: Deploy Artifactory nginx SSL configuration
+      ansible.builtin.template:
+        src: "../roles/install-ssl-cert/templates/{{ ssl_template }}"
+        dest: "{{ nginx_config_file }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: reload nginx
+
+    - name: Test nginx configuration
+      ansible.builtin.command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Display nginx test result
+      ansible.builtin.debug:
+        msg: "{{ nginx_test.stderr_lines }}"
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Artifactory nginx reverse proxy configured!"
+          - ""
+          - "🌐 Access URL: https://{{ nginx_server_name }}"
+          - "📋 Admin credentials: admin / Admin123!"
+          - ""
+          - "🔧 Next steps:"
+          - "1. Add '192.168.56.15  artifactory.local' to /etc/hosts"
+          - "2. Access https://artifactory.local"
+          - "3. Login with admin / Admin123!"
