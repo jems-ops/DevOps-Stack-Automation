@@ -177,33 +177,23 @@ Now add our custom mappers for SonarQube:
    - Click **Create**
 
 4. Select the `devops` group, then click **Create group**
-5. Create admin group:
-   - **Name**: `sonarqube-admins`
-   - Click **Create**
-
-6. Go back to `devops` group, then click **Create group**
-7. Create user group:
+5. Create user group:
    - **Name**: `sonarqube-users`
    - Click **Create**
 
 **Group Hierarchy:**
 ```
 devops/
-├── sonarqube-admins
 └── sonarqube-users
 ```
 
-### Step 1.6: Create Roles (Optional but Recommended)
+> **Note**: We only create the `sonarqube-users` group. Admin permissions can be granted directly in SonarQube UI after users log in via SAML.
+
+### Step 1.6: Create Role (Optional)
 
 1. Go to **Clients** → **sonarqube** → **Roles** tab
 2. Click **Create role**
-3. Create admin role:
-   - **Role name**: `admin`
-   - **Description**: `SonarQube Administrator`
-   - Click **Save**
-
-4. Click **Create role** again
-5. Create user role:
+3. Create user role:
    - **Role name**: `user`
    - **Description**: `SonarQube User`
    - Click **Save**
@@ -285,7 +275,7 @@ sonar.auth.saml.certificate.secured=
 
 # User Attribute Mappings
 sonar.auth.saml.user.login=username
-sonar.auth.saml.user.name=name
+sonar.auth.saml.user.name=username
 sonar.auth.saml.user.email=email
 
 # Group Mapping
@@ -582,7 +572,7 @@ sonar.auth.saml.certificate.secured=<KEYCLOAK_CERT_HERE>
 
 # User Attributes
 sonar.auth.saml.user.login=username
-sonar.auth.saml.user.name=name
+sonar.auth.saml.user.name=username
 sonar.auth.saml.user.email=email
 sonar.auth.saml.user.signUpEnabled=true
 sonar.auth.saml.user.defaultGroup=sonarqube-users
@@ -615,6 +605,65 @@ sonar.auth.saml.sp.entityId=sonarqube
 | email | User Property | email | email | User email |
 | name | User Property | username | name | Display name |
 | groups | Group List | - | groups | Group membership |
+
+---
+
+## Managing SAML SSO
+
+### Disabling SAML SSO
+
+To disable SAML and revert to normal username/password authentication:
+
+**Option 1: Using Ansible**
+```bash
+ansible sonarqube_servers -i inventory -m shell -a "sudo sed -i 's/^sonar.auth.saml.enabled=true$/sonar.auth.saml.enabled=false/' /opt/sonarqube/conf/sonar.properties && sudo systemctl restart sonarqube" --ask-pass
+```
+
+**Option 2: Manual SSH**
+```bash
+# SSH into SonarQube server
+ssh user@sonar.local
+
+# Edit configuration
+sudo vi /opt/sonarqube/conf/sonar.properties
+
+# Change:
+sonar.auth.saml.enabled=false
+
+# Restart SonarQube
+sudo systemctl restart sonarqube
+```
+
+After disabling, you can login with local credentials: `admin` / `Sonar@2025`
+
+### Re-enabling SAML SSO
+
+**Option 1: Using Ansible (Recommended)**
+```bash
+ansible-playbook -i inventory playbooks/configure-keycloak-saml-integration.yml -e 'app=sonarqube' --ask-pass
+```
+
+**Option 2: Manual**
+```bash
+# SSH into SonarQube server
+ssh user@sonar.local
+
+# Edit configuration
+sudo vi /opt/sonarqube/conf/sonar.properties
+
+# Change:
+sonar.auth.saml.enabled=true
+
+# Restart SonarQube
+sudo systemctl restart sonarqube
+```
+
+### Switching Between Authentication Methods
+
+- SAML and local authentication can coexist
+- When SAML is enabled, both "Log in with SAML" and local login are available
+- Local admin account always works for emergency access
+- Keep local admin credentials secure as backup
 
 ---
 
