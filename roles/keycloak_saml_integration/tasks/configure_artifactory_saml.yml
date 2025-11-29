@@ -10,7 +10,7 @@
 
 - name: Apply SAML configuration via Artifactory API
   ansible.builtin.uri:
-    url: "{{ artifactory_base_url }}/artifactory/api/saml/config"
+    url: "{{ artifactory_api_url | default(artifactory_base_url) }}/artifactory/api/saml/config"
     method: PUT
     user: "{{ artifactory_admin_user | default('admin') }}"
     password: "{{ artifactory_admin_password | default('Artifactory@2025') }}"

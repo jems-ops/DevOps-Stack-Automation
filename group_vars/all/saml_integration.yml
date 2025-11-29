@@ -16,9 +16,10 @@ nexus_base_url: "https://{{ nexus_hostname }}"
 
 # Artifactory host resolution from inventory (on-premises)
 artifactory_hostname: "{{ groups['artifactory_servers'][0] }}"
-artifactory_base_url: "http://{{ artifactory_hostname }}"
-artifactory_admin_user: "admin"
-artifactory_admin_password: "Artifactory@2025"
+artifactory_base_url: "https://{{ artifactory_hostname }}"
+artifactory_api_url: "http://localhost:8080"  # Internal API access
+artifactory_admin_user: "{{ vault_artifactory_admin_username }}"
+artifactory_admin_password: "{{ vault_artifactory_admin_password }}"
 
 # Keycloak host resolution from inventory
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
