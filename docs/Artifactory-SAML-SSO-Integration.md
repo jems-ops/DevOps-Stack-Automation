@@ -2,9 +2,21 @@
 
 This document provides manual instructions for integrating Artifactory with Keycloak using SAML SSO authentication.
 
+## ⚠️ Important: License Requirement
+
+**SAML SSO is NOT supported in Artifactory OSS (Community Edition)**. This feature requires Artifactory Pro or Enterprise license.
+
+If you are running Artifactory OSS, SAML configuration can be set via API but will not function. The login page will not display any SSO/SAML login option.
+
+To use SAML SSO, you must upgrade to:
+- Artifactory Pro
+- Artifactory Pro X
+- Artifactory Enterprise
+- Artifactory Enterprise X
+
 ## Prerequisites
 
-- Artifactory installed and accessible at https://artifactory.local
+- **Artifactory Pro or Enterprise** installed and accessible at https://artifactory.local
 - Keycloak installed and accessible at https://keycloak.local
 - Admin credentials for both systems
 - User account for testing (demo.user)

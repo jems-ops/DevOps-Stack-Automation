@@ -8,7 +8,7 @@
     artifactory_backend_port: "8080"
     ssl_template: "artifactory-ssl.conf.j2"
     nginx_config_file: "/etc/nginx/conf.d/artifactory.local.conf"
-    
+
     # SSL configuration
     nginx_https_port: 443
     nginx_http_port: 80
@@ -19,7 +19,7 @@
     ssl_protocols: "TLSv1.2 TLSv1.3"
     ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
     ssl_prefer_server_ciphers: "off"
-    
+
   tasks:
     - name: Display configuration
       ansible.builtin.debug:
@@ -88,9 +88,9 @@
           - "✅ Artifactory nginx reverse proxy configured!"
           - ""
           - "🌐 Access URL: https://{{ nginx_server_name }}"
-          - "📋 Admin credentials: admin / Admin123!"
+          - "🔧 Backend: {{ artifactory_backend_host }}:{{ artifactory_backend_port }}"
           - ""
           - "🔧 Next steps:"
           - "1. Add '192.168.56.15  artifactory.local' to /etc/hosts"
           - "2. Access https://artifactory.local"
-          - "3. Login with admin / Admin123!"
+          - "3. Complete Artifactory setup wizard"
