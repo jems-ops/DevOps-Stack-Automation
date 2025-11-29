@@ -1,5 +1,7 @@
 ---
 # Artifactory-specific SAML Integration Configuration
+# NOTE: SAML SSO requires Artifactory Pro or Enterprise license
+#       NOT supported in Artifactory OSS (Community Edition)
 
 # Application Configuration
 keycloak_saml_integration_app_config:
@@ -12,8 +14,8 @@ keycloak_saml_integration_app_config:
 
 # Artifactory admin credentials for API access
 keycloak_saml_integration_artifactory_admin:
-  user: "admin"
-  password: "Artifactory@2025"
+  user: "{{ vault_artifactory_admin_username }}"
+  password: "{{ vault_artifactory_admin_password }}"
 
 # Artifactory-specific SAML settings
 keycloak_saml_integration_artifactory_saml:
