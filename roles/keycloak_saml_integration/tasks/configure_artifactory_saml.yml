@@ -5,6 +5,7 @@
   ansible.builtin.set_fact:
     saml_login_url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml"
     saml_sp_name: "{{ keycloak_saml_integration_artifactory_saml.service_provider_name | default('artifactory') }}"
+    saml_username_attribute: "{{ keycloak_saml_integration_app_saml.username_attribute | default('username') }}"
     saml_email_attribute: "{{ keycloak_saml_integration_app_saml.email_attribute | default('email') }}"
     saml_group_attribute: "{{ keycloak_saml_integration_app_saml.groups_attribute | default('groups') }}"
 
@@ -25,9 +26,10 @@
       serviceProviderName: "{{ saml_sp_name }}"
       certificate: "{{ keycloak_saml_integration_certificate }}"
       useEncryptedAssertion: false
-      syncGroups: true
-      groupAttribute: "{{ saml_group_attribute }}"
+      usernameAttribute: "{{ saml_username_attribute }}"
       emailAttribute: "{{ saml_email_attribute }}"
+      groupAttribute: "{{ saml_group_attribute }}"
+      syncGroups: true
       noAutoUserCreation: false
       allowUserToAccessProfile: true
       autoRedirect: false
