@@ -1,0 +1,434 @@
+h1. Artifactory SAML SSO Integration with Keycloak
+
+This document provides manual instructions for integrating Artifactory with Keycloak using SAML SSO authentication.
+
+{panel:title=⚠️ Important: License Requirement|borderColor=#ffab00|bgColor=#fffae6}
+*SAML SSO is NOT supported in Artifactory OSS (Community Edition)*. This feature requires Artifactory Pro or Enterprise license.
+
+If you are running Artifactory OSS, SAML configuration can be set via API but will not function. The login page will not display any SSO/SAML login option.
+
+To use SAML SSO, you must upgrade to:
+* Artifactory Pro
+* Artifactory Pro X
+* Artifactory Enterprise
+* Artifactory Enterprise X
+{panel}
+
+h2. Prerequisites
+
+* *Artifactory Pro or Enterprise* installed and accessible at https://artifactory.local
+* Keycloak installed and accessible at https://keycloak.local
+* Admin credentials for both systems
+* User account for testing (demo.user)
+
+h2. Architecture Overview
+
+{code}
+User Browser → Artifactory (https://artifactory.local)
+                    ↓ (SAML Request)
+               Keycloak (https://keycloak.local)
+                    ↓ (SAML Response)
+               Artifactory validates and creates session
+{code}
+
+----
+
+h2. Step 1: Configure Keycloak
+
+h3. 1.1 Create Artifactory Client
+
+# Login to Keycloak Admin Console: https://keycloak.local/admin
+# Navigate to: *Clients* → *Create client*
+# Configure General Settings:
+** *Client type*: {{SAML}}
+** *Client ID*: {{artifactory}}
+** Click *Next*
+# Configure Capability:
+** *Client authentication*: {{OFF}}
+** *Authorization*: {{OFF}}
+** Click *Next* then *Save*
+# Configure *Settings* tab:
+
+{panel:title=URLs Configuration|borderColor=#0052cc|bgColor=#deebff}
+* *Root URL*: {{https://artifactory.local}}
+* *Home URL*: {{https://artifactory.local}}
+* *Valid redirect URIs*:
+** {{https://artifactory.local/webapp/saml/loginResponse}}
+** {{https://artifactory.local/*}}
+* *Valid post logout redirect URIs*: {{https://artifactory.local/*}}
+* *Web origins*: {{https://artifactory.local}}
+* *Admin URL*: {{https://artifactory.local}}
+* *Master SAML Processing URL*: Leave *blank*
+* *IDP Initiated SSO URL name*: {{artifactory}} (optional)
+{panel}
+
+{panel:title=SAML Capabilities|borderColor=#0052cc|bgColor=#deebff}
+* *Name ID format*: {{username}}
+* *Force POST binding*: (/) {{ON}}
+* *Force name ID format*: (x) {{OFF}}
+* *Force artifact binding*: (x) {{OFF}}
+* *Include AuthnStatement*: (/) {{ON}}
+* *Sign documents*: (x) {{OFF}}
+* *Sign assertions*: (/) {{ON}}
+* *Signature algorithm*: {{RSA_SHA256}}
+* *SAML signature key name*: {{KEY_ID}}
+* *Canonicalization method*: {{EXCLUSIVE}}
+{panel}
+
+{panel:title=Login Settings|borderColor=#0052cc|bgColor=#deebff}
+* *Front channel logout*: (/) {{ON}}
+{panel}
+
+Click *Save*
+
+h3. 1.2 Configure Client Scopes and Mappers
+
+# Go to *Client scopes* tab
+# Click on *artifactory-dedicated* scope
+# Go to *Mappers* tab → *Add mapper* → *By configuration*
+
+Add the following mappers:
+
+h4. Username Mapper
+* *Mapper type*: User Property
+* *Name*: username
+* *Property*: username
+* *SAML Attribute Name*: username
+* *SAML Attribute NameFormat*: Basic
+* Click *Save*
+
+h4. Email Mapper
+* *Mapper type*: User Property
+* *Name*: email
+* *Property*: email
+* *SAML Attribute Name*: email
+* *SAML Attribute NameFormat*: Basic
+* Click *Save*
+
+h4. Name Mapper
+* *Mapper type*: User Property
+* *Name*: name
+* *Property*: username
+* *SAML Attribute Name*: name
+* *SAML Attribute NameFormat*: Basic
+* Click *Save*
+
+h4. Groups Mapper
+* *Mapper type*: Group list
+* *Name*: groups
+* *Group attribute name*: groups
+* *Single Group Attribute*: (x) {{OFF}}
+* *Full group path*: (/) {{ON}}
+* Click *Save*
+
+h3. 1.3 Create User Group
+
+# Navigate to: *Groups* → *Create group*
+# Configure group:
+** *Name*: {{devops}}
+** Click *Create*
+# Create subgroup:
+** Click on {{devops}} group
+** Click *Create group* (child)
+** *Name*: {{artifactory-users}}
+** Click *Create*
+
+h3. 1.4 Assign Users to Group
+
+# Navigate to: *Users* → Find your test user (demo.user)
+# Go to *Groups* tab
+# Click *Join Group*
+# Select {{/devops/artifactory-users}}
+# Click *Join*
+
+h3. 1.5 Add Client Role to Group
+
+# Navigate to: *Groups* → *devops* → *artifactory-users*
+# Go to *Role mapping* tab
+# Click *Assign role*
+# Filter by clients: Select *artifactory*
+# Select the client role
+# Click *Assign*
+
+----
+
+h2. Step 2: Configure Artifactory SAML
+
+h3. 2.1 Get Keycloak SAML Metadata
+
+Download the SAML descriptor:
+{code:bash}
+curl -k -o /tmp/keycloak-saml-descriptor.xml \
+  https://keycloak.local/realms/master/protocol/saml/descriptor
+{code}
+
+h3. 2.2 Extract Certificate
+
+Extract the X.509 certificate from the descriptor:
+{code:bash}
+grep -oP '(?<=<ds:X509Certificate>).*?(?=</ds:X509Certificate>)' \
+  /tmp/keycloak-saml-descriptor.xml
+{code}
+
+h3. 2.3 Configure SAML via API
+
+Create a JSON file ({{artifactory-saml-config.json}}) with the following content:
+
+{code:json}
+{
+  "enableIntegration": true,
+  "loginUrl": "https://keycloak.local/realms/master/protocol/saml",
+  "logoutUrl": "https://keycloak.local/realms/master/protocol/saml",
+  "serviceProviderName": "artifactory",
+  "certificate": "<PASTE_CERTIFICATE_HERE>",
+  "useEncryptedAssertion": false,
+  "usernameAttribute": "username",
+  "emailAttribute": "email",
+  "groupAttribute": "groups",
+  "syncGroups": true,
+  "noAutoUserCreation": false,
+  "allowUserToAccessProfile": true,
+  "autoRedirect": false,
+  "verifyAudienceRestriction": false
+}
+{code}
+
+Replace {{<PASTE_CERTIFICATE_HERE>}} with the certificate extracted in Step 2.2.
+
+Apply the configuration:
+{code:bash}
+curl -k -X PUT \
+  -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
+  -H "Content-Type: application/json" \
+  -d @artifactory-saml-config.json \
+  https://artifactory.local/artifactory/api/saml/config
+{code}
+
+h3. 2.4 Set Base URL (if not already set)
+
+Ensure Artifactory has the correct base URL:
+{code:bash}
+curl -k -X POST \
+  -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
+  -H "Content-Type: application/xml" \
+  -d '<config><urlBase>https://artifactory.local</urlBase></config>' \
+  https://artifactory.local/artifactory/api/system/configuration
+{code}
+
+----
+
+h2. Step 3: Test SAML Login
+
+h3. 3.1 Access Artifactory
+
+# Navigate to: https://artifactory.local
+# On the login page, look for:
+** "Login via SSO" button/link
+** Or direct SAML login: https://artifactory.local/ui/login?sso
+
+h3. 3.2 Login Flow
+
+# Click "Login via SSO"
+# You will be redirected to Keycloak
+# Login with test user credentials:
+** *Username*: demo.user
+** *Password*: <TEST_USER_PASSWORD>
+# After successful authentication, you'll be redirected back to Artifactory
+# A new user should be auto-created if it doesn't exist
+
+h3. 3.3 Verify User Creation
+
+# Login as admin to Artifactory
+# Navigate to: *Administration* → *Security* → *Users*
+# Verify that {{demo.user}} was created with email from Keycloak
+
+----
+
+h2. Managing SAML SSO
+
+h3. Enable SAML SSO
+
+Apply the SAML configuration using the API as shown in Step 2.3, or run the Ansible playbook:
+{code:bash}
+ansible-playbook -i inventory \
+  playbooks/configure-keycloak-saml-integration.yml \
+  -e 'app=artifactory'
+{code}
+
+h3. Disable SAML SSO
+
+To disable SAML and revert to local authentication:
+{code:bash}
+curl -k -X PUT \
+  -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
+  -H "Content-Type: application/json" \
+  -d '{"enableIntegration": false}' \
+  https://artifactory.local/artifactory/api/saml/config
+{code}
+
+Or directly edit the configuration file on the Artifactory server:
+{code:bash}
+# Edit /opt/jfrog/artifactory/etc/security/security.xml
+# Set: <samlSettings enabled="false">
+sudo systemctl restart artifactory
+{code}
+
+h3. Verify SAML Configuration
+
+Check current SAML settings:
+{code:bash}
+curl -k -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
+  https://artifactory.local/artifactory/api/saml/config | jq
+{code}
+
+----
+
+h2. Troubleshooting
+
+h3. Issue: Cannot find SSO/SAML login option
+
+{panel:title=Solution|borderColor=#00875a|bgColor=#e3fcef}
+* Verify SAML is enabled: Check API endpoint {{/artifactory/api/saml/config}}
+* Try direct URL: https://artifactory.local/ui/login?sso
+* Check browser console for errors
+* Verify Artifactory Pro/Enterprise license is active
+{panel}
+
+h3. Issue: "Invalid Request" Error
+
+{panel:title=Solution|borderColor=#00875a|bgColor=#e3fcef}
+* Verify {{usernameAttribute}} is set to {{username}} in SAML config
+* Check Keycloak client redirect URIs include {{/webapp/saml/loginResponse}}
+* Use the SAML decoder script to inspect the request:
+{code:bash}
+./scripts/decode_saml.py '<SAML_REQUEST_STRING>'
+{code}
+{panel}
+
+h3. Issue: Redirect loop after login
+
+{panel:title=Solution|borderColor=#00875a|bgColor=#e3fcef}
+* Verify {{urlBase}} is set correctly to https://artifactory.local
+* Check Keycloak redirect URIs include {{https://artifactory.local/*}}
+* Ensure certificate is correct and matches Keycloak's signing certificate
+{panel}
+
+h3. Issue: User not auto-created
+
+{panel:title=Solution|borderColor=#00875a|bgColor=#e3fcef}
+* Verify {{noAutoUserCreation: false}} in SAML config
+* Check attribute mappings in Keycloak (username, email)
+* Verify user is member of {{/devops/artifactory-users}} group
+{panel}
+
+h3. Issue: User created but no permissions
+
+{panel:title=Solution|borderColor=#00875a|bgColor=#e3fcef}
+* Groups are synced from Keycloak
+* Ensure user is member of appropriate group in Keycloak
+* Check {{syncGroups: true}} in SAML config
+* Map Keycloak groups to Artifactory permissions in Artifactory UI
+{panel}
+
+----
+
+h2. Important Configuration Details
+
+h3. SAML Attributes Required
+
+{table-plus:border=1|cellpadding=5|cellspacing=0}
+|| Attribute || Description || Keycloak Property ||
+| {{username}} | User's login name | username |
+| {{email}} | User's email address | email |
+| {{name}} | User's display name | username |
+| {{groups}} | User's group memberships | Full path |
+{table-plus}
+
+h3. Keycloak Configuration Summary
+
+{info}
+* *Realm*: master
+* *Client ID*: artifactory
+* *Name ID Format*: username
+* *Force POST Binding*: ON
+* *Group Path*: Full path (e.g., /devops/artifactory-users)
+* *SAML Callback URL*: /webapp/saml/loginResponse
+{info}
+
+h3. Artifactory Configuration Summary
+
+{info}
+* *Base URL*: https://artifactory.local
+* *Service Provider Name*: artifactory
+* *Username Attribute*: username (REQUIRED)
+* *Auto User Creation*: Enabled
+* *Group Sync*: Enabled
+* *Auto Redirect*: Disabled (users can choose SSO or local)
+{info}
+
+----
+
+h2. Ansible Automation
+
+The entire setup can be automated using the Ansible playbook:
+
+{code:bash}
+ansible-playbook -i inventory \
+  playbooks/configure-keycloak-saml-integration.yml \
+  -e 'app=artifactory'
+{code}
+
+This will:
+# Configure Keycloak client with all required settings
+# Create groups and assign users
+# Configure Artifactory SAML integration via API
+# Test the integration
+
+----
+
+h2. Credentials
+
+h3. Keycloak Admin Console
+* *URL*: https://keycloak.local/admin
+* *Username*: admin
+* *Password*: (stored in Ansible vault)
+
+h3. Artifactory Admin
+* *URL*: https://artifactory.local
+* *Username*: admin
+* *Password*: (stored in Ansible vault)
+
+h3. Test User
+* *Username*: demo.user
+* *Password*: (stored in Ansible vault or Keycloak)
+* *Group*: /devops/artifactory-users
+
+----
+
+h2. Additional Notes
+
+{tip}
+* SAML SSO and local authentication can coexist
+* Admin users can always login with local credentials
+* Group permissions must be configured in Artifactory separately
+* SAML configuration is stored in {{/opt/jfrog/artifactory/etc/security/security.xml}}
+* Certificate updates in Keycloak require updating Artifactory SAML config
+* The {{usernameAttribute}} field is *required* - without it, you'll get "invalid request" errors
+{tip}
+
+----
+
+h2. Quick Reference: Key URLs
+
+{panel:title=Artifactory SAML Endpoints|borderColor=#0052cc|bgColor=#deebff}
+* *Login Page*: {{https://artifactory.local/ui/login}}
+* *SSO Direct Login*: {{https://artifactory.local/ui/login?sso}}
+* *SAML Callback URL*: {{https://artifactory.local/webapp/saml/loginResponse}}
+* *SAML Config API*: {{https://artifactory.local/artifactory/api/saml/config}}
+{panel}
+
+{panel:title=Keycloak Endpoints|borderColor=#0052cc|bgColor=#deebff}
+* *Admin Console*: {{https://keycloak.local/admin}}
+* *SAML Descriptor*: {{https://keycloak.local/realms/master/protocol/saml/descriptor}}
+* *SAML Login URL*: {{https://keycloak.local/realms/master/protocol/saml}}
+{panel}

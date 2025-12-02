@@ -37,23 +37,46 @@ User Browser → Artifactory (https://artifactory.local)
 
 1. Login to Keycloak Admin Console: https://keycloak.local/admin
 2. Navigate to: **Clients** → **Create client**
-3. Configure client:
-   - **Client type**: SAML
+3. Configure General Settings:
+   - **Client type**: `SAML`
    - **Client ID**: `artifactory`
    - Click **Next**
 
-4. Configure capability:
-   - **Name**: Artifactory
-   - **Description**: Artifactory SAML Integration
-   - Click **Save**
+4. Configure Capability:
+   - **Client authentication**: `OFF`
+   - **Authorization**: `OFF`
+   - Click **Next** then **Save**
 
-5. Configure Settings tab:
-   - **Valid redirect URIs**: `https://artifactory.local/*`
-   - **IDP-Initiated SSO URL name**: `artifactory`
+5. Configure **Settings** tab:
+
+   **URLs:**
+   - **Root URL**: `https://artifactory.local`
+   - **Home URL**: `https://artifactory.local`
+   - **Valid redirect URIs**:
+     - `https://artifactory.local/webapp/saml/loginResponse`
+     - `https://artifactory.local/*`
+   - **Valid post logout redirect URIs**: `https://artifactory.local/*`
+   - **Web origins**: `https://artifactory.local`
+   - **Admin URL**: `https://artifactory.local`
+   - **Master SAML Processing URL**: Leave **blank**
+   - **IDP Initiated SSO URL name**: `artifactory` (optional)
+
+   **SAML Capabilities:**
    - **Name ID format**: `username`
    - **Force POST binding**: `ON`
+   - **Force name ID format**: `OFF`
+   - **Force artifact binding**: `OFF`
+   - **Include AuthnStatement**: `ON`
+   - **Sign documents**: `OFF`
+   - **Sign assertions**: `ON`
+   - **Signature algorithm**: `RSA_SHA256`
+   - **SAML signature key name**: `KEY_ID`
+   - **Canonicalization method**: `EXCLUSIVE`
+
+   **Login Settings:**
    - **Front channel logout**: `ON`
-   - Click **Save**
+
+   Click **Save**
 
 ### 1.2 Configure Client Scopes and Mappers
 
@@ -155,9 +178,10 @@ Create a JSON file (`artifactory-saml-config.json`) with the following content:
   "serviceProviderName": "artifactory",
   "certificate": "<PASTE_CERTIFICATE_HERE>",
   "useEncryptedAssertion": false,
-  "syncGroups": true,
-  "groupAttribute": "groups",
+  "usernameAttribute": "username",
   "emailAttribute": "email",
+  "groupAttribute": "groups",
+  "syncGroups": true,
   "noAutoUserCreation": false,
   "allowUserToAccessProfile": true,
   "autoRedirect": false,
