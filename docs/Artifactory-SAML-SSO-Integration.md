@@ -39,7 +39,8 @@ User Browser → Artifactory (https://artifactory.local)
 2. Navigate to: **Clients** → **Create client**
 3. Configure General Settings:
    - **Client type**: `SAML`
-   - **Client ID**: `artifactory`
+   - **Client ID**: `artifactory.local`
+   - **Name**: `artifactory`
    - Click **Next**
 
 4. Configure Capability:
@@ -50,20 +51,15 @@ User Browser → Artifactory (https://artifactory.local)
 5. Configure **Settings** tab:
 
    **URLs:**
-   - **Root URL**: `https://artifactory.local`
-   - **Home URL**: `https://artifactory.local`
-   - **Valid redirect URIs**:
-     - `https://artifactory.local/webapp/saml/loginResponse`
-     - `https://artifactory.local/*`
+   - **Root URL**: `https://artifactory.local/ui/api/v1/auth/saml/loginResponse/artifactory`
+   - **Home URL**: `https://artifactory.local/ui/api/v1/auth/saml/loginResponse/artifactory`
+   - **Valid redirect URIs**: `https://artifactory.local/*`
    - **Valid post logout redirect URIs**: `https://artifactory.local/*`
-   - **Web origins**: `https://artifactory.local`
-   - **Admin URL**: `https://artifactory.local`
-   - **Master SAML Processing URL**: Leave **blank**
    - **IDP Initiated SSO URL name**: `artifactory` (optional)
 
    **SAML Capabilities:**
    - **Name ID format**: `username`
-   - **Force POST binding**: `ON`
+   - **Force POST binding**: `OFF`
    - **Force name ID format**: `OFF`
    - **Force artifact binding**: `OFF`
    - **Include AuthnStatement**: `ON`
@@ -74,7 +70,15 @@ User Browser → Artifactory (https://artifactory.local)
    - **Canonicalization method**: `EXCLUSIVE`
 
    **Login Settings:**
-   - **Front channel logout**: `ON`
+   - **Front channel logout**: `OFF`
+
+   Click **Save**
+
+6. Configure **Advanced** tab:
+
+   **Logout Service:**
+   - **Logout Service POST Binding URL**: `https://artifactory.local/ui/login`
+   - **Logout Service Redirect Binding URL**: `https://artifactory.local/ui/login`
 
    Click **Save**
 
@@ -150,65 +154,70 @@ Add the following mappers:
 
 ## Step 2: Configure Artifactory SAML
 
-### 2.1 Get Keycloak SAML Metadata
+### 2.1 Get Keycloak SAML Certificate
 
-Download the SAML descriptor:
+1. Access the Keycloak SAML descriptor URL in your browser:
+   ```
+   https://keycloak.local/realms/master/protocol/saml/descriptor
+   ```
+
+2. Find the `<ds:X509Certificate>` tag in the XML
+3. Copy the certificate value (the long string between the tags)
+4. **Note**: You'll need this certificate for Artifactory configuration
+
+Alternatively, download via command line:
 ```bash
 curl -k -o /tmp/keycloak-saml-descriptor.xml \
   https://keycloak.local/realms/master/protocol/saml/descriptor
-```
 
-### 2.2 Extract Certificate
-
-Extract the X.509 certificate from the descriptor:
-```bash
+# Extract certificate
 grep -oP '(?<=<ds:X509Certificate>).*?(?=</ds:X509Certificate>)' \
   /tmp/keycloak-saml-descriptor.xml
 ```
 
-### 2.3 Configure SAML via API
+### 2.2 Configure SAML via Artifactory UI (Recommended)
 
-Create a JSON file (`artifactory-saml-config.json`) with the following content:
+1. Login to Artifactory as admin: https://artifactory.local/ui/
+2. Navigate to: **Administration** → **Security** → **Settings** → **SAML SSO**
+3. Configure the following settings:
 
-```json
-{
-  "enableIntegration": true,
-  "loginUrl": "https://keycloak.local/realms/master/protocol/saml",
-  "logoutUrl": "https://keycloak.local/realms/master/protocol/saml",
-  "serviceProviderName": "artifactory",
-  "certificate": "<PASTE_CERTIFICATE_HERE>",
-  "useEncryptedAssertion": false,
-  "usernameAttribute": "username",
-  "emailAttribute": "email",
-  "groupAttribute": "groups",
-  "syncGroups": true,
-  "noAutoUserCreation": false,
-  "allowUserToAccessProfile": true,
-  "autoRedirect": false,
-  "verifyAudienceRestriction": false
-}
-```
+   **Basic Settings:**
+   - ✅ **Enable SAML Integration**: `Checked`
+   - **Display Name**: `artifactory`
 
-Replace `<PASTE_CERTIFICATE_HERE>` with the certificate extracted in Step 2.2.
+   **Identity Provider Settings:**
+   - **SAML Login URL**: `https://keycloak.local/realms/master/protocol/saml`
+   - **SAML Logout URL**: `https://keycloak.local/realms/master/protocol/saml`
 
-Apply the configuration:
+   **Service Provider Settings:**
+   - **SAML Service Provider Name**: `https://artifactory.local/realms/master`
+   - **SAML Certificate**: Paste the certificate you copied from Step 2.1 (without BEGIN/END lines)
+
+   **User Management:**
+   - ✅ **Auto Associate Groups**: `Checked`
+   - **Group Attribute**: `groups`
+
+4. Click **Save**
+5. Click **Test** to verify the configuration
+
+### 2.3 Alternative: Configure SAML via API
+
+If you prefer API configuration:
+
 ```bash
 curl -k -X PUT \
   -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
   -H "Content-Type: application/json" \
-  -d @artifactory-saml-config.json \
+  -d '{
+    "enableIntegration": true,
+    "loginUrl": "https://keycloak.local/realms/master/protocol/saml",
+    "logoutUrl": "https://keycloak.local/realms/master/protocol/saml",
+    "serviceProviderName": "https://artifactory.local/realms/master",
+    "certificate": "<PASTE_CERTIFICATE_HERE>",
+    "syncGroups": true,
+    "groupAttribute": "groups"
+  }' \
   https://artifactory.local/artifactory/api/saml/config
-```
-
-### 2.4 Set Base URL (if not already set)
-
-Ensure Artifactory has the correct base URL:
-```bash
-curl -k -X POST \
-  -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
-  -H "Content-Type: application/xml" \
-  -d '<config><urlBase>https://artifactory.local</urlBase></config>' \
-  https://artifactory.local/artifactory/api/system/configuration
 ```
 
 ## Step 3: Test SAML Login
