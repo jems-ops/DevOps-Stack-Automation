@@ -284,34 +284,165 @@ curl -k -u admin:<ARTIFACTORY_ADMIN_PASSWORD> \
 
 ## Troubleshooting
 
+### Issue: Login Loop - Redirects Back to Login Page After SAML Authentication
+
+**Symptoms:**
+- User successfully authenticates with Keycloak
+- Gets redirected back to Artifactory
+- Immediately loops back to `/ui/login` page
+- Regular login (username/password) only works with "Remember Me" checked
+- Works fine when accessing Artifactory directly via IP:port (e.g., `http://192.168.56.11:8080`)
+
+**Root Cause:** Nginx reverse proxy not properly forwarding headers, causing session/cookie domain issues.
+
+**Solution: Fix Nginx Configuration**
+
+Update `/etc/nginx/conf.d/artifactory.local.conf` on your nginx server:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name artifactory.local;
+
+    ssl_certificate /etc/nginx/tls/artifactory.local.crt;
+    ssl_certificate_key /etc/nginx/tls/artifactory.local.key;
+
+    client_max_body_size 0;
+    chunked_transfer_encoding on;
+
+    location / {
+        proxy_pass http://192.168.56.11:8080;
+
+        # Critical headers for session persistence
+        proxy_set_header Host $host:$server_port;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+
+        # Required for Artifactory base URL
+        proxy_set_header X-Artifactory-Override-Base-Url https://$host:$server_port;
+
+        # WebSocket support for UI
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Timeouts for large uploads
+        proxy_read_timeout 900;
+        proxy_send_timeout 900;
+
+        # Disable buffering
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
+}
+```
+
+Test and reload nginx:
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Configure Artifactory base URL:
+```bash
+# Via API
+curl -k -u admin:<PASSWORD> -X PATCH \
+  -H "Content-Type: application/yaml" \
+  -d 'urlBase: https://artifactory.local' \
+  https://artifactory.local/artifactory/api/system/configuration
+```
+
+Or via UI: **Administration** → **General** → **General Settings** → **Server Base URL**: `https://artifactory.local`
+
+**Workaround:** Use direct IP in Keycloak client configuration (e.g., `http://192.168.56.11:8080`) instead of `https://artifactory.local`. This bypasses the issue but loses SSL/proxy benefits.
+
+### Issue: User Authenticated but Has No Permissions (Groups Not Synced)
+
+**Symptoms:**
+- User can authenticate via SAML
+- User is created in Artifactory
+- User has no groups assigned
+- Gets permission errors or redirects to login
+
+**Solution: Manually Assign Permissions to Group**
+
+#### Step 1: Create the Group in Artifactory
+
+1. Login to Artifactory as admin: `https://artifactory.local/ui/`
+2. Navigate to: **Administration** → **Identity and Access** → **Groups**
+3. Click **+ New Group**
+4. Enter:
+   - **Group Name**: `artifactory-users` (must match what Keycloak sends)
+   - **Description**: `Users from Keycloak SSO`
+5. Click **Save**
+
+#### Step 2: Assign Permissions to the Group
+
+1. Navigate to: **Administration** → **Identity and Access** → **Permissions**
+2. Click **+ New Permission**
+3. Configure:
+   - **Name**: `artifactory-users-permission`
+   - **Resources** tab:
+     - **Repositories**: Select `ANY` or specific repos
+     - **Include Patterns**: `**` (all artifacts)
+   - **Groups** tab:
+     - Click **+ Add Groups**
+     - Search and select `artifactory-users`
+     - Check the permissions:
+       - ☑ **Read**
+       - ☑ **Write** (if needed)
+       - ☑ **Annotate** (if needed)
+       - ☑ **Delete** (if needed)
+       - ☑ **Manage** (for admin access)
+4. Click **Save**
+
+#### Step 3: Verify User Has Group After SSO Login
+
+1. Go to: **Administration** → **Identity and Access** → **Users**
+2. Find your SSO user
+3. Click on the user
+4. Check the **Groups** tab - should show `artifactory-users`
+5. If not there, manually add:
+   - Click **+ Join Groups**
+   - Select `artifactory-users`
+   - Click **Join**
+
 ### Issue: Cannot find SSO/SAML login option
 
 **Solution**:
 - Verify SAML is enabled: Check API endpoint `/artifactory/api/saml/config`
-- Try direct URL: https://artifactory.local/ui/login?sso
+- Try direct URL: `https://artifactory.local/ui/login?sso`
 - Check browser console for errors
+- Verify Artifactory Pro/Enterprise license
 
-### Issue: Redirect loop after login
+### Issue: "Invalid Request" Error
 
 **Solution**:
-- Verify `urlBase` is set correctly to https://artifactory.local
-- Check Keycloak redirect URIs include `https://artifactory.local/*`
-- Ensure certificate is correct and matches Keycloak's signing certificate
+- Verify `usernameAttribute` is set in SAML config
+- Check Keycloak client redirect URIs
+- Verify Service Provider Name matches what Artifactory sends
+- Use SAML decoder to inspect request:
+  ```bash
+  ./scripts/decode_saml.py '<SAML_REQUEST_STRING>'
+  ```
 
 ### Issue: User not auto-created
 
 **Solution**:
-- Verify `noAutoUserCreation: false` in SAML config
+- Verify `noAutoUserCreation: false` (or `autoCreateUser: true`) in SAML config
 - Check attribute mappings in Keycloak (username, email)
-- Verify user is member of `/devops/artifactory-users` group
+- Verify user is member of appropriate group in Keycloak
 
-### Issue: User created but no permissions
+### Issue: Groups not syncing from Keycloak
 
 **Solution**:
-- Groups are synced from Keycloak
-- Ensure user is member of appropriate group in Keycloak
-- Check `syncGroups: true` in SAML config
-- Map Keycloak groups to Artifactory permissions
+- Verify `syncGroups: true` and `groupAttribute: "groups"` in Artifactory SAML config
+- Check Keycloak groups mapper configuration
+- Ensure group names in Artifactory match exactly what Keycloak sends
+- Check if using full group path (e.g., `/devops/artifactory-users` vs `artifactory-users`)
 
 ## Important Configuration Details
 
