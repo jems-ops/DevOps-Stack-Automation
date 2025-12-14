@@ -30,10 +30,12 @@ keycloak_saml_integration_keycloak:
 
 # SAML Client Configuration
 keycloak_saml_integration_client:
-  client_id: "{{ keycloak_saml_integration_app_type }}"
+  # For Artifactory, use hostname.domain format instead of just app name
+  client_id: "{{ keycloak_saml_integration_app_type + '.local' if keycloak_saml_integration_app_type == 'artifactory' else keycloak_saml_integration_app_type }}"
   protocol: "saml"
   enabled: true
-  front_channel_logout: true
+  # Front channel logout OFF for Artifactory
+  front_channel_logout: "{{ false if keycloak_saml_integration_app_type == 'artifactory' else true }}"
 
   # Redirect URIs (dynamically built based on app type)
   redirect_uris:
@@ -43,8 +45,9 @@ keycloak_saml_integration_client:
   web_origins:
     - "{{ keycloak_saml_integration_app.base_url }}"
 
+  # For Artifactory, root/home URL includes the full callback path
   base_url: "{{ keycloak_saml_integration_app.base_url }}"
-  root_url: "{{ keycloak_saml_integration_app.base_url }}"
+  root_url: "{{ keycloak_saml_integration_app.base_url + keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].saml_callback_url if keycloak_saml_integration_app_type == 'artifactory' else keycloak_saml_integration_app.base_url }}"
   admin_url: "{{ keycloak_saml_integration_app.base_url }}"
 
   # SAML Attributes
@@ -55,7 +58,8 @@ keycloak_saml_integration_client:
     saml_client_signature: "false"
     saml_assertion_signature: "true"
     saml_encrypt: "false"
-    saml_force_post_binding: "true"
+    # Force POST binding OFF for Artifactory
+    saml_force_post_binding: "{{ 'false' if keycloak_saml_integration_app_type == 'artifactory' else 'true' }}"
     saml_name_id_format: "username"
     saml_signing_certificate: ""
     saml_signing_private_key: ""

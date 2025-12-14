@@ -2,6 +2,13 @@
 # Artifactory-specific SAML Integration Configuration
 # NOTE: SAML SSO requires Artifactory Pro or Enterprise license
 #       NOT supported in Artifactory OSS (Community Edition)
+#
+# KNOWN ISSUE: Nginx reverse proxy session/cookie handling
+#   - SAML login may loop back to login page when using nginx proxy
+#   - Symptoms: Works with "Remember Me" but not without it
+#   - Root cause: Missing proxy headers for session persistence
+#   - Workaround: Use direct IP in URLs (e.g., http://192.168.56.11:8080)
+#   - Proper fix: Update nginx config with X-Artifactory-Override-Base-Url header
 
 # Application Configuration
 keycloak_saml_integration_app_config:
@@ -10,7 +17,8 @@ keycloak_saml_integration_app_config:
   service_name: "artifactory"
   user: "artifactory"
   group: "artifactory"
-  saml_callback_url: "/webapp/saml/loginResponse"
+  # Artifactory Pro SAML callback URL
+  saml_callback_url: "/ui/api/v1/auth/saml/loginResponse/artifactory"
 
 # Artifactory admin credentials for API access
 keycloak_saml_integration_artifactory_admin:
@@ -20,10 +28,15 @@ keycloak_saml_integration_artifactory_admin:
 # Artifactory-specific SAML settings
 keycloak_saml_integration_artifactory_saml:
   enabled: true
-  service_provider_name: "artifactory"
+  # Service Provider Name must match what Artifactory sends in SAML requests
+  # For Artifactory Pro, this should be the full base URL + /realms/master
+  service_provider_name: "{{ artifactory_base_url }}/realms/master"
   allow_user_to_access_profile: true
   auto_create_user: true
   sync_groups: true
   use_encrypted_assertion: false
   auto_redirect: false
   verify_audience_restriction: false
+  # Logout URLs for Keycloak Advanced settings
+  logout_post_binding_url: "{{ artifactory_base_url }}/ui/logout"
+  logout_redirect_binding_url: "{{ artifactory_base_url }}/ui/logout"
