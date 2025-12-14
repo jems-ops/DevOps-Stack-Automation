@@ -45,8 +45,8 @@ keycloak_saml_integration_client:
   web_origins:
     - "{{ keycloak_saml_integration_app.base_url }}"
 
-  # For Artifactory, root/home URL includes the full callback path
-  base_url: "{{ keycloak_saml_integration_app.base_url }}"
+  # For Artifactory, root/home/base URL all use the full callback path
+  base_url: "{{ keycloak_saml_integration_app.base_url + keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].saml_callback_url if keycloak_saml_integration_app_type == 'artifactory' else keycloak_saml_integration_app.base_url }}"
   root_url: "{{ keycloak_saml_integration_app.base_url + keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].saml_callback_url if keycloak_saml_integration_app_type == 'artifactory' else keycloak_saml_integration_app.base_url }}"
   admin_url: "{{ keycloak_saml_integration_app.base_url }}"
 
@@ -98,14 +98,6 @@ keycloak_saml_integration_protocol_mappers:
       "attribute.nameformat": "Basic"
       "single": "false"
       "full.path": "false"
-
-  - name: "roles"
-    protocol: "saml"
-    protocol_mapper: "saml-role-list-mapper"
-    config:
-      "attribute.name": "Role"
-      "attribute.nameformat": "Basic"
-      "single": "false"
 
 # Test User Configuration
 keycloak_saml_integration_test_user:

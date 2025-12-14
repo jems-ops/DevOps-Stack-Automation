@@ -37,6 +37,6 @@ keycloak_saml_integration_artifactory_saml:
   use_encrypted_assertion: false
   auto_redirect: false
   verify_audience_restriction: false
-  # Logout URLs for Keycloak Advanced settings
-  logout_post_binding_url: "{{ artifactory_base_url }}/ui/logout"
-  logout_redirect_binding_url: "{{ artifactory_base_url }}/ui/logout"
+  # Logout URLs for Keycloak Advanced settings (point to Keycloak, not Artifactory)
+  logout_post_binding_url: "https://keycloak.local/realms/master/protocol/saml"
+  logout_redirect_binding_url: "https://keycloak.local/realms/master/protocol/saml"
