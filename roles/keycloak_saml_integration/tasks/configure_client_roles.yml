@@ -24,7 +24,9 @@
       name: "{{ keycloak_saml_integration_parent_group }}"
     status_code: [201, 409]
     validate_certs: false
-  when: "keycloak_saml_integration_parent_group not in (keycloak_saml_integration_existing_groups.json | map(attribute='name') | list)"
+  when:
+    - keycloak_saml_integration_parent_group | length > 0
+    - "keycloak_saml_integration_parent_group not in (keycloak_saml_integration_existing_groups.json | map(attribute='name') | list)"
 
 - name: Get groups list for parent group ID
   ansible.builtin.include_tasks: common/get_groups.yml
@@ -38,7 +40,27 @@
     keycloak_saml_integration_parent_group_id: "{{ parent_group_match[0].id }}"
   vars:
     parent_group_match: "{{ keycloak_saml_integration_groups_list.json | selectattr('name', 'equalto', keycloak_saml_integration_parent_group) | list }}"
-  failed_when: parent_group_match | length == 0
+  when: keycloak_saml_integration_parent_group | length > 0
+  failed_when:
+    - keycloak_saml_integration_parent_group | length > 0
+    - parent_group_match | length == 0
+
+- name: Create application-specific groups (flat structure)
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/groups"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.value.name }}"
+      attributes:
+        description: ["{{ item.value.description }}"]
+    status_code: [201, 409]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
+  when: keycloak_saml_integration_parent_group | length == 0
 
 - name: Create application-specific subgroups under parent
   ansible.builtin.uri:
@@ -55,6 +77,7 @@
     status_code: [201, 409]
     validate_certs: false
   loop: "{{ keycloak_saml_integration_subgroups | dict2items }}"
+  when: keycloak_saml_integration_parent_group | length > 0
 
 - name: Get existing client roles
   ansible.builtin.uri:
