@@ -34,7 +34,7 @@ keycloak_saml_integration_client:
   client_id: "{{ (keycloak_saml_integration_app.base_url if keycloak_saml_integration_app_type == 'artifactory' else keycloak_saml_integration_app_type) }}"
   protocol: "saml"
   enabled: true
-  # Front channel logout OFF for Artifactory
+  # Front channel logout: false for Artifactory, true for others
   front_channel_logout: "{{ false if keycloak_saml_integration_app_type == 'artifactory' else true }}"
 
   # Redirect URIs (dynamically built based on app type)
@@ -125,9 +125,9 @@ keycloak_saml_integration_use_https: true
 # Logging
 keycloak_saml_integration_debug_logging: false
 
-# Group Configuration (flat structure)
-# No parent group; create app group directly
-keycloak_saml_integration_parent_group: ""
+# Hierarchical Groups and Client Roles Configuration
+# Parent group name (all subgroups will be created under this)
+keycloak_saml_integration_parent_group: "devops"
 
 # Client roles to create for each application
 keycloak_saml_integration_client_roles:

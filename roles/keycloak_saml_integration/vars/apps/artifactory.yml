@@ -27,25 +27,24 @@ keycloak_saml_integration_artifactory_admin:
 
 # Artifactory-specific SAML settings
 keycloak_saml_integration_artifactory_saml:
-  enabled: true
-  display_name: "artifactory"
-  # Service Provider Name points to Keycloak, not Artifactory
-  service_provider_name: "https://keycloak.local/realms/master"
-  # Login/Logout URLs point to Keycloak SAML endpoint
+  # Basic settings
+  name: "default"
+  enable_integration: true
+  # Keycloak SAML endpoints
   login_url: "https://keycloak.local/realms/master/protocol/saml"
   logout_url: "https://keycloak.local/realms/master/protocol/saml"
-  # User management settings
+  service_provider_name: "https://keycloak.local/realms/master"
+  # User management
+  auto_user_creation: true
   allow_user_to_access_profile: true
-  auto_create_user: true
-  # Group sync settings
+  # Group sync
   sync_groups: true
   group_attribute: "groups"
   email_attribute: "email"
-  username_attribute: "username"
-  # Security settings
+  name_id_attribute: "username"
+  # Security
   use_encrypted_assertion: false
   auto_redirect: false
-  verify_audience_restriction: false
-  # Logout URLs for Keycloak Advanced settings (point back to Artifactory)
+  # Logout URLs for Keycloak Advanced settings
   logout_post_binding_url: "{{ artifactory_base_url }}/ui/login"
   logout_redirect_binding_url: "{{ artifactory_base_url }}/ui/login"

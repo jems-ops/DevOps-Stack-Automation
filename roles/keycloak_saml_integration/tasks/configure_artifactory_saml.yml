@@ -3,10 +3,11 @@
 
 - name: Compute SAML URLs and attributes
   ansible.builtin.set_fact:
+    saml_name: "{{ keycloak_saml_integration_artifactory_saml.name }}"
     saml_login_url: "{{ keycloak_saml_integration_artifactory_saml.login_url }}"
     saml_logout_url: "{{ keycloak_saml_integration_artifactory_saml.logout_url }}"
     saml_sp_name: "{{ keycloak_saml_integration_artifactory_saml.service_provider_name }}"
-    saml_username_attribute: "{{ keycloak_saml_integration_artifactory_saml.username_attribute }}"
+    saml_name_id_attribute: "{{ keycloak_saml_integration_artifactory_saml.name_id_attribute }}"
     saml_email_attribute: "{{ keycloak_saml_integration_artifactory_saml.email_attribute }}"
     saml_group_attribute: "{{ keycloak_saml_integration_artifactory_saml.group_attribute }}"
 
@@ -21,21 +22,20 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      enableIntegration: true
-      displayName: "{{ keycloak_saml_integration_artifactory_saml.display_name }}"
-      loginUrl: "{{ saml_login_url }}"
-      logoutUrl: "{{ saml_logout_url }}"
-      serviceProviderName: "{{ saml_sp_name }}"
+      name: "{{ saml_name }}"
+      enable_integration: true
+      login_url: "{{ saml_login_url }}"
+      logout_url: "{{ saml_logout_url }}"
+      service_provider_name: "{{ saml_sp_name }}"
       certificate: "{{ keycloak_saml_integration_certificate }}"
-      useEncryptedAssertion: false
-      usernameAttribute: "{{ saml_username_attribute }}"
-      emailAttribute: "{{ saml_email_attribute }}"
-      groupAttribute: "{{ saml_group_attribute }}"
-      syncGroups: true
-      noAutoUserCreation: false
-      allowUserToAccessProfile: true
-      autoRedirect: false
-      verifyAudienceRestriction: false
+      auto_user_creation: true
+      allow_user_to_access_profile: true
+      use_encrypted_assertion: false
+      auto_redirect: false
+      sync_groups: true
+      group_attribute: "{{ saml_group_attribute }}"
+      email_attribute: "{{ saml_email_attribute }}"
+      name_id_attribute: "{{ saml_name_id_attribute }}"
     status_code: [200,201]
     validate_certs: false
   register: saml_config_result
