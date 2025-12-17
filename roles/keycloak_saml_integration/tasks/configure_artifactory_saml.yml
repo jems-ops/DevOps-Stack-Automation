@@ -14,9 +14,9 @@
 - name: Apply SAML configuration via Artifactory Access API
   ansible.builtin.uri:
     url: "{{ artifactory_base_url }}/access/api/v1/saml"
-    method: PUT
+    method: POST
     headers:
-      Authorization: "Bearer {{ vault_artifactory_admin_api_token }}"
+      Authorization: "Bearer {{ vault_artifactory_API_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
