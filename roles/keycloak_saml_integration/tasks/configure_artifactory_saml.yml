@@ -11,14 +11,12 @@
     saml_email_attribute: "{{ keycloak_saml_integration_artifactory_saml.email_attribute }}"
     saml_group_attribute: "{{ keycloak_saml_integration_artifactory_saml.group_attribute }}"
 
-- name: Apply SAML configuration via Artifactory API
+- name: Apply SAML configuration via Artifactory Access API
   ansible.builtin.uri:
-    url: "{{ artifactory_base_url }}/artifactory/api/saml/config"
+    url: "{{ artifactory_base_url }}/access/api/v1/saml"
     method: PUT
-    user: "{{ artifactory_admin_user | default('admin') }}"
-    password: "{{ artifactory_admin_password | default('Artifactory@2025') }}"
-    force_basic_auth: yes
     headers:
+      Authorization: "Bearer {{ vault_artifactory_admin_api_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
