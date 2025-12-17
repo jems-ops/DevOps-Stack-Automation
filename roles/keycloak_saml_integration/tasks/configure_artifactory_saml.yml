@@ -11,7 +11,19 @@
     saml_email_attribute: "{{ keycloak_saml_integration_artifactory_saml.email_attribute }}"
     saml_group_attribute: "{{ keycloak_saml_integration_artifactory_saml.group_attribute }}"
 
-- name: Apply SAML configuration via Artifactory Access API
+- name: Check if SAML configuration exists
+  ansible.builtin.uri:
+    url: "{{ artifactory_base_url }}/access/api/v1/saml/{{ saml_name }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_artifactory_API_token }}"
+    status_code: [200, 404]
+    validate_certs: false
+  delegate_to: localhost
+  register: saml_check_result
+  failed_when: false
+
+- name: Create SAML configuration (POST)
   ansible.builtin.uri:
     url: "{{ artifactory_base_url }}/access/api/v1/saml"
     method: POST
@@ -36,7 +48,42 @@
       name_id_attribute: "{{ saml_name_id_attribute }}"
     status_code: [200,201]
     validate_certs: false
-  register: saml_config_result
+  delegate_to: localhost
+  when: saml_check_result.status == 404
+  register: saml_create_result
+
+- name: Update SAML configuration (PUT)
+  ansible.builtin.uri:
+    url: "{{ artifactory_base_url }}/access/api/v1/saml/{{ saml_name }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ vault_artifactory_API_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ saml_name }}"
+      enable_integration: true
+      login_url: "{{ saml_login_url }}"
+      logout_url: "{{ saml_logout_url }}"
+      service_provider_name: "{{ saml_sp_name }}"
+      certificate: "{{ keycloak_saml_integration_certificate }}"
+      auto_user_creation: true
+      allow_user_to_access_profile: true
+      use_encrypted_assertion: false
+      auto_redirect: false
+      sync_groups: true
+      group_attribute: "{{ saml_group_attribute }}"
+      email_attribute: "{{ saml_email_attribute }}"
+      name_id_attribute: "{{ saml_name_id_attribute }}"
+    status_code: [200,201]
+    validate_certs: false
+  delegate_to: localhost
+  when: saml_check_result.status == 200
+  register: saml_update_result
+
+- name: Set final result
+  ansible.builtin.set_fact:
+    saml_config_result: "{{ saml_create_result if saml_check_result.status == 404 else saml_update_result }}"
 
 - name: Display Artifactory SAML login URL
   ansible.builtin.debug:
