@@ -11,6 +11,34 @@
     saml_email_attribute: "{{ keycloak_saml_integration_artifactory_saml.email_attribute }}"
     saml_group_attribute: "{{ keycloak_saml_integration_artifactory_saml.group_attribute }}"
 
+- name: Check SSO general settings status
+  ansible.builtin.uri:
+    url: "{{ artifactory_base_url }}/access/api/v1/saml/general_settings"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_artifactory_API_token }}"
+    status_code: [200]
+    validate_certs: false
+  delegate_to: localhost
+  register: sso_general_settings_result
+  failed_when: false
+
+- name: Enable SSO general settings
+  ansible.builtin.uri:
+    url: "{{ artifactory_base_url }}/access/api/v1/saml/general_settings"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ vault_artifactory_API_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      enable: true
+    status_code: [200, 201]
+    validate_certs: false
+  delegate_to: localhost
+  when: sso_general_settings_result.json.enable is defined and not sso_general_settings_result.json.enable
+  register: sso_enable_result
+
 - name: Check if SAML configuration exists
   ansible.builtin.uri:
     url: "{{ artifactory_base_url }}/access/api/v1/saml/{{ saml_name }}"
