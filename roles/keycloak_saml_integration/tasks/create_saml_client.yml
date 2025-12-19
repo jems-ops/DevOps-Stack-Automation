@@ -45,6 +45,8 @@
         "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"
         "saml.signing.certificate": "{{ keycloak_saml_integration_client.attributes.saml_signing_certificate }}"
         "saml.signing.private.key": "{{ keycloak_saml_integration_client.attributes.saml_signing_private_key }}"
+        "saml_single_logout_service_url_post": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_post | default('') }}"
+        "saml_single_logout_service_url_redirect": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_redirect | default('') }}"
     status_code: [200, 204]
     validate_certs: false
   when: keycloak_saml_integration_existing_saml_client | length > 0
@@ -79,6 +81,8 @@
         "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"
         "saml.signing.certificate": "{{ keycloak_saml_integration_client.attributes.saml_signing_certificate }}"
         "saml.signing.private.key": "{{ keycloak_saml_integration_client.attributes.saml_signing_private_key }}"
+        "saml_single_logout_service_url_post": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_post | default('') }}"
+        "saml_single_logout_service_url_redirect": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_redirect | default('') }}"
     status_code: [201, 409]
     validate_certs: false
   when: keycloak_saml_integration_existing_saml_client | length == 0

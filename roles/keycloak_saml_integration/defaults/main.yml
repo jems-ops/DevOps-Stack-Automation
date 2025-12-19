@@ -63,6 +63,9 @@ keycloak_saml_integration_client:
     saml_name_id_format: "username"
     saml_signing_certificate: ""
     saml_signing_private_key: ""
+    # Logout binding URLs (app-specific, populated from app vars)
+    saml_single_logout_service_url_post: "{{ lookup('vars', 'keycloak_saml_integration_' + keycloak_saml_integration_app_type + '_saml', default={}).get('logout_post_binding_url', '') }}"
+    saml_single_logout_service_url_redirect: "{{ lookup('vars', 'keycloak_saml_integration_' + keycloak_saml_integration_app_type + '_saml', default={}).get('logout_redirect_binding_url', '') }}"
 
 # Protocol Mappers
 keycloak_saml_integration_protocol_mappers:
