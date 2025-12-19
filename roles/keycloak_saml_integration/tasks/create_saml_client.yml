@@ -1,6 +1,33 @@
 ---
 # Create Keycloak SAML Client
 
+- name: Define SAML client configuration
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_client_body:
+      clientId: "{{ keycloak_saml_integration_client.client_id }}"
+      protocol: "{{ keycloak_saml_integration_client.protocol }}"
+      enabled: "{{ keycloak_saml_integration_client.enabled }}"
+      frontchannelLogout: "{{ keycloak_saml_integration_client.front_channel_logout }}"
+      fullScopeAllowed: false
+      redirectUris: "{{ keycloak_saml_integration_client.redirect_uris }}"
+      webOrigins: "{{ keycloak_saml_integration_client.web_origins }}"
+      baseUrl: "{{ keycloak_saml_integration_client.base_url }}"
+      rootUrl: "{{ keycloak_saml_integration_client.root_url }}"
+      adminUrl: "{{ keycloak_saml_integration_client.admin_url }}"
+      attributes:
+        "saml.authnstatement": "{{ keycloak_saml_integration_client.attributes.saml_authnstatement }}"
+        "saml.server.signature": "{{ keycloak_saml_integration_client.attributes.saml_server_signature }}"
+        "saml.signature.algorithm": "{{ keycloak_saml_integration_client.attributes.saml_signature_algorithm }}"
+        "saml.client.signature": "{{ keycloak_saml_integration_client.attributes.saml_client_signature }}"
+        "saml.assertion.signature": "{{ keycloak_saml_integration_client.attributes.saml_assertion_signature }}"
+        "saml.encrypt": "{{ keycloak_saml_integration_client.attributes.saml_encrypt }}"
+        "saml.force.post.binding": "{{ keycloak_saml_integration_client.attributes.saml_force_post_binding }}"
+        "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"
+        "saml.signing.certificate": "{{ keycloak_saml_integration_client.attributes.saml_signing_certificate }}"
+        "saml.signing.private.key": "{{ keycloak_saml_integration_client.attributes.saml_signing_private_key }}"
+        "saml_single_logout_service_url_post": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_post | default('') }}"
+        "saml_single_logout_service_url_redirect": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_redirect | default('') }}"
+
 - name: Check if SAML client already exists
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients"
@@ -23,30 +50,7 @@
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
       Content-Type: "application/json"
     body_format: json
-    body:
-      clientId: "{{ keycloak_saml_integration_client.client_id }}"
-      protocol: "{{ keycloak_saml_integration_client.protocol }}"
-      enabled: "{{ keycloak_saml_integration_client.enabled }}"
-      frontchannelLogout: "{{ keycloak_saml_integration_client.front_channel_logout }}"
-      fullScopeAllowed: false
-      redirectUris: "{{ keycloak_saml_integration_client.redirect_uris }}"
-      webOrigins: "{{ keycloak_saml_integration_client.web_origins }}"
-      baseUrl: "{{ keycloak_saml_integration_client.base_url }}"
-      rootUrl: "{{ keycloak_saml_integration_client.root_url }}"
-      adminUrl: "{{ keycloak_saml_integration_client.admin_url }}"
-      attributes:
-        "saml.authnstatement": "{{ keycloak_saml_integration_client.attributes.saml_authnstatement }}"
-        "saml.server.signature": "{{ keycloak_saml_integration_client.attributes.saml_server_signature }}"
-        "saml.signature.algorithm": "{{ keycloak_saml_integration_client.attributes.saml_signature_algorithm }}"
-        "saml.client.signature": "{{ keycloak_saml_integration_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak_saml_integration_client.attributes.saml_assertion_signature }}"
-        "saml.encrypt": "{{ keycloak_saml_integration_client.attributes.saml_encrypt }}"
-        "saml.force.post.binding": "{{ keycloak_saml_integration_client.attributes.saml_force_post_binding }}"
-        "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"
-        "saml.signing.certificate": "{{ keycloak_saml_integration_client.attributes.saml_signing_certificate }}"
-        "saml.signing.private.key": "{{ keycloak_saml_integration_client.attributes.saml_signing_private_key }}"
-        "saml_single_logout_service_url_post": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_post | default('') }}"
-        "saml_single_logout_service_url_redirect": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_redirect | default('') }}"
+    body: "{{ keycloak_saml_integration_client_body }}"
     status_code: [200, 204]
     validate_certs: false
   when: keycloak_saml_integration_existing_saml_client | length > 0
@@ -59,30 +63,7 @@
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
       Content-Type: "application/json"
     body_format: json
-    body:
-      clientId: "{{ keycloak_saml_integration_client.client_id }}"
-      protocol: "{{ keycloak_saml_integration_client.protocol }}"
-      enabled: "{{ keycloak_saml_integration_client.enabled }}"
-      frontchannelLogout: "{{ keycloak_saml_integration_client.front_channel_logout }}"
-      fullScopeAllowed: false
-      redirectUris: "{{ keycloak_saml_integration_client.redirect_uris }}"
-      webOrigins: "{{ keycloak_saml_integration_client.web_origins }}"
-      baseUrl: "{{ keycloak_saml_integration_client.base_url }}"
-      rootUrl: "{{ keycloak_saml_integration_client.root_url }}"
-      adminUrl: "{{ keycloak_saml_integration_client.admin_url }}"
-      attributes:
-        "saml.authnstatement": "{{ keycloak_saml_integration_client.attributes.saml_authnstatement }}"
-        "saml.server.signature": "{{ keycloak_saml_integration_client.attributes.saml_server_signature }}"
-        "saml.signature.algorithm": "{{ keycloak_saml_integration_client.attributes.saml_signature_algorithm }}"
-        "saml.client.signature": "{{ keycloak_saml_integration_client.attributes.saml_client_signature }}"
-        "saml.assertion.signature": "{{ keycloak_saml_integration_client.attributes.saml_assertion_signature }}"
-        "saml.encrypt": "{{ keycloak_saml_integration_client.attributes.saml_encrypt }}"
-        "saml.force.post.binding": "{{ keycloak_saml_integration_client.attributes.saml_force_post_binding }}"
-        "saml_name_id_format": "{{ keycloak_saml_integration_client.attributes.saml_name_id_format }}"
-        "saml.signing.certificate": "{{ keycloak_saml_integration_client.attributes.saml_signing_certificate }}"
-        "saml.signing.private.key": "{{ keycloak_saml_integration_client.attributes.saml_signing_private_key }}"
-        "saml_single_logout_service_url_post": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_post | default('') }}"
-        "saml_single_logout_service_url_redirect": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_redirect | default('') }}"
+    body: "{{ keycloak_saml_integration_client_body }}"
     status_code: [201, 409]
     validate_certs: false
   when: keycloak_saml_integration_existing_saml_client | length == 0
