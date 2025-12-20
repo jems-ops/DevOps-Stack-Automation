@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-# from app.database import engine, Base
-# from app.api.v1 import applications, deployments, environments, auth
+from app.database import init_db, close_db
+from app.api.v1 import applications, deployments
 
 
 @asynccontextmanager
@@ -15,18 +15,16 @@ async def lifespan(app: FastAPI):
     print(f"🚀 Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     print(f"📁 Ansible Project Root: {settings.ANSIBLE_PROJECT_ROOT}")
 
-    # TODO: Initialize database
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
-
-    # TODO: Initialize Redis connection
-    # TODO: Start background tasks
+    # Initialize database
+    print("📊 Initializing database...")
+    await init_db()
+    print("✅ Database initialized")
 
     yield
 
     # Shutdown
     print("👋 Shutting down...")
-    # TODO: Cleanup tasks
+    await close_db()
 
 
 app = FastAPI(
@@ -69,27 +67,17 @@ async def root():
     }
 
 
-# TODO: Include routers
-# app.include_router(
-#     applications.router,
-#     prefix=f"{settings.API_V1_PREFIX}/applications",
-#     tags=["applications"],
-# )
-# app.include_router(
-#     deployments.router,
-#     prefix=f"{settings.API_V1_PREFIX}/deployments",
-#     tags=["deployments"],
-# )
-# app.include_router(
-#     environments.router,
-#     prefix=f"{settings.API_V1_PREFIX}/environments",
-#     tags=["environments"],
-# )
-# app.include_router(
-#     auth.router,
-#     prefix=f"{settings.API_V1_PREFIX}/auth",
-#     tags=["authentication"],
-# )
+# Include routers
+app.include_router(
+    applications.router,
+    prefix=f"{settings.API_V1_PREFIX}/applications",
+    tags=["applications"],
+)
+app.include_router(
+    deployments.router,
+    prefix=f"{settings.API_V1_PREFIX}/deployments",
+    tags=["deployments"],
+)
 
 
 if __name__ == "__main__":
