@@ -21,11 +21,25 @@ APPLICATIONS = {
                 help_text="Full URL to your Jenkins instance (e.g., https://jenkins.local)"
             ),
             ApplicationConfigField(
+                name="jenkins_hostname",
+                label="Jenkins Hostname",
+                type="text",
+                required=True,
+                help_text="Hostname of Jenkins server (e.g., jenkins.local)"
+            ),
+            ApplicationConfigField(
                 name="keycloak_url",
                 label="Keycloak URL",
                 type="url",
                 required=True,
                 help_text="Full URL to your Keycloak instance (e.g., https://keycloak.local)"
+            ),
+            ApplicationConfigField(
+                name="keycloak_hostname",
+                label="Keycloak Hostname",
+                type="text",
+                required=True,
+                help_text="Hostname of Keycloak server (e.g., keycloak.local)"
             ),
             ApplicationConfigField(
                 name="realm",
@@ -55,11 +69,25 @@ APPLICATIONS = {
                 help_text="Full URL to your SonarQube instance"
             ),
             ApplicationConfigField(
+                name="sonarqube_hostname",
+                label="SonarQube Hostname",
+                type="text",
+                required=True,
+                help_text="Hostname of SonarQube server (e.g., sonar.local)"
+            ),
+            ApplicationConfigField(
                 name="keycloak_url",
                 label="Keycloak URL",
                 type="url",
                 required=True,
                 help_text="Full URL to your Keycloak instance"
+            ),
+            ApplicationConfigField(
+                name="keycloak_hostname",
+                label="Keycloak Hostname",
+                type="text",
+                required=True,
+                help_text="Hostname of Keycloak server (e.g., keycloak.local)"
             ),
             ApplicationConfigField(
                 name="realm",

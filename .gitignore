@@ -94,3 +94,7 @@ Icon
 # Local configuration overrides
 local_settings.yml
 local_vars.yml
+
+**/node_modules/
+**/package-lock.json
+*.db

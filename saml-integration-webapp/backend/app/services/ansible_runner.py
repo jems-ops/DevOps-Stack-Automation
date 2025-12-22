@@ -47,10 +47,20 @@ class AnsibleRunnerService:
         # Map app type to playbook
         playbook = "configure-keycloak-saml-integration.yml"
 
-        # Prepare extra vars
+        # Prepare extra vars with proper variable names for the role
         extra_vars = {
             "app": app_type,
-            **configuration
+            # Keycloak configuration
+            "keycloak_hostname": configuration.get("keycloak_hostname", "keycloak.local"),
+            "keycloak_base_url": configuration.get("keycloak_url", f"https://keycloak.local"),
+            "keycloak_admin_api_url": configuration.get("keycloak_url", f"https://keycloak.local"),
+            # Application-specific base URL
+            f"{app_type}_base_url": configuration.get(f"{app_type}_url", f"https://{app_type}.local"),
+            f"{app_type}_hostname": configuration.get(f"{app_type}_hostname", f"{app_type}.local"),
+            # Realm
+            "keycloak_saml_integration_realm_name": configuration.get("realm", "master"),
+            # HTTPS configuration
+            "keycloak_saml_integration_use_https": configuration.get("use_https", True),
         }
 
         # Run playbook
@@ -95,9 +105,13 @@ class AnsibleRunnerService:
         # Use default inventory if not specified
         inventory_path = inventory or str(self.inventory_path)
 
+        # Create a temporary private data directory for ansible-runner artifacts
+        import tempfile
+        private_data_dir = Path(tempfile.mkdtemp(prefix="ansible_runner_"))
+
         # Prepare runner config
         runner_config = {
-            "private_data_dir": str(self.project_root),
+            "private_data_dir": str(private_data_dir),
             "playbook": playbook_path,
             "inventory": inventory_path,
             "extravars": extra_vars or {},
@@ -151,6 +165,13 @@ class AnsibleRunnerService:
         # Collect stdout
         if runner_result.stdout:
             result["stdout"] = runner_result.stdout.read()
+
+        # Cleanup temporary directory
+        import shutil
+        try:
+            shutil.rmtree(private_data_dir)
+        except Exception:
+            pass  # Best effort cleanup
 
         return result
 
