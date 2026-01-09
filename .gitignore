@@ -98,3 +98,4 @@ local_vars.yml
 **/node_modules/
 **/package-lock.json
 *.db
+saml-integration-webapp/backend/*.db
