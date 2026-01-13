@@ -23,8 +23,8 @@ keycloak_saml_integration_keycloak:
   port: 443
   protocol: "https"
   realm: "{{ keycloak_saml_integration_realm_name }}"
-  admin_user: "{{ vault_KEYCLOAK_ADMIN_USERNAME }}"
-  admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
+  admin_user: "{{ vault_keycloak_admin_user }}"
+  admin_password: "{{ vault_keycloak_admin_password }}"
   base_url: "{{ keycloak_base_url }}"
   admin_api_url: "{{ keycloak_admin_api_url | default(keycloak_base_url) }}"
 
@@ -102,14 +102,15 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
-# Test User Configuration
+# Test User Configuration - Per Confluence Guide Section 9
 keycloak_saml_integration_test_user:
   enabled: true
-  username: "demo.user"
-  email: "demo.user@example.com"
-  first_name: "Demo"
-  last_name: "User"
+  username: "demo.user"  # Keycloak login username
+  email: "demo@dns.com"  # Used as SAML NameID and username attribute
+  first_name: "demo"
+  last_name: "user"
   password: "demo123!"
+  email_verified: true
 
 # SAML Configuration for Applications
 keycloak_saml_integration_app_saml:

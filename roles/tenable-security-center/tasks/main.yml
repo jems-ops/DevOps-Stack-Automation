@@ -1,0 +1,71 @@
+---
+# Tenable Security Center Installation and Configuration
+
+- name: Display Security Center installation information
+  ansible.builtin.debug:
+    msg:
+      - "Installing Tenable Security Center {{ tsc_version }}"
+      - "Target: {{ inventory_hostname }}"
+      - "URL: {{ tsc_base_url }}"
+
+- name: Check if Security Center is already installed
+  ansible.builtin.stat:
+    path: "{{ tsc_install_dir }}/bin/sc"
+  register: tsc_installed
+
+- name: Download Security Center RPM
+  ansible.builtin.get_url:
+    url: "{{ tsc_rpm_url }}"
+    dest: "{{ tsc_download_dir }}/SecurityCenter-{{ tsc_version }}-el9.x86_64.rpm"
+    mode: '0644'
+    validate_certs: false
+  when: not tsc_installed.stat.exists
+
+- name: Install Security Center from RPM
+  ansible.builtin.dnf:
+    name: "{{ tsc_download_dir }}/SecurityCenter-{{ tsc_version }}-el9.x86_64.rpm"
+    state: present
+    disable_gpg_check: true
+  when: not tsc_installed.stat.exists
+
+- name: Configure firewall for Security Center (HTTPS)
+  ansible.posix.firewalld:
+    port: "{{ tsc_port }}/tcp"
+    permanent: true
+    state: enabled
+    zone: "{{ tsc_firewall_zone }}"
+    immediate: true
+  when: tsc_configure_firewall
+
+- name: Start and enable Security Center service
+  ansible.builtin.systemd:
+    name: "{{ tsc_service_name }}"
+    state: started
+    enabled: true
+
+- name: Wait for Security Center to start
+  ansible.builtin.wait_for:
+    port: "{{ tsc_port }}"
+    host: "{{ tsc_listen_address }}"
+    delay: 30
+    timeout: 300
+
+- name: Display Security Center installation completion
+  ansible.builtin.debug:
+    msg:
+      - "✅ Tenable Security Center {{ tsc_version }} installed successfully"
+      - ""
+      - "🌐 Access Security Center at: {{ tsc_base_url }}"
+      - ""
+      - "📝 Next Steps:"
+      - "  1. Access the Security Center web interface"
+      - "  2. Complete initial setup wizard"
+      - "  3. Create admin user: {{ tsc_admin_username }}"
+      - "  4. Enter license key"
+      - "  5. Configure SAML integration with Keycloak"
+      - ""
+      - "⏱️  Note: Initial setup may take 10-15 minutes"
+      - ""
+      - "🔐 SAML Configuration:"
+      - "  - Entity ID: {{ tsc_saml_entity_id }}"
+      - "  - ACS URL: {{ tsc_base_url }}{{ tsc_saml_callback_url }}"

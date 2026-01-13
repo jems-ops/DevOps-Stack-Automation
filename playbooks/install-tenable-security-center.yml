@@ -1,0 +1,36 @@
+---
+- name: Install Tenable Security Center
+  hosts: tenable_security_center
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - name: Display installation information
+      ansible.builtin.debug:
+        msg:
+          - "🔒 Installing Tenable Security Center"
+          - "Target: {{ inventory_hostname }} ({{ ansible_default_ipv4.address }})"
+          - "Security Center URL: https://{{ inventory_hostname }}"
+
+  roles:
+    - tenable-security-center
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Tenable Security Center Installation Complete!"
+          - ""
+          - "🌐 Access Security Center: https://{{ inventory_hostname }}"
+          - ""
+          - "📋 Next Steps:"
+          - "  1. Configure nginx reverse proxy with SSL"
+          - "  2. Add DNS entry: securitycenter.local"
+          - "  3. Complete Security Center initial setup"
+          - "  4. Enter license key"
+          - "  5. Configure SAML integration with Keycloak"
+          - ""
+          - "⚠️  Remember to:"
+          - "  - Complete initial setup wizard"
+          - "  - Configure admin user"
+          - "  - Add Nessus scanners to Security Center"

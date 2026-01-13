@@ -1,0 +1,12 @@
+---
+# Nessus Handlers
+
+- name: restart nessus
+  ansible.builtin.systemd:
+    name: "{{ nessus_service_name }}"
+    state: restarted
+
+- name: reload nessus
+  ansible.builtin.systemd:
+    name: "{{ nessus_service_name }}"
+    state: reloaded

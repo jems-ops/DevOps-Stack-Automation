@@ -1,0 +1,115 @@
+---
+# Configure Tenable Security Center SAML Integration
+# Note: Security Center SAML must be configured via the web UI
+# This task provides the necessary information and verifies connectivity
+
+- name: Display Security Center SAML configuration information
+  ansible.builtin.debug:
+    msg:
+      - "📋 Tenable Security Center SAML Configuration"
+      - ""
+      - "Keycloak SAML client has been created successfully!"
+      - "Client ID: {{ keycloak_saml_integration_securitycenter_saml.entity_id }}"
+      - ""
+      - "⚠️  MANUAL CONFIGURATION REQUIRED IN SECURITY CENTER:"
+      - ""
+      - "1. Log into Security Center: {{ keycloak_saml_integration_app.base_url }}"
+      - "2. Navigate to: Admin → Authentication → SAML"
+      - "3. Configure SAML settings:"
+      - ""
+      - "   SAML Settings:"
+      - "   - Entity ID: {{ keycloak_saml_integration_securitycenter_saml.entity_id }}"
+      - "   - Name ID Format: {{ keycloak_saml_integration_securitycenter_saml.name_id_format }}"
+      - "   - Sign Assertions: {{ keycloak_saml_integration_securitycenter_saml.sign_assertions_enabled }}"
+      - ""
+      - "   IDP Configuration:"
+      - "   - IDP Entity ID: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
+      - "   - SSO Service URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml"
+      - "   - SLO Service URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml"
+      - "   - IDP Certificate: (download from Keycloak metadata or use the certificate below)"
+      - ""
+      - "   Attribute Mappings:"
+      - "   - Username: username"
+      - "   - Email: email"
+      - "   - First Name: firstName"
+      - "   - Last Name: lastName"
+      - ""
+      - "4. OR import Keycloak IDP Metadata:"
+      - "   Metadata URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor"
+      - ""
+      - "5. Save and test the configuration"
+      - ""
+      - "📄 Keycloak Certificate (for manual entry):"
+
+- name: Display Keycloak certificate for manual configuration
+  ansible.builtin.debug:
+    msg: "{{ keycloak_saml_integration_certificate }}"
+
+- name: Display SAML URLs for verification
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "🔗 Important URLs:"
+      - "   Security Center: {{ keycloak_saml_integration_app.base_url }}"
+      - "   ACS URL: {{ keycloak_saml_integration_securitycenter_saml.acs_url }}"
+      - "   SLO URL: {{ keycloak_saml_integration_securitycenter_saml.slo_url }}"
+      - "   Keycloak IDP: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
+      - "   Keycloak Metadata: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor"
+      - ""
+      - "✅ Keycloak side configuration complete!"
+      - "⚠️  Remember to configure SAML in Security Center UI to complete the integration"
+
+- name: Create Security Center SAML configuration notes file
+  ansible.builtin.copy:
+    content: |
+      Tenable Security Center SAML Configuration Guide
+      =================================================
+      
+      Keycloak Client Created: {{ keycloak_saml_integration_securitycenter_saml.entity_id }}
+      
+      Security Center SAML Configuration Steps:
+      
+      1. Access Security Center
+         URL: {{ keycloak_saml_integration_app.base_url }}
+         Login as admin
+      
+      2. Navigate to SAML Settings
+         Admin → Authentication → SAML
+      
+      3. Configure SAML
+         Entity ID: {{ keycloak_saml_integration_securitycenter_saml.entity_id }}
+         Name ID Format: {{ keycloak_saml_integration_securitycenter_saml.name_id_format }}
+         
+         IDP Configuration:
+         - IDP Entity ID: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}
+         - SSO Service URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml
+         - SLO Service URL: {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml
+         
+         OR Import IDP Metadata from:
+         {{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
+      
+      4. Attribute Mappings
+         - Username: username
+         - Email: email
+         - First Name: firstName
+         - Last Name: lastName
+      
+      5. Test Configuration
+         - Click "Test SAML Configuration"
+         - Should redirect to Keycloak
+         - Login with test user: {{ keycloak_saml_integration_test_user.username }} / {{ keycloak_saml_integration_test_user.password }}
+      
+      Troubleshooting:
+      - Verify all URLs use HTTPS
+      - Check that Entity ID matches exactly
+      - Ensure Keycloak certificate is valid
+      - Review Security Center logs: /opt/sc/support/logs/
+      
+      Generated: {{ ansible_date_time.iso8601 }}
+    dest: "/tmp/securitycenter_saml_config_{{ ansible_date_time.epoch }}.txt"
+    mode: '0644'
+  delegate_to: localhost
+
+- name: Display configuration file location
+  ansible.builtin.debug:
+    msg: "Configuration notes saved to: /tmp/securitycenter_saml_config_{{ ansible_date_time.epoch }}.txt"

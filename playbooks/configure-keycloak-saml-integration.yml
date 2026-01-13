@@ -1,7 +1,7 @@
 ---
 - name: Configure Keycloak SAML Integration
-  hosts: "{{ app | default('jenkins') }}_servers"
-  become: yes
+  hosts: "{{ 'local' if app == 'securitycenter' else app + '_servers' }}"
+  become: "{{ false if app == 'securitycenter' else true }}"
   gather_facts: yes
 
   pre_tasks:

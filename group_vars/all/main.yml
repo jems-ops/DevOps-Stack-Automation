@@ -17,6 +17,9 @@ site_backends:
   - server_name: "keycloak.local"
     ip: "192.168.201.12"
     port: "8080"
+  - server_name: "tenable.local"
+    ip: "192.168.56.10"
+    port: "443"
 
 # Example with multiple server names (aliases):
 # site_backends:

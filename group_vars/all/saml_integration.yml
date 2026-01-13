@@ -20,6 +20,11 @@ artifactory_base_url: "https://{{ artifactory_hostname }}"
 artifactory_admin_user: "{{ vault_artifactory_admin_username }}"
 artifactory_admin_password: "{{ vault_artifactory_admin_password }}"
 
+# Tenable Security Center host resolution from inventory
+# Per Confluence Guide: hostname is tenable.local
+securitycenter_hostname: "{{ groups['securitycenter_servers'][0] }}"
+securitycenter_base_url: "https://{{ securitycenter_hostname }}"
+
 # Keycloak host resolution from inventory
 keycloak_hostname: "{{ groups['keycloak'][0] }}"
 keycloak_base_url: "https://{{ keycloak_hostname }}"

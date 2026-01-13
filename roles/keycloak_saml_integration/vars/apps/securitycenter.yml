@@ -1,0 +1,91 @@
+---
+# Tenable Security Center SAML Integration Configuration
+# Based on: docs/TENABLE_SC_SAML_CONFIGURATION_GUIDE.md
+
+# Application Configuration
+keycloak_saml_integration_app_config:
+  home: "/opt/sc"
+  config_file: "config/saml.conf"
+  service_name: "SecurityCenter"
+  user: "tns"
+  group: "tns"
+  saml_callback_url: "/saml/module.php/saml/sp/saml2-acs.php/1"
+
+# SAML Attribute Mapping
+keycloak_saml_integration_saml_attributes:
+  full_name: "name"
+
+# Protocol Mappers - Per Confluence Guide Section 7
+# Note: Username mapper uses 'email' property to match Tenable.sc username attribute
+keycloak_saml_integration_protocol_mappers:
+  - name: "email"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Unspecified"
+      "user.attribute": "email"
+      "attribute.name": "email"
+
+  - name: "username"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.nameformat": "Unspecified"
+      "user.attribute": "email"
+      "attribute.name": "username"
+
+# Tenable Security Center specific SAML settings - Per Confluence Guide
+keycloak_saml_integration_securitycenter_saml:
+  enabled: true
+  entity_id: "https://tenable.sc"  # Per Section 3.1
+  acs_url: "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
+  slo_url: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
+  name_id_format: "email"  # Per Section 4
+  sign_requests_enabled: false
+  sign_assertions_enabled: true  # Per Section 5
+  user_login_attribute: "email"  # Per Section 1.2
+  user_name_attribute: "email"
+  user_email_attribute: "email"
+
+# Override client configuration - Per Confluence Guide Sections 3-6
+keycloak_saml_integration_client:
+  client_id: "https://tenable.sc"  # Per Section 3.1
+  protocol: "saml"
+  enabled: true
+  front_channel_logout: true  # Per Section 6
+  
+  # Redirect URIs - Per Section 3.2 and Section 8
+  redirect_uris:
+    - "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
+    - "https://tenable.local/*"
+  
+  web_origins:
+    - "https://tenable.local"
+  
+  # Base URLs - Per Section 3.2
+  base_url: "https://tenable.local"
+  root_url: "https://tenable.local"
+  admin_url: "https://tenable.local"
+  
+  # Master SAML Processing URL - Per Section 8
+  master_saml_processing_url: "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
+  
+  # SAML Attributes - Per Sections 4 and 5
+  attributes:
+    saml_authnstatement: "true"  # Per Section 4
+    saml_force_post_binding: "true"  # Per Section 4
+    saml_server_signature: "false"  # Per Section 5 (Sign Documents: OFF)
+    saml_assertion_signature: "true"  # Per Section 5
+    saml_signature_algorithm: "RSA_SHA256"  # Per Section 5
+    saml_signature_canonicalization_method: "http://www.w3.org/2001/10/xml-exc-c14n#"  # Exclusive
+    saml_client_signature: "false"
+    saml_encrypt: "false"  # Per Section 5
+    saml_name_id_format: "email"  # Per Section 4
+    saml_signing_certificate: ""
+    saml_signing_private_key: ""
+    # Logout binding URLs - Per Section 8
+    saml_single_logout_service_url_post: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
+    saml_single_logout_service_url_redirect: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
+    saml_single_logout_service_url_soap: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
+    # ACS binding URLs - Per Section 8
+    saml_assertion_consumer_url_post: "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"

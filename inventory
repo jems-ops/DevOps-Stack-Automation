@@ -17,6 +17,9 @@ artifactory.local ansible_host=192.168.56.11
 [nexus_servers]
 nexus.local ansible_host=192.168.56.11
 
+[securitycenter_servers]
+tenable.local ansible_host=192.168.56.10
+
 # [freeipa]
 # freeipa.local ansible_host=192.168.56.13
 

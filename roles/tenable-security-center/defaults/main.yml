@@ -1,0 +1,38 @@
+---
+# Tenable Security Center Installation and Configuration Defaults
+
+# Tenable Security Center version and download
+tsc_version: "6.4.0"
+tsc_rpm_url: "https://www.tenable.com/downloads/api/v2/pages/tenable-sc/files/SecurityCenter-{{ tsc_version }}-el9.x86_64.rpm"
+tsc_download_dir: "/tmp"
+
+# Tenable Security Center service configuration
+tsc_service_name: "SecurityCenter"
+tsc_port: 443
+tsc_listen_address: "0.0.0.0"
+
+# Security Center admin user (for initial setup)
+tsc_admin_username: "{{ vault_tsc_admin_username | default('admin') }}"
+tsc_admin_password: "{{ vault_tsc_admin_password }}"
+tsc_admin_email: "{{ vault_tsc_admin_email | default('admin@example.com') }}"
+
+# Security Center license key (required)
+tsc_license_key: "{{ vault_tsc_license_key | default('') }}"
+
+# Base URL for Security Center (used in SAML configuration)
+tsc_base_url: "https://securitycenter.local"
+tsc_hostname: "securitycenter.local"
+
+# Installation paths
+tsc_install_dir: "/opt/sc"
+tsc_config_dir: "/opt/sc/config"
+tsc_data_dir: "/opt/sc/support/data"
+
+# Firewall configuration
+tsc_configure_firewall: true
+tsc_firewall_zone: "public"
+
+# SAML Configuration (for Keycloak integration)
+tsc_saml_enabled: false
+tsc_saml_entity_id: "securitycenter"
+tsc_saml_callback_url: "/saml/acs"
