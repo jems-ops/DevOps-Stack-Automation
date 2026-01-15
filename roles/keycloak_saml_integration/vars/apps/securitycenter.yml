@@ -53,34 +53,30 @@ keycloak_saml_integration_client:
   protocol: "saml"
   enabled: true
   front_channel_logout: true  # Per Section 6
-  
-  # Redirect URIs - Per Section 3.2 and Section 8
+
+  # Redirect URIs - Per Section 3.2
   redirect_uris:
     - "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
-    - "https://tenable.local/*"
-  
+
   web_origins:
     - "https://tenable.local"
-  
+
   # Base URLs - Per Section 3.2
   base_url: "https://tenable.local"
   root_url: "https://tenable.local"
-  admin_url: "https://tenable.local"
-  
-  # Master SAML Processing URL - Per Section 8
-  master_saml_processing_url: "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
-  
+
   # SAML Attributes - Per Sections 4 and 5
   attributes:
-    saml_authnstatement: "true"  # Per Section 4
-    saml_force_post_binding: "true"  # Per Section 4
-    saml_server_signature: "false"  # Per Section 5 (Sign Documents: OFF)
-    saml_assertion_signature: "true"  # Per Section 5
+    saml_authnstatement: "true"  # Per Section 4 - Include AuthnStatement: ON
+    saml_force_post_binding: "true"  # Per Section 4 - Force POST Binding: ON
+    saml_server_signature: "false"  # Per Section 5 - Sign Documents: OFF
+    saml_assertion_signature: "true"  # Per Section 5 - Sign Assertions: ON
     saml_signature_algorithm: "RSA_SHA256"  # Per Section 5
-    saml_signature_canonicalization_method: "http://www.w3.org/2001/10/xml-exc-c14n#"  # Exclusive
+    saml_signature_canonicalization_method: "http://www.w3.org/2001/10/xml-exc-c14n#"  # Per Section 5 - Exclusive
+    saml_signature_key_name: "NONE"  # Per Section 5 - SAML Signature Key Name: NONE
     saml_client_signature: "false"
-    saml_encrypt: "false"  # Per Section 5
-    saml_name_id_format: "email"  # Per Section 4
+    saml_encrypt: "false"  # Per Section 5 - Encrypt Assertions: OFF
+    saml_name_id_format: "email"  # Per Section 4 - Name ID Format: Email
     saml_signing_certificate: ""
     saml_signing_private_key: ""
     # Logout binding URLs - Per Section 8

@@ -94,3 +94,10 @@ Icon
 # Local configuration overrides
 local_settings.yml
 local_vars.yml
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json

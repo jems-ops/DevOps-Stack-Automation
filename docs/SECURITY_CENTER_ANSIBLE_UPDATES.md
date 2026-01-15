@@ -176,11 +176,11 @@ ansible keycloak -i inventory -m shell -a \
 
 After running the playbook, you should see:
 
-✅ SAML client created: `https://tenable.sc`  
-✅ 2 protocol mappers: `email`, `username`  
-✅ Test user created: `demo.user` with email `demo@dns.com`  
-✅ No client scopes attached (prevents duplicate attributes)  
-✅ Configuration matches Confluence guide exactly  
+✅ SAML client created: `https://tenable.sc`
+✅ 2 protocol mappers: `email`, `username`
+✅ Test user created: `demo.user` with email `demo@dns.com`
+✅ No client scopes attached (prevents duplicate attributes)
+✅ Configuration matches Confluence guide exactly
 
 ---
 

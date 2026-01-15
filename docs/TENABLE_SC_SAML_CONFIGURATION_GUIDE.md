@@ -1,112 +1,143 @@
 # Tenable.sc SAML SSO Integration with Keycloak
-## Manual Configuration Guide (Step-by-Step)
+## API Configuration Guide
 
 ---
 
 ## Overview
 
-This document describes how to configure SAML 2.0 SSO between Tenable.sc and Keycloak using manual configuration (not auto-provisioning).
+This document describes how to configure SAML 2.0 SSO on Tenable Security Center using the REST API.
 
 - **IdP**: Keycloak
 - **SP**: Tenable.sc
 - **Authentication**: SAML 2.0
-- **User Provisioning**: Disabled (manual user creation)
+- **Configuration Method**: REST API
 
 ---
 
-## 1. Tenable.sc – SAML Configuration
+## API Authentication
 
-### 1.1 Navigate to SAML Settings
+### Get Session Token
 
-```
-System → Configuration → SAML
-```
+**Endpoint**: `POST /rest/token`
 
----
-
-### 1.2 General SAML Settings
-
-| Field | Value |
-|-------|-------|
-| Source | Entry |
-| Type | SAML 2.0 |
-| Entity ID | `https://keycloak.local/realms/master` |
-| Identity Provider (IdP) | `https://keycloak.local/realms/master` |
-| Username Attribute | `email` |
-| User Provisioning | OFF |
-
----
-
-### 1.3 Identity Provider Endpoints
-
-| Field | Value |
-|-------|-------|
-| Single Sign-On Service | `https://keycloak.local/realms/master/protocol/saml` |
-| Single Logout Service | `https://keycloak.local/realms/master/protocol/saml` |
-
----
-
-### 1.4 Certificate Configuration
-
-1. **Open the Keycloak metadata URL:**
-   ```
-   https://keycloak.local/realms/master/protocol/saml/descriptor
-   ```
-
-2. **Copy the `<X509Certificate>` value:**
-   ```xml
-   <X509Certificate>
-     xxxxxxxxxxxxxxxxxxxxxxxxx
-   </X509Certificate>
-   ```
-
-3. **Paste the certificate** into the Certificate field in Tenable.sc.
-
----
-
-### 1.5 Save Configuration
-
-Click **Submit** to save the SAML configuration.
-
----
-
-## 2. Tenable.sc – Create SAML User
-
-### 2.1 Navigate to Users
-
-```
-Users → Create User
+**Request**:
+```json
+{
+  "username": "admin",
+  "password": "your_password"
+}
 ```
 
-### 2.2 User Details
+**Response**:
+```json
+{
+  "response": {
+    "token": "session_token_value"
+  }
+}
+```
 
-| Field | Value |
-|-------|-------|
-| Authentication Type | SAML |
-| Username | `demo@dns.com` |
-| Email | `demo@dns.com` |
-| First Name | `demo` |
-| Last Name | `user` |
-| Enabled | Yes |
-
-### 2.3 Roles
-
-Assign at least one valid role (example):
-- Security Manager
-- Administrator
-- Scan Operator
-
-⚠️ **A user with no roles will fail login (Error 74).**
-
-Save the user.
+**Headers for Subsequent Requests**:
+```
+X-SecurityCenter: <session_token>
+```
 
 ---
 
-### 2.4 Download Tenable Metadata
+## SAML Configuration API
 
-From `System → Configuration → SAML`:
-- Download the **Service Provider metadata XML**
-- This file will be used when configuring Keycloak
+### Get Current SAML Configuration
+
+**Endpoint**: `GET /rest/configSection/8/1`
+
+**Headers**:
+```
+X-SecurityCenter: <session_token>
+```
+
+**Response**:
+```json
+{
+  "response": {
+    "name": "SAML",
+    "description": "SAML SSO Integration",
+    "samlEnabled": "true",
+    "entityID": "https://keycloak.local/realms/master",
+    "idp": "https://keycloak.local/realms/master",
+    "usernameAttribute": "email",
+    "singleSignOnService": "https://keycloak.local/realms/master/protocol/saml",
+    "singleLogoutService": "https://keycloak.local/realms/master/protocol/saml",
+    "certData": "<x509 certificate>"
+  }
+}
+```
+
+---
+
+### Configure SAML Settings
+
+**Endpoint**: `PATCH /rest/configSection/8/1`
+
+**Headers**:
+```
+X-SecurityCenter: <session_token>
+Content-Type: application/json
+```
+
+**Request Payload**:
+```json
+{
+  "name": "SAML",
+  "description": "SAML SSO Integration with Keycloak",
+  "entityID": "https://keycloak.local/realms/master",
+  "idp": "https://keycloak.local/realms/master",
+  "usernameAttribute": "email",
+  "singleSignOnService": "https://keycloak.local/realms/master/protocol/saml",
+  "singleLogoutService": "https://keycloak.local/realms/master/protocol/saml",
+  "certData": "<x509_certificate_from_keycloak>",
+  "samlEnabled": "true"
+}
+```
+
+**Response**:
+```json
+{
+  "response": {
+    "name": "SAML",
+    "description": "SAML SSO Integration with Keycloak",
+    "samlEnabled": "true",
+    ...
+  }
+}
+```
+
+---
+
+## Get Keycloak Certificate
+
+### Method 1: Via Metadata Endpoint
+
+```bash
+curl -k -s https://keycloak.local/realms/master/protocol/saml/descriptor | \
+  sed -n 's/.*<ds:X509Certificate>\(.*\)<\/ds:X509Certificate>.*/\1/p' | head -1
+```
+
+### Method 2: Via Keycloak API
+
+**Endpoint**: `GET /realms/master/protocol/saml/descriptor`
+
+Extract the `<ds:X509Certificate>` value from the XML response.
+
+---
+
+## Logout Session
+
+**Endpoint**: `DELETE /rest/token`
+
+**Headers**:
+```
+X-SecurityCenter: <session_token>
+```
 
 ---
 
@@ -268,12 +299,12 @@ Users → Add User
 
 ## 11. Validation Checklist
 
-✅ Redirect from Tenable → Keycloak  
-✅ Successful Keycloak login  
-✅ SAML POST to `/saml2-acs.php/1`  
-✅ No "no attribute detected" error  
-✅ No "Error 74 – early login denied"  
-✅ Tenable UI loads successfully  
+✅ Redirect from Tenable → Keycloak
+✅ Successful Keycloak login
+✅ SAML POST to `/saml2-acs.php/1`
+✅ No "no attribute detected" error
+✅ No "Error 74 – early login denied"
+✅ Tenable UI loads successfully
 
 ---
 
@@ -296,12 +327,12 @@ Users → Add User
 **Solution**: User exists in Tenable but has no roles assigned. Assign at least one role.
 
 ### Issue: Redirect loops
-**Solution**: 
+**Solution**:
 - Verify Entity ID matches exactly
 - Check ACS URL path is correct: `/saml2-acs.php/1` (not `/saml-acs.php/1`)
 
 ### Issue: Certificate validation error
-**Solution**: 
+**Solution**:
 - Ensure certificate is copied correctly from Keycloak metadata
 - Remove any extra whitespace or line breaks
 
@@ -338,7 +369,7 @@ curl -k -I https://keycloak.local/realms/master/protocol/saml
 │             │ ◄─────────────────────── │              │
 └─────────────┘    SAML Response         └──────────────┘
                    + Attributes
-                   
+
 User Flow:
 1. User → Tenable.sc (click "Sign in using SAML")
 2. Tenable.sc → Keycloak (SAML AuthnRequest)

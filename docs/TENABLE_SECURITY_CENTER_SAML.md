@@ -150,7 +150,7 @@ Name ID Format: email
      --realm master \
      --user admin \
      --password 'YourPassword'
-   
+
    /opt/keycloak/bin/kcadm.sh get clients -r master \
      --fields clientId,redirectUris | grep -A 5 "tennable.sc"
    ```
