@@ -14,7 +14,6 @@
       webOrigins: "{{ keycloak_saml_integration_client.web_origins }}"
       baseUrl: "{{ keycloak_saml_integration_client.base_url }}"
       rootUrl: "{{ keycloak_saml_integration_client.root_url }}"
-      adminUrl: "{{ keycloak_saml_integration_client.admin_url }}"
       attributes:
         # Section 4: SAML Capabilities
         "saml.authnstatement": "{{ keycloak_saml_integration_client.attributes.saml_authnstatement }}"
