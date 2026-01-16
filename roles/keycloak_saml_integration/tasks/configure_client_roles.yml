@@ -5,6 +5,9 @@
 # - Client-specific roles instead of realm roles
 # - Group → Client Role mapping for better security and scalability
 
+- name: Refresh Keycloak access token before role operations
+  ansible.builtin.include_tasks: get_keycloak_token.yml
+
 - name: Get existing groups in realm
   ansible.builtin.include_tasks: common/get_groups.yml
 
