@@ -46,7 +46,7 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      metadata: "{{ lookup('template', 'nessus-saml-metadata.json.j2') | from_json }}"
+      metadata: "{{ lookup('template', 'nessus-saml-metadata.json.j2') }}"
       certData: "{{ keycloak_saml_integration_certificate }}"
     status_code: 200
     validate_certs: false
