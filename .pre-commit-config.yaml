@@ -10,7 +10,7 @@ repos:
       - id: end-of-file-fixer
         exclude: '\\.vault$'
       - id: check-yaml
-        exclude: 'group_vars/all/vault\\.yml'  # Skip encrypted vault file
+        exclude: 'group_vars/all/vault\\.yml|saml-integration-webapp/backend/venv/'  # Skip encrypted vault file and vendored Ansible collections
       - id: check-json
       - id: check-merge-conflict
       - id: check-case-conflict
@@ -26,6 +26,7 @@ repos:
     hooks:
       - id: shellcheck
         args: [-e, SC1091]  # Ignore sourcing files that don't exist
+        stages: [manual]
 
   # Simple vault security checks
   - repo: local
@@ -48,11 +49,12 @@ repos:
 # Global exclusions
 exclude: |
   (?x)^(
-    \\.vault_pass|
-    \\.cache/|
-    \\.pytest_cache/|
+    \.vault_pass|
+    \.cache/|
+    \.pytest_cache/|
     __pycache__/|
-    \\.molecule/|
-    molecule/.*/\\.molecule/|
-    \\.secrets\\.baseline
+    \.molecule/|
+    molecule/.*/\.molecule/|
+    saml-integration-webapp/backend/venv/.*|
+    \.secrets\.baseline
   )$

@@ -1,0 +1,54 @@
+---
+# Configure Nessus / Tenable.sc SAML Integration via REST API
+
+# Step 1: Authenticate to Security Center API
+- name: Get Security Center session token
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_app.base_url }}/rest/token"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ vault_tsc_admin_username | default('admin') }}"
+      password: "{{ vault_tsc_admin_password | default('admin') }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: tsc_auth_response
+  delegate_to: localhost
+
+# Step 2 & 3: Extract session token and cookie
+- name: Set Security Center session auth facts
+  ansible.builtin.set_fact:
+    tsc_session_token: "{{ tsc_auth_response.json.response.token }}"
+    tsc_session_cookie: "{{ tsc_auth_response.cookies_string | default(tsc_auth_response.cookie_string) }}"
+
+# Step 4: Get current SAML configuration
+- name: Get current Nessus SAML configuration
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_app.base_url }}/rest/saml"
+    method: GET
+    headers:
+      X-SecurityCenter: "{{ tsc_session_token }}"
+      Cookie: "{{ tsc_session_cookie }}"
+    status_code: 200
+    validate_certs: false
+  register: nessus_current_saml_config
+  delegate_to: localhost
+
+# Step 5: Configure SAML settings via API (metadata + certData)
+- name: Configure Nessus SAML via REST API
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_app.base_url }}/rest/saml"
+    method: PATCH
+    headers:
+      X-SecurityCenter: "{{ tsc_session_token }}"
+      Cookie: "{{ tsc_session_cookie }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      metadata: "{{ lookup('template', 'nessus-saml-metadata.json.j2') | from_json }}"
+      certData: "{{ keycloak_saml_integration_certificate }}"
+    status_code: 200
+    validate_certs: false
+  register: nessus_saml_config_result
+  delegate_to: localhost

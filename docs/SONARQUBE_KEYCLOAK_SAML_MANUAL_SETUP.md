@@ -696,8 +696,8 @@ The role automatically:
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-01-26  
+**Document Version**: 1.0
+**Last Updated**: 2025-01-26
 **Tested With**:
 - SonarQube: 10.3.0.82913
 - Keycloak: 26.0.7

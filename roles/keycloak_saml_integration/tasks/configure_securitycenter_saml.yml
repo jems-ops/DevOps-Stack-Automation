@@ -11,7 +11,7 @@
     body_format: json
     body:
       username: "{{ vault_tsc_admin_username | default('admin') }}"
-      password: "{{ vault_tsc_admin_password }}"
+      password: "{{ vault_tsc_admin_password | default('admin') }}"
     status_code: 200
     validate_certs: false
   register: tsc_auth_response

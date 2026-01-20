@@ -1,0 +1,10 @@
+{
+  "name": "SAML",
+  "description": "SAML SSO Integration with Keycloak",
+  "entityID": "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}",
+  "idp": "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}",
+  "usernameAttribute": "email",
+  "singleSignOnService": "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml",
+  "singleLogoutService": "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml",
+  "samlEnabled": true
+}
