@@ -25,7 +25,7 @@
 # Step 4: Get current SAML configuration
 - name: Get current Nessus SAML configuration
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_app.base_url }}/rest/saml"
+    url: "{{ keycloak_saml_integration_app.base_url }}/rest/saml/1"
     method: GET
     headers:
       X-SecurityCenter: "{{ tsc_session_token }}"
@@ -35,10 +35,10 @@
   register: nessus_current_saml_config
   delegate_to: localhost
 
-# Step 5: Configure SAML settings via API (metadata + certData)
+# Step 5: Configure SAML settings via API (Tenable.sc /saml/{id}::PATCH)
 - name: Configure Nessus SAML via REST API
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_app.base_url }}/rest/saml"
+    url: "{{ keycloak_saml_integration_app.base_url }}/rest/saml/1"
     method: PATCH
     headers:
       X-SecurityCenter: "{{ tsc_session_token }}"
@@ -46,12 +46,25 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      metadata: "{{ lookup('template', 'nessus-saml-metadata.json.j2') }}"
+      name: "SAML"
+      description: "SAML SSO Integration with Keycloak"
+      type: "saml2"
+      entityID: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
+      idp: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}"
+      usernameAttribute: "email"
+      singleSignOnService: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml"
+      singleLogoutService: "{{ keycloak_saml_integration_keycloak.base_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml"
       certData: "{{ keycloak_saml_integration_certificate }}"
+      samlEnabled: "true"
     status_code: 200
     validate_certs: false
+    return_content: true
   register: nessus_saml_config_result
   delegate_to: localhost
+
+- name: Debug Nessus SAML API response
+  ansible.builtin.debug:
+    var: nessus_saml_config_result
 
 # Step 6: Logout from Security Center API
 - name: Logout from Security Center API
