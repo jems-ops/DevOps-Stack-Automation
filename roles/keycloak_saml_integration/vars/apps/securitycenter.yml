@@ -38,8 +38,8 @@ keycloak_saml_integration_protocol_mappers:
 keycloak_saml_integration_securitycenter_saml:
   enabled: true
   entity_id: "https://tenable.sc"  # Per Section 3.1
-  acs_url: "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
-  slo_url: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
+  acs_url: "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-acs.php/1"
+  slo_url: "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-logout.php/1"
   name_id_format: "email"  # Per Section 4
   sign_requests_enabled: false
   sign_assertions_enabled: true  # Per Section 5
@@ -56,14 +56,14 @@ keycloak_saml_integration_client:
 
   # Redirect URIs - Per Section 3.2
   redirect_uris:
-    - "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
+    - "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-acs.php/1"
 
   web_origins:
-    - "https://tenable.local"
+    - "{{ securitycenter_base_url }}"
 
   # Base URLs - Per Section 3.2
-  base_url: "https://tenable.local"
-  root_url: "https://tenable.local"
+  base_url: "{{ securitycenter_base_url }}"
+  root_url: "{{ securitycenter_base_url }}"
 
   # SAML Attributes - Per Sections 4 and 5
   attributes:
@@ -77,11 +77,11 @@ keycloak_saml_integration_client:
     saml_client_signature: "false"
     saml_encrypt: "false"  # Per Section 5 - Encrypt Assertions: OFF
     saml_name_id_format: "email"  # Per Section 4 - Name ID Format: Email
-    saml_signing_certificate: ""
-    saml_signing_private_key: ""
+    # saml_signing_certificate and saml_signing_private_key are managed via Keycloak and
+    # populated dynamically where needed; avoid hard-coded empty strings here.
     # Logout binding URLs - Per Section 8
-    saml_single_logout_service_url_post: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
-    saml_single_logout_service_url_redirect: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
-    saml_single_logout_service_url_soap: "https://tenable.local/saml/module.php/saml/sp/saml2-logout.php/1"
+    saml_single_logout_service_url_post: "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-logout.php/1"
+    saml_single_logout_service_url_redirect: "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-logout.php/1"
+    saml_single_logout_service_url_soap: "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-logout.php/1"
     # ACS binding URLs - Per Section 8
-    saml_assertion_consumer_url_post: "https://tenable.local/saml/module.php/saml/sp/saml2-acs.php/1"
+    saml_assertion_consumer_url_post: "{{ securitycenter_base_url }}/saml/module.php/saml/sp/saml2-acs.php/1"
