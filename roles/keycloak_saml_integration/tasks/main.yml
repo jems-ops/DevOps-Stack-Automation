@@ -69,6 +69,7 @@
 
 - name: Configure application SAML integration
   ansible.builtin.include_tasks: "configure_{{ keycloak_saml_integration_app_type }}_saml.yml"
+  when: not (skip_app_config | default(false) | bool)
   tags: ['app', 'saml', 'configure']
 
 - name: Display completion summary

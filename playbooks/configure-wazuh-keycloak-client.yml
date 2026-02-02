@@ -1,0 +1,23 @@
+---
+- name: Configure Wazuh SAML client in Keycloak (local on keycloak host)
+  hosts: keycloak
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # Force the generic role to treat this as the Wazuh application
+    keycloak_saml_integration_app_type: "wazuh"
+
+    # Use keycloak.local as the external SAML IdP host
+    keycloak_hostname: "keycloak.local"
+    keycloak_base_url: "https://keycloak.local"
+
+    # Talk to Keycloak's admin API locally over HTTP 8080
+    keycloak_admin_api_url: "http://localhost:8080"
+
+    # Only configure Keycloak (realm, client, roles, mappers, etc.),
+    # skip application-side Wazuh SAML config on this host.
+    skip_app_config: true
+
+  roles:
+    - keycloak_saml_integration

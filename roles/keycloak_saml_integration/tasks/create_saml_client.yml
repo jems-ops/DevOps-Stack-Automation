@@ -34,6 +34,9 @@
         "saml_single_logout_service_url_redirect": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_redirect | default('') }}"
         "saml_single_logout_service_url_soap": "{{ keycloak_saml_integration_client.attributes.saml_single_logout_service_url_soap | default('') }}"
         "saml_assertion_consumer_url_post": "{{ keycloak_saml_integration_client.attributes.saml_assertion_consumer_url_post | default('') }}"
+        # IDP-initiated SSO attributes (Keycloak expects these as client attributes)
+        "saml_idp_initiated_sso_relay_state": "{{ keycloak_saml_integration_client.attributes.saml_idp_initiated_sso_relay_state | default('') }}"
+        "saml_idp_initiated_sso_url_name": "{{ keycloak_saml_integration_client.attributes.saml_idp_initiated_sso_url_name | default('') }}"
 
 - name: Check if SAML client already exists
   ansible.builtin.uri:

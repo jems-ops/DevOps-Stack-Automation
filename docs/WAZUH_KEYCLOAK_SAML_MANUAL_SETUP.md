@@ -33,15 +33,15 @@ Integration has three stages:
 | 3    | Clients → `wazuh-saml` → Settings | Enabled               | ON                                            |
 |      |                                 | Client ID               | `wazuh-saml`                                  |
 |      |                                 | Name                    | `Wazuh SSO` (label only)                      |
-|      |                                 | Valid redirect URIs     | `https://<WAZUH_DASHBOARD_URL>/*`             |
+|      |                                 | Valid redirect URIs     | `https://{{ WAZUH_DASHBOARD_URL }}/*`         |
 |      |                                 | IDP-Initiated SSO URL   | `wazuh-dashboard`                             |
+|      |                                 | IDP-Initiated Relay State | `wazuh-dashboard`                           |
 |      |                                 | Name ID format          | `username`                                    |
 |      |                                 | Force POST binding      | ON                                            |
 |      |                                 | Include AuthnStatement  | ON                                            |
 |      |                                 | Sign documents          | ON                                            |
-|      |                                 | Sign assertions         | ON                                            |
 |      |                                 | Signature algorithm     | `RSA_SHA256`                                  |
-|      |                                 | SAML signature key name | `KEY_ID`                                      |
+|      |                                 | SAML signature key name | `NONE`                                        |
 |      |                                 | Canonicalization        | `EXCLUSIVE`                                   |
 |      |                                 | Front channel logout    | ON                                            |
 | 4    | Clients → `wazuh-saml` → Keys   | Client signature req.   | OFF                                           |

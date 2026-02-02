@@ -36,20 +36,76 @@ keycloak_saml_integration_client:
   root_url: "{{ wazuh_base_url }}"
   admin_url: "{{ wazuh_base_url }}"
 
+  # IDP-initiated SSO URL name (Settings tab)
+  idp_initiated_sso_url_name: "wazuh-dashboard"
+
   attributes:
     saml_authnstatement: "true"
-    saml_server_signature: "false"
+    # Sign documents ON for Wazuh (server-side signature)
+    saml_server_signature: "true"
     saml_signature_algorithm: "RSA_SHA256"
     saml_client_signature: "false"
+    # Sign assertions ON
     saml_assertion_signature: "true"
     saml_encrypt: "false"
     saml_force_post_binding: "true"
     saml_name_id_format: "username"
+    # Explicitly provide additional signature attributes expected by create_saml_client.yml
+    saml_signature_key_name: "NONE"
+    saml_signature_canonicalization_method: "http://www.w3.org/2001/10/xml-exc-c14n#"
     saml_signing_certificate: ""
     saml_signing_private_key: ""
+    # IDP-initiated SSO relay state and URL name
+    saml_idp_initiated_sso_relay_state: "wazuh-dashboard"
+    saml_idp_initiated_sso_url_name: "wazuh-dashboard"
+    # Fine grain SAML endpoints per Wazuh docs
+    saml_single_logout_service_url_redirect: "{{ wazuh_base_url }}"
+    saml_assertion_consumer_url_post: "{{ wazuh_base_url }}/_opendistro/_security/saml/acs/idpinitiated"
 
-# Wazuh relies on simple username/email/group attributes; we keep the default
-# protocol mappers defined in defaults/main.yml (username, email, name, groups).
+# Wazuh relies on simple username/email/group attributes, plus a role list.
+# Override protocol mappers to include default ones + Wazuh role list mapper.
+keycloak_saml_integration_protocol_mappers:
+  - name: "username"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.name": "username"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "username"
+
+  - name: "email"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.name": "email"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "email"
+
+  - name: "name"
+    protocol: "saml"
+    protocol_mapper: "saml-user-property-mapper"
+    config:
+      "attribute.name": "name"
+      "attribute.nameformat": "Basic"
+      "user.attribute": "firstName"
+
+  - name: "groups"
+    protocol: "saml"
+    protocol_mapper: "saml-group-membership-mapper"
+    config:
+      "attribute.name": "groups"
+      "attribute.nameformat": "Basic"
+      "single": "false"
+      "full.path": "false"
+
+  # Wazuh role list mapper (Roles attribute)
+  - name: "wazuhRoleKey"
+    protocol: "saml"
+    protocol_mapper: "saml-role-list-mapper"
+    config:
+      "attribute.name": "Roles"
+      "attribute.nameformat": "Basic"
+      "single": "true"
 
 # Wazuh application SAML mapping used in templates/debug output if needed
 keycloak_saml_integration_app_saml:

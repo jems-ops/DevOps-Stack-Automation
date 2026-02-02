@@ -61,6 +61,9 @@ keycloak_saml_integration_client:
     # Force POST binding OFF for Artifactory
     saml_force_post_binding: "{{ 'false' if keycloak_saml_integration_app_type == 'artifactory' else 'true' }}"
     saml_name_id_format: "username"
+    # Additional signature attributes expected by create_saml_client.yml
+    saml_signature_key_name: "NONE"
+    saml_signature_canonicalization_method: "http://www.w3.org/2001/10/xml-exc-c14n#"
     saml_signing_certificate: ""
     saml_signing_private_key: ""
     # Logout binding URLs (app-specific, populated from app vars)
