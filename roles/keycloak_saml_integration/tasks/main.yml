@@ -15,7 +15,7 @@
   ansible.builtin.assert:
     that:
       - keycloak_saml_integration_app_type is defined
-      - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube', 'artifactory', 'nexus', 'securitycenter']
+      - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube', 'artifactory', 'nexus', 'securitycenter', 'wazuh']
       - keycloak_saml_integration_keycloak.realm is defined
       - keycloak_saml_integration_keycloak.admin_api_url is defined
     fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube, artifactory, nexus, securitycenter"

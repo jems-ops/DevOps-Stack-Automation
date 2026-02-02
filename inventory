@@ -20,6 +20,9 @@ nexus.local ansible_host=192.168.56.11
 [securitycenter_servers]
 tenable.local ansible_host=192.168.56.10
 
+[wazuh_servers]
+wazuh.local ansible_host=192.168.56.13
+
 # [freeipa]
 # freeipa.local ansible_host=192.168.56.13
 

@@ -1,0 +1,44 @@
+---
+# Default variables for Wazuh all-in-one installation (single node)
+
+# Wazuh repository configuration
+wazuh_repo_url: "https://packages.wazuh.com/4.x/yum/wazuh.repo"
+wazuh_gpg_key_url: "https://packages.wazuh.com/key/GPG-KEY-WAZUH"
+
+# Core Wazuh components to install
+wazuh_packages:
+  - wazuh-manager
+  - wazuh-indexer
+  - wazuh-dashboard
+
+# Service names
+wazuh_manager_service: wazuh-manager
+wazuh_indexer_service: wazuh-indexer
+wazuh_dashboard_service: wazuh-dashboard
+
+# Ports (for firewall and health checks)
+wazuh_dashboard_port: 443      # Wazuh dashboard HTTPS
+wazuh_indexer_port: 9200       # Wazuh indexer API
+wazuh_manager_agent_port: 1514 # Agent events (TCP/UDP)
+wazuh_manager_api_port: 55000  # Wazuh API
+
+# Required base packages
+wazuh_required_packages:
+  - curl
+  - policycoreutils-python-utils
+  - firewalld
+
+# Whether to enable and start services after installation
+wazuh_enable_services: true
+wazuh_service_state: started
+
+# Offline installation options (install from local RPMs instead of online repo)
+wazuh_use_local_packages: false
+# Directory on the control node containing downloaded RPMs
+wazuh_local_package_dir: "{{ playbook_dir | default('../wazuh-packages') }}"
+# RPM filenames to install when using local packages
+wazuh_local_packages:
+  - wazuh-manager-4.14.2-1.aarch64.rpm
+  - wazuh-indexer-4.14.2-1.aarch64.rpm
+  - wazuh-dashboard-4.14.2-1.aarch64.rpm
+  - filebeat-7.10.2-2.aarch64.rpm

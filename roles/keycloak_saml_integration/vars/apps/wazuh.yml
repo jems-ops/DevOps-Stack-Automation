@@ -1,0 +1,63 @@
+---
+# Wazuh-specific SAML Integration Configuration
+# This focuses mainly on Keycloak client configuration; Wazuh indexer/dashboard
+# SAML settings are still applied using the official Wazuh docs and manual steps.
+
+# Application Configuration
+# These values are mostly placeholders to satisfy the generic role interface.
+# Wazuh's SAML integration is driven via the indexer and dashboard configuration
+# rather than a simple webapp callback URL.
+keycloak_saml_integration_app_config:
+  home: "/usr/share/wazuh-dashboard"
+  config_file: "config/wazuh.yml"
+  service_name: "wazuh-dashboard"
+  user: "wazuh-dashboard"
+  group: "wazuh-dashboard"
+  # Not directly used by Wazuh, but required by the generic role
+  saml_callback_url: "/_opendistro/_security/saml/acs/idpinitiated"
+
+# Override Keycloak SAML client configuration for Wazuh
+# Per Wazuh docs, we prefer a fixed client_id "wazuh-saml" and
+# redirect URLs based on the Wazuh dashboard base URL.
+keycloak_saml_integration_client:
+  client_id: "wazuh-saml"
+  protocol: "saml"
+  enabled: true
+  front_channel_logout: true
+
+  # Redirect URIs - based on wazuh_base_url from group_vars/all/saml_integration.yml
+  redirect_uris:
+    - "{{ wazuh_base_url }}/*"
+
+  web_origins:
+    - "{{ wazuh_base_url }}"
+
+  base_url: "{{ wazuh_base_url }}"
+  root_url: "{{ wazuh_base_url }}"
+  admin_url: "{{ wazuh_base_url }}"
+
+  attributes:
+    saml_authnstatement: "true"
+    saml_server_signature: "false"
+    saml_signature_algorithm: "RSA_SHA256"
+    saml_client_signature: "false"
+    saml_assertion_signature: "true"
+    saml_encrypt: "false"
+    saml_force_post_binding: "true"
+    saml_name_id_format: "username"
+    saml_signing_certificate: ""
+    saml_signing_private_key: ""
+
+# Wazuh relies on simple username/email/group attributes; we keep the default
+# protocol mappers defined in defaults/main.yml (username, email, name, groups).
+
+# Wazuh application SAML mapping used in templates/debug output if needed
+keycloak_saml_integration_app_saml:
+  enabled: true
+  sp_entity_id: "wazuh-saml"
+  groups_attribute: "groups"
+  username_attribute: "username"
+  email_attribute: "email"
+  full_name_attribute: "displayName"
+  force_authentication: false
+  maximum_authentication_lifetime: 7776000  # 90 days

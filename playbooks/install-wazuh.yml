@@ -1,0 +1,33 @@
+---
+- name: Install Wazuh all-in-one on Wazuh server
+  hosts: wazuh_servers
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - name: Display Wazuh installation playbook information
+      debug:
+        msg: |
+          🛡️  Wazuh Installation Playbook
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Target server: {{ inventory_hostname }}
+          👤 User: {{ ansible_user }}
+
+  roles:
+    - install-wazuh
+
+  post_tasks:
+    - name: Display Wazuh installation playbook completion
+      debug:
+        msg: |
+          ✅ Wazuh Installation Playbook Complete!
+
+          📊 Summary:
+          • Wazuh installed on: {{ inventory_hostname }}
+          • Direct dashboard URL: https://{{ inventory_hostname }}:443
+          • Reverse proxy URL (after nginx + SSL playbooks): https://wazuh.local
+
+          🔧 Next Steps:
+          1. Run setup-nginx-reverse-proxy.yml on the nginx host
+          2. Run install-ssl-cert.yml on the nginx host to enable HTTPS for wazuh.local
+          3. Configure Keycloak SAML SSO using docs/WAZUH_KEYCLOAK_SAML_MANUAL_SETUP.md

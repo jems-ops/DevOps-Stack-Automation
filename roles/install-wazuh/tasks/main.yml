@@ -1,0 +1,111 @@
+---
+- name: Display Wazuh installation information
+  debug:
+    msg: |
+      🛡️  Installing Wazuh all-in-one on {{ inventory_hostname }}
+      📅 Installation time: {{ ansible_date_time.iso8601 }}
+      🌐 Dashboard will be exposed as https://wazuh.local via nginx reverse proxy
+
+- name: Update package cache
+  dnf:
+    update_cache: yes
+
+- name: Install required base packages
+  dnf:
+    name: "{{ wazuh_required_packages }}"
+    state: present
+
+- name: Import Wazuh GPG key
+  rpm_key:
+    key: "{{ wazuh_gpg_key_url }}"
+    state: present
+  when: not (wazuh_use_local_packages | default(false) | bool)
+
+- name: Configure Wazuh yum repository
+  get_url:
+    url: "{{ wazuh_repo_url }}"
+    dest: /etc/yum.repos.d/wazuh.repo
+    mode: '0644'
+  when: not (wazuh_use_local_packages | default(false) | bool)
+
+- name: Install Wazuh components from repository
+  dnf:
+    name: "{{ wazuh_packages }}"
+    state: present
+  notify:
+    - restart wazuh-manager
+    - restart wazuh-indexer
+    - restart wazuh-dashboard
+  when: not (wazuh_use_local_packages | default(false) | bool)
+
+- name: Ensure local Wazuh RPM staging directory exists
+  file:
+    path: /tmp/wazuh-rpms
+    state: directory
+    mode: '0755'
+  when: wazuh_use_local_packages | default(false) | bool
+
+- name: Copy local Wazuh RPMs to wazuh server
+  copy:
+    src: "{{ wazuh_local_package_dir }}/{{ item }}"
+    dest: /tmp/wazuh-rpms/{{ item }}
+    mode: '0644'
+  loop: "{{ wazuh_local_packages }}"
+  when: wazuh_use_local_packages | default(false) | bool
+
+- name: Install Wazuh components from local RPMs
+  dnf:
+    name: "/tmp/wazuh-rpms/{{ item }}"
+    state: present
+    disable_gpg_check: yes
+  loop: "{{ wazuh_local_packages }}"
+  notify:
+    - restart wazuh-manager
+    - restart wazuh-indexer
+    - restart wazuh-dashboard
+  when: wazuh_use_local_packages | default(false) | bool
+
+- name: Enable and start Wazuh services
+  systemd:
+    name: "{{ item }}"
+    enabled: "{{ wazuh_enable_services }}"
+    state: "{{ wazuh_service_state }}"
+  loop:
+    - "{{ wazuh_manager_service }}"
+    - "{{ wazuh_indexer_service }}"
+    - "{{ wazuh_dashboard_service }}"
+
+- name: Open firewall ports for Wazuh
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+  loop:
+    - "{{ wazuh_dashboard_port }}/tcp"
+    - "{{ wazuh_manager_agent_port }}/tcp"
+    - "{{ wazuh_manager_agent_port }}/udp"
+    - "{{ wazuh_manager_api_port }}/tcp"
+
+- name: Wait for Wazuh dashboard to start
+  wait_for:
+    port: "{{ wazuh_dashboard_port }}"
+    host: "{{ inventory_hostname }}"
+    delay: 15
+    timeout: 300
+
+- name: Display Wazuh installation completion
+  debug:
+    msg: |
+      ✅ Wazuh installation complete on {{ inventory_hostname }}
+
+      📋 Access Information (direct):
+      • Dashboard URL: https://{{ inventory_hostname }}:{{ wazuh_dashboard_port }}
+
+      🌐 Via reverse proxy (after nginx + SSL playbooks):
+      • URL: https://wazuh.local
+
+      🔧 Next Steps:
+      1. Run nginx reverse proxy and SSL playbooks on the nginx host
+      2. Configure SAML SSO with Keycloak using docs/WAZUH_KEYCLOAK_SAML_MANUAL_SETUP.md
