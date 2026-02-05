@@ -40,31 +40,40 @@
   ansible.builtin.include_tasks: get_keycloak_token.yml
   tags: ['keycloak', 'token']
 
-- name: Create Keycloak realm if needed
+- name: Create Keycloak realm if it doesn't exist
   ansible.builtin.include_tasks: create_keycloak_realm.yml
+  when: not ansible_check_mode
   tags: ['keycloak', 'realm']
 
-- name: Create Keycloak SAML client
+- name: Create or update Keycloak SAML client
   ansible.builtin.include_tasks: create_saml_client.yml
+  when: not ansible_check_mode
   tags: ['keycloak', 'saml', 'client']
 
 - name: Configure client roles and hierarchical groups
   ansible.builtin.include_tasks: configure_client_roles.yml
-  when: not (skip_client_roles | default(false) | bool)
+  when:
+    - not ansible_check_mode
+    - not (skip_client_roles | default(false) | bool)
   tags: ['keycloak', 'client_roles', 'groups']
 
 - name: Configure SAML protocol mappers
   ansible.builtin.include_tasks: configure_protocol_mappers.yml
-  when: not (skip_protocol_mappers | default(false) | bool)
+  when:
+    - not ansible_check_mode
+    - not (skip_protocol_mappers | default(false) | bool)
   tags: ['keycloak', 'saml', 'mappers']
 
 - name: Create test user (optional)
   ansible.builtin.include_tasks: create_test_user.yml
-  when: keycloak_saml_integration_test_user.enabled | default(false) | bool
+  when:
+    - not ansible_check_mode
+    - keycloak_saml_integration_test_user.enabled | default(false) | bool
   tags: ['keycloak', 'test_user']
 
 - name: Get Keycloak certificate
   ansible.builtin.include_tasks: get_keycloak_certificate.yml
+  when: not ansible_check_mode
   tags: ['keycloak', 'certificate']
 
 - name: Configure application SAML integration

@@ -33,7 +33,94 @@
     path: /etc/wazuh-indexer/opensearch-security/sp.metadata.xml
   register: wazuh_sp_metadata
 
-- name: Write idp.metadata.xml from SAML descriptor
+- name: Set temporary paths for Mellon metadata package
+  ansible.builtin.set_fact:
+    wazuh_mellon_zip_path: "/tmp/wazuh-{{ keycloak_saml_integration_keycloak.realm }}-{{ keycloak_saml_integration_client.client_id }}-mellon.zip"
+    wazuh_mellon_extract_dir: "/tmp/wazuh-mellon-{{ keycloak_saml_integration_client.client_id }}"
+
+- name: Download mod_auth_mellon metadata ZIP from Keycloak
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/installation/providers/mod-auth-mellon"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    dest: "{{ wazuh_mellon_zip_path }}"
+    status_code: 200
+    validate_certs: false
+  register: wazuh_mellon_download
+  when:
+    - keycloak_saml_integration_saml_client_id is defined
+    - keycloak_saml_integration_access_token is defined
+    - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
+
+- name: Stat Mellon metadata ZIP
+  ansible.builtin.stat:
+    path: "{{ wazuh_mellon_zip_path }}"
+  register: wazuh_mellon_zip
+  when:
+    - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
+
+- name: Verify Mellon metadata ZIP downloaded
+  ansible.builtin.assert:
+    that:
+      - wazuh_mellon_zip.stat.exists | default(false)
+    fail_msg: "Expected Mellon ZIP at {{ wazuh_mellon_zip_path }} but it was not found"
+  when:
+    - not ansible_check_mode
+    - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
+
+- name: Unpack Mellon metadata ZIP
+  ansible.builtin.unarchive:
+    src: "{{ wazuh_mellon_zip_path }}"
+    dest: "{{ wazuh_mellon_extract_dir }}"
+    remote_src: true
+  when: wazuh_mellon_zip.stat.exists | default(false)
+
+- name: Stat Mellon idp-metadata.xml
+  ansible.builtin.stat:
+    path: "{{ wazuh_mellon_extract_dir }}/idp-metadata.xml"
+  register: wazuh_mellon_idp
+  when: wazuh_mellon_zip.stat.exists | default(false)
+
+- name: Stat Mellon sp-metadata.xml
+  ansible.builtin.stat:
+    path: "{{ wazuh_mellon_extract_dir }}/sp-metadata.xml"
+  register: wazuh_mellon_sp
+  when: wazuh_mellon_zip.stat.exists | default(false)
+
+- name: Verify Mellon metadata contains idp-metadata.xml and sp-metadata.xml
+  ansible.builtin.assert:
+    that:
+      - wazuh_mellon_idp.stat.exists | default(false)
+      - wazuh_mellon_sp.stat.exists | default(false)
+    fail_msg: "mod-auth-mellon installation for client {{ keycloak_saml_integration_client.client_id }} did not contain idp-metadata.xml and sp-metadata.xml"
+  when: wazuh_mellon_zip.stat.exists | default(false)
+
+- name: Install idp.metadata.xml from Mellon package
+  ansible.builtin.copy:
+    src: "{{ wazuh_mellon_extract_dir }}/idp-metadata.xml"
+    dest: /etc/wazuh-indexer/opensearch-security/idp.metadata.xml
+    owner: wazuh-indexer
+    group: wazuh-indexer
+    mode: '0644'
+    remote_src: true
+  when:
+    - not wazuh_idp_metadata.stat.exists | default(false)
+    - wazuh_mellon_idp.stat.exists | default(false)
+
+- name: Install sp.metadata.xml from Mellon package
+  ansible.builtin.copy:
+    src: "{{ wazuh_mellon_extract_dir }}/sp-metadata.xml"
+    dest: /etc/wazuh-indexer/opensearch-security/sp.metadata.xml
+    owner: wazuh-indexer
+    group: wazuh-indexer
+    mode: '0644'
+    remote_src: true
+  when:
+    - not wazuh_sp_metadata.stat.exists | default(false)
+    - wazuh_mellon_sp.stat.exists | default(false)
+
+- name: Write idp.metadata.xml from SAML descriptor (fallback)
   ansible.builtin.copy:
     dest: /etc/wazuh-indexer/opensearch-security/idp.metadata.xml
     owner: wazuh-indexer
@@ -44,6 +131,7 @@
     - keycloak_saml_integration_saml_descriptor is defined
     - keycloak_saml_integration_saml_descriptor.content is defined
     - not wazuh_idp_metadata.stat.exists | default(false)
+    - not (wazuh_mellon_idp.stat.exists | default(false))
 
 # NOTE: sp.metadata.xml normally comes from Wazuh itself. For now we ensure the file
 # exists as a placeholder if it is missing, so config.yml references do not break.
@@ -54,7 +142,9 @@
     group: wazuh-indexer
     mode: '0644'
     content: "<!-- placeholder Wazuh SP metadata -->\n"
-  when: not wazuh_sp_metadata.stat.exists | default(false)
+  when:
+    - not wazuh_sp_metadata.stat.exists | default(false)
+    - not (wazuh_mellon_sp.stat.exists | default(false))
 
 - name: Check Wazuh indexer config.yml exists
   ansible.builtin.stat:
@@ -63,18 +153,18 @@
   ignore_errors: true
 
 - name: Try to read existing Wazuh SAML exchange_key from config.yml
-  ansible.builtin.shell: "grep -E 'exchange_key:' /etc/wazuh-indexer/opensearch-security/config.yml | head -n1 || true"
+  ansible.builtin.shell: "grep -E \"exchange_key:\" /etc/wazuh-indexer/opensearch-security/config.yml | head -n1 | awk -F\"'\" '{print $2}' || true"
   register: wazuh_exchange_key_grep
   changed_when: false
   when: wazuh_indexer_config.stat.exists | default(false)
 
 - name: Set Wazuh SAML exchange_key fact from existing config if found
   ansible.builtin.set_fact:
-    wazuh_saml_exchange_key: "{{ (wazuh_exchange_key_grep.stdout.split("'") | length > 2) | ternary(wazuh_exchange_key_grep.stdout.split("'")[1], '') }}"
+    wazuh_saml_exchange_key: "{{ wazuh_exchange_key_grep.stdout }}"
   when:
     - wazuh_indexer_config.stat.exists | default(false)
     - wazuh_exchange_key_grep.stdout is defined
-    - "'exchange_key' in wazuh_exchange_key_grep.stdout"
+    - wazuh_exchange_key_grep.stdout | length > 0
 
 - name: Generate new Wazuh SAML exchange key if not already set
   ansible.builtin.command: "openssl rand -hex 32"
@@ -226,5 +316,9 @@
       - "✅ Basic Wazuh indexer/dashboard SAML wiring has been applied (config.yml, roles_mapping.yml, opensearch_dashboards.yml, wazuh.yml)."
       - "   Review docs/WAZUH_KEYCLOAK_SAML_MANUAL_SETUP.md for fine-tuning (exchange_key, realms, advanced options)."
 
-- name: Restart Wazuh dashboard via systemctl
-  ansible.builtin.command: systemctl restart wazuh-dashboard
+- name: Restart Wazuh dashboard via systemd
+  ansible.builtin.systemd:
+    name: wazuh-dashboard
+    state: restarted
+    enabled: yes
+  ignore_errors: true
