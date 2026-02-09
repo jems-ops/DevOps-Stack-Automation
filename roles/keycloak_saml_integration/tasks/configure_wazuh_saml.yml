@@ -38,6 +38,14 @@
     wazuh_mellon_zip_path: "/tmp/wazuh-{{ keycloak_saml_integration_keycloak.realm }}-{{ keycloak_saml_integration_client.client_id }}-mellon.zip"
     wazuh_mellon_extract_dir: "/tmp/wazuh-mellon-{{ keycloak_saml_integration_client.client_id }}"
 
+- name: Ensure Mellon extract directory exists
+  ansible.builtin.file:
+    path: "{{ wazuh_mellon_extract_dir }}"
+    state: directory
+    mode: '0755'
+  when:
+    - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
+
 - name: Download mod_auth_mellon metadata ZIP from Keycloak
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/installation/providers/mod-auth-mellon"
