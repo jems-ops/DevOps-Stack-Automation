@@ -84,29 +84,45 @@
     remote_src: true
   when: wazuh_mellon_zip.stat.exists | default(false)
 
-- name: Stat Mellon idp-metadata.xml
-  ansible.builtin.stat:
-    path: "{{ wazuh_mellon_extract_dir }}/idp-metadata.xml"
-  register: wazuh_mellon_idp
+- name: Find Mellon idp metadata file
+  ansible.builtin.find:
+    paths: "{{ wazuh_mellon_extract_dir }}"
+    patterns:
+      - "idp-metadata.xml"
+      - "idp.metadata.xml"
+    recurse: true
+    file_type: file
+  register: wazuh_mellon_idp_find
   when: wazuh_mellon_zip.stat.exists | default(false)
 
-- name: Stat Mellon sp-metadata.xml
-  ansible.builtin.stat:
-    path: "{{ wazuh_mellon_extract_dir }}/sp-metadata.xml"
-  register: wazuh_mellon_sp
+- name: Find Mellon sp metadata file (optional)
+  ansible.builtin.find:
+    paths: "{{ wazuh_mellon_extract_dir }}"
+    patterns:
+      - "sp-metadata.xml"
+      - "sp.metadata.xml"
+    recurse: true
+    file_type: file
+  register: wazuh_mellon_sp_find
   when: wazuh_mellon_zip.stat.exists | default(false)
 
-- name: Verify Mellon metadata contains idp-metadata.xml and sp-metadata.xml
+- name: Set Mellon metadata source paths
+  ansible.builtin.set_fact:
+    wazuh_mellon_idp_src: "{{ (((wazuh_mellon_idp_find | default({})).files | default([])) | map(attribute='path') | list | first) | default('') }}"
+    wazuh_mellon_sp_src: "{{ (((wazuh_mellon_sp_find | default({})).files | default([])) | map(attribute='path') | list | first) | default('') }}"
+
+- name: Verify Mellon metadata contains idp metadata (sp metadata optional)
   ansible.builtin.assert:
     that:
-      - wazuh_mellon_idp.stat.exists | default(false)
-      - wazuh_mellon_sp.stat.exists | default(false)
-    fail_msg: "mod-auth-mellon installation for client {{ keycloak_saml_integration_client.client_id }} did not contain idp-metadata.xml and sp-metadata.xml"
-  when: wazuh_mellon_zip.stat.exists | default(false)
+      - wazuh_mellon_idp_src | length > 0
+    fail_msg: "mod-auth-mellon installation for client {{ keycloak_saml_integration_client.client_id }} did not contain idp metadata (searched under {{ wazuh_mellon_extract_dir }})"
+  when:
+    - not ansible_check_mode
+    - wazuh_mellon_zip.stat.exists | default(false)
 
 - name: Install idp.metadata.xml from Mellon package
   ansible.builtin.copy:
-    src: "{{ wazuh_mellon_extract_dir }}/idp-metadata.xml"
+    src: "{{ wazuh_mellon_idp_src }}"
     dest: /etc/wazuh-indexer/opensearch-security/idp.metadata.xml
     owner: wazuh-indexer
     group: wazuh-indexer
@@ -114,11 +130,11 @@
     remote_src: true
   when:
     - not wazuh_idp_metadata.stat.exists | default(false)
-    - wazuh_mellon_idp.stat.exists | default(false)
+    - wazuh_mellon_idp_src | length > 0
 
-- name: Install sp.metadata.xml from Mellon package
+- name: Install sp.metadata.xml from Mellon package (if present)
   ansible.builtin.copy:
-    src: "{{ wazuh_mellon_extract_dir }}/sp-metadata.xml"
+    src: "{{ wazuh_mellon_sp_src }}"
     dest: /etc/wazuh-indexer/opensearch-security/sp.metadata.xml
     owner: wazuh-indexer
     group: wazuh-indexer
@@ -126,7 +142,7 @@
     remote_src: true
   when:
     - not wazuh_sp_metadata.stat.exists | default(false)
-    - wazuh_mellon_sp.stat.exists | default(false)
+    - wazuh_mellon_sp_src | length > 0
 
 - name: Write idp.metadata.xml from SAML descriptor (fallback)
   ansible.builtin.copy:
@@ -139,7 +155,7 @@
     - keycloak_saml_integration_saml_descriptor is defined
     - keycloak_saml_integration_saml_descriptor.content is defined
     - not wazuh_idp_metadata.stat.exists | default(false)
-    - not (wazuh_mellon_idp.stat.exists | default(false))
+    - wazuh_mellon_idp_src | default('') | length == 0
 
 # NOTE: sp.metadata.xml normally comes from Wazuh itself. For now we ensure the file
 # exists as a placeholder if it is missing, so config.yml references do not break.
@@ -152,7 +168,7 @@
     content: "<!-- placeholder Wazuh SP metadata -->\n"
   when:
     - not wazuh_sp_metadata.stat.exists | default(false)
-    - not (wazuh_mellon_sp.stat.exists | default(false))
+    - wazuh_mellon_sp_src | default('') | length == 0
 
 - name: Check Wazuh indexer config.yml exists
   ansible.builtin.stat:
