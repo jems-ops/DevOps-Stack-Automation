@@ -6,6 +6,7 @@
       📅 Installation time: {{ ansible_date_time.iso8601 }}
       🏠 Jenkins Home: {{ jenkins_home }}
       🔌 Jenkins Port: {{ jenkins_port }}
+      📦 Install method: {{ 'local RPM' if (jenkins_use_local_rpm | bool) else 'Jenkins repo' }}
 
 - name: Update package cache
   dnf:
@@ -31,25 +32,77 @@
   rpm_key:
     key: "{{ jenkins_repo_key_url }}"
     state: present
+  when: not (jenkins_use_local_rpm | bool)
 
 - name: Add Jenkins repository
   get_url:
     url: "{{ jenkins_repo_url }}"
     dest: /etc/yum.repos.d/jenkins.repo
     mode: '0644'
+  when: not (jenkins_use_local_rpm | bool)
 
-- name: Install Jenkins
+- name: Install Jenkins from repository
   dnf:
     name: jenkins
     state: present
   notify: restart jenkins
+  when: not (jenkins_use_local_rpm | bool)
 
-- name: Configure firewall for Jenkins
+- name: Copy Jenkins RPM to target (offline/local install)
+  copy:
+    src: "{{ jenkins_local_rpm_dir }}/{{ jenkins_local_rpm_filename }}"
+    dest: "{{ jenkins_local_rpm_dest }}"
+    mode: '0644'
+  when:
+    - jenkins_use_local_rpm | bool
+    - jenkins_local_rpm_copy | bool
+
+- name: Verify Jenkins RPM is present on target (offline/local install)
+  stat:
+    path: "{{ jenkins_local_rpm_dest }}"
+  register: jenkins_local_rpm_stat
+  when: jenkins_use_local_rpm | bool
+
+- name: Fail if Jenkins RPM is missing on target (offline/local install)
+  fail:
+    msg: >-
+      Jenkins RPM not found at {{ jenkins_local_rpm_dest }}.
+      Either set jenkins_local_rpm_copy=true and provide jenkins_local_rpm_dir/jenkins_local_rpm_filename,
+      or pre-stage the RPM (scp) and keep jenkins_local_rpm_copy=false.
+  when:
+    - jenkins_use_local_rpm | bool
+    - not (jenkins_local_rpm_stat.stat.exists | default(false))
+
+- name: Install Jenkins from local RPM (offline/local install)
+  dnf:
+    name: "{{ jenkins_local_rpm_dest }}"
+    state: present
+    disable_gpg_check: yes
+  notify: restart jenkins
+  when: jenkins_use_local_rpm | bool
+
+- name: Ensure firewalld is installed (if managing firewall)
+  dnf:
+    name: firewalld
+    state: present
+  when: jenkins_manage_firewalld | bool
+  ignore_errors: yes
+
+- name: Ensure firewalld service is running (if managing firewall)
+  systemd:
+    name: firewalld
+    enabled: true
+    state: started
+  when: jenkins_manage_firewalld | bool
+  ignore_errors: yes
+
+- name: Configure firewall for Jenkins (if managing firewall)
   firewalld:
     port: "{{ jenkins_port }}/tcp"
     permanent: yes
     state: enabled
     immediate: yes
+  when: jenkins_manage_firewalld | bool
   ignore_errors: yes
 
 - name: Ensure Jenkins service is enabled and started
@@ -57,6 +110,59 @@
     name: jenkins
     enabled: "{{ jenkins_service_enabled }}"
     state: "{{ jenkins_service_state }}"
+
+- name: Install Jenkins plugins bundle (optional)
+  block:
+    - name: Validate plugins archive source is provided
+      assert:
+        that:
+          - (jenkins_plugins_archive_url | length) > 0 or (jenkins_plugins_archive_local_path | length) > 0
+        fail_msg: >-
+          jenkins_install_plugins is true, but neither jenkins_plugins_archive_url nor
+          jenkins_plugins_archive_local_path is set.
+
+    - name: Ensure Jenkins plugins directory exists
+      file:
+        path: "{{ jenkins_plugins_dir }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_group }}"
+        mode: '0755'
+
+    - name: Download plugins archive to target
+      get_url:
+        url: "{{ jenkins_plugins_archive_url }}"
+        dest: "{{ jenkins_plugins_archive_dest }}"
+        mode: '0644'
+      when: (jenkins_plugins_archive_url | length) > 0
+
+    - name: Copy plugins archive to target
+      copy:
+        src: "{{ jenkins_plugins_archive_local_path }}"
+        dest: "{{ jenkins_plugins_archive_dest }}"
+        mode: '0644'
+      when: (jenkins_plugins_archive_url | length) == 0 and (jenkins_plugins_archive_local_path | length) > 0
+
+    - name: Extract plugins archive to Jenkins plugins directory
+      unarchive:
+        src: "{{ jenkins_plugins_archive_dest }}"
+        dest: "{{ jenkins_plugins_dir }}"
+        remote_src: true
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_group }}"
+      notify: restart jenkins
+
+    - name: Ensure plugin files ownership is correct
+      file:
+        path: "{{ jenkins_plugins_dir }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_group }}"
+        recurse: true
+  when: jenkins_install_plugins | bool
+
+- name: Apply any pending service restarts
+  meta: flush_handlers
 
 - name: Wait for Jenkins to start
   wait_for:
@@ -93,13 +199,16 @@
       • Initial Admin Password: {{ jenkins_admin_password.content | b64decode | trim }}
       {% endif %}
 
-      📊 Service Details:
+      📦 Installation:
+      • Method: {{ 'local RPM' if (jenkins_use_local_rpm | bool) else 'Jenkins repo' }}
+      • Java Package: {{ java_package }}
+
+      🔌 Service:
       • Jenkins Home: {{ jenkins_home }}
-      • Java Version: {{ java_package }}
       • Service Status: {{ jenkins_service_state }}
 
-      🔧 Next Steps:
-      1. Access Jenkins web interface
-      2. Complete initial setup wizard (if first install)
-      3. Install recommended plugins
-      4. Create admin user account
+      {% if jenkins_install_plugins | bool %}
+      🔌 Plugins:
+      • Plugins bundle installed to: {{ jenkins_plugins_dir }}
+      • Restart performed: yes (required for plugins to load)
+      {% endif %}

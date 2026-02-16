@@ -7,17 +7,42 @@ jenkins_user: jenkins
 jenkins_group: jenkins
 
 # Java configuration
+# NOTE: For Jenkins 2.492+ you may want Java 21 (e.g. java-21-openjdk)
 java_package: java-17-openjdk-devel
 
-# Jenkins repository configuration
+# Jenkins repository configuration (online install)
 jenkins_repo_url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
 jenkins_repo_key_url: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+# Offline/local RPM installation options
+jenkins_use_local_rpm: false
+# Directory on the control node containing the downloaded Jenkins RPM
+jenkins_local_rpm_dir: "{{ playbook_dir | default('.') }}/../jenkins-packages"
+# RPM filename to copy + install when using local RPMs
+jenkins_local_rpm_filename: jenkins-2.492.3-1.1.noarch.rpm
+# Destination path on the target host
+jenkins_local_rpm_dest: "/tmp/{{ jenkins_local_rpm_filename }}"
+# If false, the role will assume the RPM is already present on the target at jenkins_local_rpm_dest
+# (e.g., you copied it via scp ahead of time).
+jenkins_local_rpm_copy: true
+
+# Firewall configuration
+jenkins_manage_firewalld: true
+
+# Plugin bundle installation (optional)
+jenkins_install_plugins: false
+# Local plugin bundle path on the control node (tar.gz) OR set jenkins_plugins_archive_url
+jenkins_plugins_archive_local_path: ""
+jenkins_plugins_archive_url: ""
+jenkins_plugins_archive_dest: /tmp/jenkins-plugins.tar.gz
+jenkins_plugins_dir: "{{ jenkins_home }}/plugins"
 
 # Package management
 jenkins_required_packages:
   - wget
   - curl
   - git
+  - tar
 
 # Service configuration
 jenkins_service_enabled: yes

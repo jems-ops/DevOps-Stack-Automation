@@ -1,0 +1,36 @@
+---
+# Playbook: Install Jenkins Controller (offline/local RPM) + optional plugins bundle
+
+- name: Install Jenkins Controller (offline RPM)
+  hosts: jenkins_servers
+  gather_facts: yes
+  become: yes
+
+  vars:
+    # Install method
+    jenkins_use_local_rpm: true
+    jenkins_local_rpm_dir: "{{ playbook_dir }}/../jenkins-packages"
+    jenkins_local_rpm_filename: jenkins-2.492.3-1.1.noarch.rpm
+
+    # Java
+    java_package: java-21-openjdk
+
+    # Plugins (set to false if you don't have a bundle yet)
+    jenkins_install_plugins: true
+    jenkins_plugins_archive_local_path: "{{ playbook_dir }}/../jenkins-packages/jenkins-plugins.tar.gz"
+    jenkins_plugins_archive_dest: /tmp/jenkins-plugins.tar.gz
+
+  roles:
+    - role: install-jenkins
+      tags:
+        - jenkins
+        - install
+        - offline
+
+  post_tasks:
+    - name: Display next steps
+      ansible.builtin.debug:
+        msg:
+          - "✅ Jenkins installation complete"
+          - "URL: http://{{ inventory_hostname }}:{{ jenkins_port }}"
+          - "If this is a first-time install, retrieve the initial admin password from: {{ jenkins_home }}/secrets/initialAdminPassword"
