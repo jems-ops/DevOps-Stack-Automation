@@ -115,13 +115,13 @@
 - name: Wait for nginx to start with SSL
   wait_for:
     port: "{{ nginx_https_port }}"
-    host: "{{ inventory_hostname }}"
+    host: 127.0.0.1
     delay: 5
     timeout: 60
 
 - name: Test HTTPS connections for each backend
   uri:
-    url: "https://{{ inventory_hostname }}"
+    url: https://127.0.0.1
     method: GET
     headers:
       Host: "{{ item.server_name }}"
