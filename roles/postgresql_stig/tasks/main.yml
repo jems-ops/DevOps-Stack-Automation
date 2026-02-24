@@ -1,8 +1,15 @@
 ---
 ############################################################
 # PostgreSQL STIG Enforcement Role (Consolidated)
+#
+# DISA STIG note:
+# - You indicated finding IDs are in the V-2140XX series.
+# - This role annotates each enforcement step with "V-2140XX" as a placeholder.
+# - Replace XX with the exact finding ID from your PostgreSQL STIG release (Version/Release).
 ############################################################
 
+# STIG mapping (V-2140XX support): validate we're enforcing controls against the intended PostgreSQL instance.
+# This prevents "false compliant" runs where we would edit the wrong service or wrong config path.
 - name: PostgreSQL STIG | Verify PostgreSQL service exists
   become: true
   ansible.builtin.command: "systemctl status {{ postgresql_stig_service_name }}"
@@ -11,6 +18,8 @@
   tags:
     - always
 
+# STIG mapping (V-2140XX support): ensure required PostgreSQL configuration files are present so compliance settings
+# can be applied (postgresql.conf + pg_hba.conf).
 - name: PostgreSQL STIG | Validate PostgreSQL config files exist
   ansible.builtin.stat:
     path: "{{ item }}"
@@ -22,6 +31,7 @@
   tags:
     - always
 
+# STIG mapping (V-2140XX support): fail fast when required configuration files are missing.
 - name: PostgreSQL STIG | Fail when PostgreSQL config paths are missing
   ansible.builtin.fail:
     msg: >-
@@ -45,6 +55,7 @@
     - postgresql
     - stig
   block:
+    # STIG ID: V-2140XX - limit the number of concurrent connections to reduce risk of resource exhaustion / DoS.
     - name: Set max_connections
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -54,6 +65,8 @@
         backup: true
       notify: restart postgresql
 
+    # STIG ID: V-2140XX - enforce session keepalive and statement timeout controls to detect/terminate stale sessions
+    # and reduce impact of hung/long-running queries.
     - name: PostgreSQL STIG | Enforce connection and timeout controls
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -70,6 +83,7 @@
         - postgresql_stig_connection_timeout_settings is defined
         - postgresql_stig_connection_timeout_settings | length > 0
 
+    # STIG ID: V-2140XX - prevent excessive informational messages from being returned to clients (information disclosure).
     - name: Set client_min_messages to error
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -79,6 +93,8 @@
         backup: true
       notify: restart postgresql
 
+    # STIG ID: V-2140XX - enforce strong authentication for local/loopback connections (SCRAM) and avoid weak trust methods.
+    # Note: This role manages a small "known-good" baseline; environment-specific access should be layered separately.
     - name: Enforce secure pg_hba rules
       ansible.builtin.blockinfile:
         path: "{{ postgresql_stig_hba_file }}"
@@ -96,6 +112,7 @@
           host    all             all             ::1/128                 scram-sha-256
       notify: restart postgresql
 
+    # STIG ID: V-2140XX - enable audit extension support (pgaudit) to ensure required audit records can be generated.
     - name: Ensure pgaudit package is installed (optional)
       ansible.builtin.package:
         name: "{{ postgresql_stig_pgaudit_package }}"
@@ -104,6 +121,7 @@
       failed_when: postgresql_stig_pgaudit_required | bool and (postgresql_stig__pgaudit_pkg is failed)
       when: postgresql_stig_pgaudit_enabled | bool
 
+    # STIG ID: V-2140XX - ensure audit provider is loaded at server start (shared_preload_libraries).
     - name: Query current shared_preload_libraries (optional)
       become_user: "{{ postgresql_stig_postgres_user }}"
       ansible.builtin.command: "psql -tA -d postgres -c 'show shared_preload_libraries'"
@@ -115,6 +133,7 @@
         - postgresql_stig__pgaudit_pkg is defined
         - not (postgresql_stig__pgaudit_pkg.failed | default(false))
 
+    # STIG ID: V-2140XX - compute + apply a safe shared_preload_libraries value that includes pgaudit.
     - name: Compute desired shared_preload_libraries with pgaudit
       ansible.builtin.set_fact:
         postgresql_stig__spl_current: "{{ postgresql_stig__spl.stdout | default('') | trim }}"
@@ -123,6 +142,7 @@
         - postgresql_stig__pgaudit_pkg is defined
         - not (postgresql_stig__pgaudit_pkg.failed | default(false))
 
+    # STIG ID: V-2140XX - compute + apply a safe shared_preload_libraries value that includes pgaudit.
     - name: Compute desired shared_preload_libraries with pgaudit
       ansible.builtin.set_fact:
         postgresql_stig__spl_list: >-
@@ -137,6 +157,7 @@
         - postgresql_stig__pgaudit_pkg is defined
         - not (postgresql_stig__pgaudit_pkg.failed | default(false))
 
+    # STIG ID: V-2140XX - enforce audit provider is loaded (requires restart).
     - name: Set shared_preload_libraries to include pgaudit
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -150,6 +171,7 @@
         - postgresql_stig__pgaudit_pkg is defined
         - not (postgresql_stig__pgaudit_pkg.failed | default(false))
 
+    # STIG ID: V-2140XX - configure audit/log forwarding to an approved central logging facility (syslog).
     - name: Configure PostgreSQL to log to syslog
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -161,6 +183,7 @@
       tags:
         - logging
 
+    # STIG ID: V-2140XX - disable local log file collection by default (prefer syslog/centralized logging).
     - name: Disable logging_collector
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -172,6 +195,7 @@
       tags:
         - logging
 
+    # STIG ID: V-2140XX - log connection lifecycle events and include required identifiers for audit traceability.
     - name: PostgreSQL STIG | Enforce logging connection controls
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -188,6 +212,8 @@
         - postgresql_stig_logging_connection_settings is defined
         - postgresql_stig_logging_connection_settings | length > 0
 
+    # STIG ID: V-2140XX - (conditional) when file logging is enabled, enforce an explicit log location/name for
+    # controlled retention + access controls.
     - name: Set log_directory (only when logging_collector is on)
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -200,6 +226,7 @@
       tags:
         - logging
 
+    # STIG ID: V-2140XX - (conditional) when file logging is enabled, enforce an explicit log filename pattern.
     - name: Set log_filename (only when logging_collector is on)
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -212,9 +239,11 @@
       tags:
         - logging
 
+    # Operational: ensure configuration changes (restart/reload) take effect before dependent roles execute.
     - name: Flush handlers (apply PostgreSQL restart/reload before next roles)
       ansible.builtin.meta: flush_handlers
 
+    # STIG ID: V-2140XX - ensure the PostgreSQL service is enabled and running (required for compliant operation).
     - name: Ensure PostgreSQL service is running
       ansible.builtin.systemd:
         name: "{{ postgresql_stig_service_name }}"
