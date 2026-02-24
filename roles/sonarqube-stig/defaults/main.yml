@@ -1,0 +1,35 @@
+---
+# Default variables for SonarQube STIG wrapper role
+
+# Master enable/disable switch for this wrapper role
+sonarqube_stig_enabled: true
+
+# When true, the role will include the upstream RHEL8 STIG baseline role vendored at roles/rhel8-stig
+sonarqube_stig_run_rhel8_stig: true
+
+# Optional safety check: fail if the target host is not EL8
+sonarqube_stig_enforce_el8: true
+
+# Variables to pass to the upstream roles/rhel8-stig role.
+# Use this to tailor/disable individual DISA_STIG_* controls that conflict with SonarQube.
+#
+# Example:
+# sonarqube_stig_rhel8_stig_vars:
+#   DISA_STIG_RHEL_08_040135: false
+#   package_fapolicyd_installed: false
+#
+sonarqube_stig_rhel8_stig_vars: {}
+
+# Protect the SSH connection user from being locked out during hardening.
+# This is a best-effort mitigation for labs where the password age is already older than the STIG max age,
+# which can cause immediate "password expired" prompts and break non-interactive automation.
+sonarqube_stig_protect_connection_user: true
+
+# If empty, defaults to the current connection username (ansible_user).
+sonarqube_stig_protected_users: []
+
+# After STIG is applied, ensure SonarQube service is enabled and running.
+# (Assumes SonarQube has already been installed and a systemd unit named 'sonarqube' exists.)
+sonarqube_stig_ensure_sonarqube_service: true
+sonarqube_stig_sonarqube_service_name: sonarqube
+sonarqube_stig_sonarqube_port: 9000

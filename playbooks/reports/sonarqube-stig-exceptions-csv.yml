@@ -1,0 +1,33 @@
+---
+- name: Generate SonarQube STIG exception CSV report
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars_files:
+    - ../../group_vars/sonarqube/main.yml
+
+  vars:
+    ansible_become: false
+    output_path: "{{ playbook_dir }}/../../reports/sonarqube-stig-exceptions.csv"
+
+  tasks:
+    - name: Ensure reports directory exists
+      become: false
+      ansible.builtin.file:
+        path: "{{ output_path | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Render CSV
+      become: false
+      ansible.builtin.template:
+        src: templates/sonarqube-stig-exceptions.csv.j2
+        dest: "{{ output_path }}"
+        mode: "0644"
+
+    - name: Report output location
+      become: false
+      ansible.builtin.debug:
+        msg: "Wrote {{ output_path }}"

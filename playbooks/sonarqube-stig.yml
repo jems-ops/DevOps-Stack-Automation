@@ -1,0 +1,6 @@
+---
+# NOTE: This file is kept for backward compatibility.
+# Prefer playbooks/sonarqube-stig.yaml.
+
+- name: SonarQube base OS STIG + service stage
+  ansible.builtin.import_playbook: services/sonarqube-stig.yml

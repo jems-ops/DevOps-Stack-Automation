@@ -1,0 +1,9 @@
+---
+# Orchestrator: run base OS STIG hardening first, then (re)install/verify SonarQube service.
+# Usage examples:
+#   ansible-playbook -i inventory playbooks/sonarqube-stig.yaml
+#   ansible-playbook -i inventory playbooks/sonarqube-stig.yaml -e target_hosts=sonarqube
+#   ansible-playbook -i inventory playbooks/sonarqube-stig.yaml -e target_hosts=sonar.local
+
+- name: SonarQube base OS STIG + service stage
+  ansible.builtin.import_playbook: services/sonarqube-stig.yml

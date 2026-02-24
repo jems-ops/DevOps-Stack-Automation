@@ -1,9 +1,9 @@
 ---
 galaxy_info:
-  role_name: install_sonarqube
+  role_name: sonarqube_stig
   namespace: jimi_automation
   author: Jimi
-  description: Install and configure SonarQube with PostgreSQL on Rocky Linux 9
+  description: Wrapper role to apply the RedHatOfficial RHEL8 STIG baseline with SonarQube-specific tailoring.
   license: MIT
   min_ansible_version: 2.9
 
@@ -11,14 +11,12 @@ galaxy_info:
     - name: EL
       versions:
         - 8
-        - 9
 
   galaxy_tags:
     - sonarqube
-    - code-quality
-    - static-analysis
-    - postgresql
-    - rocky
-    - rhel
+    - stig
+    - disa
+    - rhel8
+    - hardening
 
 dependencies: []

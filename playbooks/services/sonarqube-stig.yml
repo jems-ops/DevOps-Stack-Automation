@@ -1,0 +1,30 @@
+---
+# Convenience entrypoint that enforces ordering:
+# 1) Base OS RHEL8 STIG baseline must run first
+# 2) Then apply SonarQube-specific STIG wrapper role
+#
+# Usage:
+#   ansible-playbook -i inventory playbooks/services/sonarqube-stig.yml -kK
+#   ansible-playbook -i inventory playbooks/services/sonarqube-stig.yml -kK -e target_hosts=sonar.local
+
+- name: Apply base OS RHEL8 STIG baseline first
+  ansible.builtin.import_playbook: ../baseos/rhel8-stig.yml
+  vars:
+    # Default target if user doesn't pass -e target_hosts=...
+    # Extra-vars will override this.
+    target_hosts: sonarqube
+
+- name: Apply SonarQube + PostgreSQL STIG roles
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: yes
+  become: true
+
+  roles:
+    # PostgreSQL lives on the SonarQube hosts in this lab.
+    # Override pgver / pgdata_path / postgres_service_name via inventory or -e as needed.
+    - role: postgresql_stig
+
+    - role: sonarqube-stig
+      vars:
+        # Base OS STIG already ran above; do not re-run the full baseline here.
+        sonarqube_stig_run_rhel8_stig: false

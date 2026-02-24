@@ -1,0 +1,114 @@
+---
+- name: Display SonarQube STIG role information
+  ansible.builtin.debug:
+    msg: |
+      🔒 Applying SonarQube STIG baseline on {{ inventory_hostname }}
+      📅 Execution time: {{ ansible_date_time.iso8601 | default('unknown') }}
+      🧩 Wrapper role: sonarqube-stig
+      🧱 Upstream baseline: roles/rhel8-stig
+  tags:
+    - always
+
+- name: Ensure target is EL8 when enforcement enabled
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - (ansible_distribution_major_version | string) == '8'
+    fail_msg: >-
+      sonarqube-stig is intended for RHEL/EL 8 targets (detected:
+      {{ ansible_distribution }} {{ ansible_distribution_version }}).
+    success_msg: Target OS is EL8.
+  when: sonarqube_stig_enforce_el8 | bool
+  tags:
+    - always
+
+- name: Determine protected users list
+  ansible.builtin.set_fact:
+    sonarqube_stig__protected_users: >-
+      {{ (sonarqube_stig_protected_users | default([]))
+         if (sonarqube_stig_protected_users | default([]) | length) > 0
+         else [ansible_user | default(ansible_user_id)] }}
+  when: sonarqube_stig_protect_connection_user | bool
+  tags:
+    - always
+
+- name: Reset password last-change date for protected users (best-effort)
+  ansible.builtin.command: "chage -d {{ ansible_date_time.date }} {{ item }}"
+  register: sonarqube_stig__chage_result
+  changed_when: sonarqube_stig__chage_result.rc == 0
+  failed_when: false
+  loop: "{{ sonarqube_stig__protected_users | default([]) }}"
+  when:
+    - sonarqube_stig_protect_connection_user | bool
+    - sonarqube_stig__protected_users is iterable
+    - (sonarqube_stig__protected_users | length) > 0
+  tags:
+    - always
+
+- name: Apply upstream RHEL8 STIG variable overrides (host-scoped)
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ sonarqube_stig_rhel8_stig_vars | dict2items }}"
+  when:
+    - sonarqube_stig_enabled | bool
+    - sonarqube_stig_run_rhel8_stig | bool
+    - sonarqube_stig_rhel8_stig_vars is mapping
+    - (sonarqube_stig_rhel8_stig_vars | length) > 0
+  tags:
+    - always
+
+- name: Apply upstream RHEL8 STIG baseline
+  ansible.builtin.include_role:
+    name: rhel8-stig
+  when:
+    - sonarqube_stig_enabled | bool
+    - sonarqube_stig_run_rhel8_stig | bool
+  tags:
+    - stig
+    - rhel8_stig
+    - sonarqube_stig
+
+- name: Check whether SonarQube systemd unit exists
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/{{ sonarqube_stig_sonarqube_service_name }}.service"
+  register: sonarqube_stig__sonarqube_unit
+  changed_when: false
+  tags:
+    - sonarqube
+    - service
+
+- name: Ensure SonarQube service is enabled and running (post-STIG)
+  ansible.builtin.systemd:
+    name: "{{ sonarqube_stig_sonarqube_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  when:
+    - sonarqube_stig_ensure_sonarqube_service | bool
+    - sonarqube_stig__sonarqube_unit.stat.exists | default(false)
+  tags:
+    - sonarqube
+    - service
+
+- name: Wait for SonarQube port to be reachable (post-STIG)
+  ansible.builtin.wait_for:
+    port: "{{ sonarqube_stig_sonarqube_port }}"
+    delay: 5
+    timeout: 120
+  when:
+    - sonarqube_stig_ensure_sonarqube_service | bool
+    - sonarqube_stig__sonarqube_unit.stat.exists | default(false)
+  tags:
+    - sonarqube
+    - verify
+
+- name: Skip SonarQube service checks when SonarQube is not installed
+  ansible.builtin.debug:
+    msg: >-
+      SonarQube systemd unit was not found; skipping service enable/start and port check.
+  when:
+    - sonarqube_stig_ensure_sonarqube_service | bool
+    - not (sonarqube_stig__sonarqube_unit.stat.exists | default(false))
+  tags:
+    - sonarqube
+    - verify

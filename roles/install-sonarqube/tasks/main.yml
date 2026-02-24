@@ -44,25 +44,119 @@
     system: yes
     create_home: no
 
-- name: Initialize PostgreSQL database
-  command: postgresql-setup --initdb
+- name: Initialize PostgreSQL database (idempotent)
+  ansible.builtin.command:
+    cmd: postgresql-setup --initdb
+    creates: /var/lib/pgsql/data/PG_VERSION
   register: postgres_init
-  failed_when: postgres_init.rc != 0 and "already initialized" not in postgres_init.stdout
   changed_when: postgres_init.rc == 0
 
 - name: Start and enable PostgreSQL service
-  systemd:
+  ansible.builtin.systemd:
     name: "{{ postgresql_service_name }}"
     state: started
     enabled: yes
+
+- name: Ensure PostgreSQL uses SCRAM password encryption (required for scram-sha-256 pg_hba rules)
+  block:
+    - name: Get postgresql.conf path from PostgreSQL
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -tAc "show config_file;"
+      register: postgresql_config_file_cmd
+      changed_when: false
+
+    - name: Set postgresql.conf path fact
+      ansible.builtin.set_fact:
+        postgresql_conf_file: "{{ postgresql_config_file_cmd.stdout | trim }}"
+
+    - name: Configure password_encryption = scram-sha-256
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_conf_file }}"
+        regexp: "^#?\\s*password_encryption\\s*="
+        line: "password_encryption = 'scram-sha-256'"
+      notify: restart postgresql
+
+    - name: Flush handlers so PostgreSQL restarts before role password is set
+      ansible.builtin.meta: flush_handlers
+
+- name: Configure PostgreSQL auth for SonarQube on localhost (avoid ident)
+  block:
+    - name: Get pg_hba.conf path from PostgreSQL
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -tAc "show hba_file;"
+      register: postgresql_pg_hba_file_cmd
+      changed_when: false
+
+    - name: Set pg_hba.conf path fact
+      ansible.builtin.set_fact:
+        postgresql_pg_hba_file: "{{ postgresql_pg_hba_file_cmd.stdout | trim }}"
+
+- name: Remove existing SonarQube pg_hba localhost rule (IPv4) so we can re-insert in correct order
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_pg_hba_file }}"
+    regexp: "^host\\s+{{ postgresql_db_name }}\\s+{{ postgresql_db_user }}\\s+127\\.0\\.0\\.1/32\\s+"
+    state: absent
+  notify: restart postgresql
+
+- name: Allow SonarQube DB password auth on localhost (IPv4) (must be before generic ident rule)
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_pg_hba_file }}"
+    line: "host    {{ postgresql_db_name }}    {{ postgresql_db_user }}    127.0.0.1/32    scram-sha-256"
+    insertbefore: "^host\\s+all\\s+all\\s+127\\.0\\.0\\.1/32\\s+"
+  notify: restart postgresql
+
+- name: Remove existing SonarQube pg_hba localhost rule (IPv6) so we can re-insert in correct order
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_pg_hba_file }}"
+    regexp: "^host\\s+{{ postgresql_db_name }}\\s+{{ postgresql_db_user }}\\s+::1/128\\s+"
+    state: absent
+  notify: restart postgresql
+
+- name: Allow SonarQube DB password auth on localhost (IPv6) (must be before generic ident rule)
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_pg_hba_file }}"
+    line: "host    {{ postgresql_db_name }}    {{ postgresql_db_user }}    ::1/128         scram-sha-256"
+    insertbefore: "^host\\s+all\\s+all\\s+::1/128\\s+"
+  notify: restart postgresql
+
+- name: Flush handlers so PostgreSQL restarts before SonarQube connects
+  ansible.builtin.meta: flush_handlers
 
 - name: Create SonarQube database user
   become_user: postgres
   postgresql_user:
     name: "{{ postgresql_db_user }}"
     password: "{{ postgresql_db_password }}"
-    encrypted: yes
     state: present
+
+- name: Check SonarQube DB user password hash format
+  become_user: postgres
+  ansible.builtin.command:
+    cmd: >-
+      psql -tAc "select case
+        when rolpassword like 'SCRAM-SHA-256$%' then 'scram'
+        when rolpassword like 'md5%' then 'md5'
+        when rolpassword is null then 'null'
+        else 'other'
+      end
+      from pg_authid where rolname='{{ postgresql_db_user }}';"
+  register: postgresql_sonar_pw_format
+  changed_when: false
+  failed_when: false
+
+- name: Re-set SonarQube DB user password to generate a SCRAM secret
+  become_user: postgres
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -v
+      - "pass={{ postgresql_db_password }}"
+      - -tAc
+      - "ALTER ROLE {{ postgresql_db_user }} PASSWORD :'pass';"
+  when: (postgresql_sonar_pw_format.stdout | trim) != 'scram'
+  no_log: true
 
 - name: Create SonarQube database
   become_user: postgres
@@ -161,19 +255,22 @@
     state: "{{ sonarqube_service_state }}"
     daemon_reload: yes
 
-- name: Wait for SonarQube to start
+- name: Wait for SonarQube to start (local)
   wait_for:
     port: "{{ sonarqube_port }}"
-    host: "{{ inventory_hostname }}"
+    host: 127.0.0.1
     delay: 10
-    timeout: 300
+    timeout: 600
   when: sonarqube_service_state == "started"
 
-- name: Test SonarQube web interface
+- name: Test SonarQube web interface (local)
   uri:
-    url: "http://{{ inventory_hostname }}:{{ sonarqube_port }}"
+    url: "http://127.0.0.1:{{ sonarqube_port }}"
     method: GET
     timeout: 10
+    status_code:
+      - 200
+      - 302
   register: sonarqube_status_check
   ignore_errors: yes
 

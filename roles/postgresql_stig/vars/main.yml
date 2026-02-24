@@ -1,0 +1,16 @@
+---
+# postgresql_stig role vars (constants)
+
+postgresql_stig_supported_data_dirs:
+  - /var/lib/pgsql/15/data
+  - /var/lib/pgsql/data
+  - /var/lib/pgsql/13/data
+  - /var/lib/pgsql/14/data
+  - /var/lib/pgsql/16/data
+
+postgresql_stig_supported_service_units:
+  - postgresql-15.service
+  - postgresql.service
+  - postgresql-13.service
+  - postgresql-14.service
+  - postgresql-16.service

@@ -1,0 +1,46 @@
+---
+- name: Apply upstream RHEL8 STIG baseline - base OS
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - name: Pre-clean invalid CRYPTO_POLICY directives from opensshserver crypto policy configs (best-effort)
+      block:
+        - name: Remove CRYPTO_POLICY lines from opensshserver backend config
+          ansible.builtin.lineinfile:
+            path: /etc/crypto-policies/back-ends/opensshserver.config
+            regexp: '^\s*CRYPTO_POLICY=.*$'
+            state: absent
+          register: baseos__opensshserver_backend_clean
+          failed_when: false
+
+        - name: Remove CRYPTO_POLICY lines from opensshserver local override (if present)
+          ansible.builtin.lineinfile:
+            path: /etc/crypto-policies/local.d/opensshserver-ssg.config
+            regexp: '^\s*CRYPTO_POLICY=.*$'
+            state: absent
+          register: baseos__opensshserver_local_clean
+          failed_when: false
+
+        - name: Regenerate crypto policy backends if CRYPTO_POLICY lines were removed
+          ansible.builtin.command:
+            cmd: update-crypto-policies --no-reload
+          changed_when: true
+          failed_when: false
+          when:
+            - (baseos__opensshserver_backend_clean.changed | default(false)) or (baseos__opensshserver_local_clean.changed | default(false))
+      tags:
+        - always
+
+    - name: Apply optional RHEL8 STIG override variables (best-effort)
+      ansible.builtin.set_fact:
+        "{{ item.key }}": "{{ item.value }}"
+      loop: "{{ (baseos_rhel8_stig_vars | default({})) | dict2items }}"
+      when:
+        - baseos_rhel8_stig_vars is defined
+        - baseos_rhel8_stig_vars is mapping
+        - (baseos_rhel8_stig_vars | length) > 0
+
+  roles:
+    - role: rhel8-stig

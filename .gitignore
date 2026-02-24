@@ -48,6 +48,9 @@ molecule/.molecule/
 *~
 .DS_Store
 
+# Vagrant
+.vagrant/
+
 # OS generated files
 Thumbs.db
 ehthumbs.db
