@@ -21,8 +21,10 @@ This role currently enforces the following (simple, file-based) PostgreSQL harde
 - `max_connections` (via `pg_max_connections`)
 - `client_min_messages = error`
 - Local `pg_hba.conf` rules to require `scram-sha-256` for `127.0.0.1/32` and `::1/128`
-- Optional `pgaudit` enablement (installs `pg_pgaudit_package` and ensures `shared_preload_libraries` includes `pgaudit`)
-- Logging collector + log directory/filename (`logging_collector`, `log_directory`, `log_filename`)
+- Optional `pgaudit` enablement (installs `postgresql_stig_pgaudit_package` and ensures `shared_preload_libraries` includes `pgaudit`)
+- Connection + timeout controls (`tcp_keepalives_*`, `statement_timeout`)
+- Syslog logging (`log_destination = 'syslog'`) and disables `logging_collector` by default
+- (Optional) log directory/filename if you enable the collector (`log_directory`, `log_filename`)
 
 ## Notes
 - The role defaults to PostgreSQL 15 paths/service and does not attempt cross-version auto-detection.

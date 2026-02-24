@@ -17,13 +17,30 @@ postgresql_stig_fail_when_paths_missing: true
 # Settings
 postgresql_stig_max_connections: 100
 
+# Connection and timeout controls
+postgresql_stig_connection_timeout_settings:
+  - { key: "tcp_keepalives_idle", value: "600" }
+  - { key: "tcp_keepalives_interval", value: "30" }
+  - { key: "tcp_keepalives_count", value: "10" }
+  - { key: "statement_timeout", value: "900000" }
+
+# Logging connection/audit controls
+postgresql_stig_logging_connection_settings:
+  - { key: "log_connections", value: "on" }
+  - { key: "log_disconnections", value: "on" }
+  - { key: "log_line_prefix", value: "'< %m %u %d %c >'" }
+
 # pgaudit
 postgresql_stig_pgaudit_enabled: true
 # Package naming differs by distro/repo (examples: pgaudit, pgaudit_15)
 postgresql_stig_pgaudit_package: pgaudit
 postgresql_stig_pgaudit_required: false
 
-# Logging collector
-postgresql_stig_logging_collector: "on"
+# Logging
+# For STIG, we default to syslog and disable the logging collector.
+postgresql_stig_log_destination: "syslog"
+postgresql_stig_logging_collector: "off"
+
+# Only applies when postgresql_stig_logging_collector is "on"
 postgresql_stig_log_directory: "log"
 postgresql_stig_log_filename: "postgresql-%a.log"

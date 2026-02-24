@@ -54,6 +54,22 @@
         backup: true
       notify: restart postgresql
 
+    - name: PostgreSQL STIG | Enforce connection and timeout controls
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_stig_conf_file }}"
+        regexp: "^\\s*#?\\s*{{ item.key }}\\s*="
+        line: "{{ item.key }} = {{ item.value }}"
+        state: present
+        backup: true
+      loop: "{{ postgresql_stig_connection_timeout_settings }}"
+      notify: restart postgresql
+      tags:
+        - connection
+        - timeout
+      when:
+        - postgresql_stig_connection_timeout_settings is defined
+        - postgresql_stig_connection_timeout_settings | length > 0
+
     - name: Set client_min_messages to error
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
@@ -134,7 +150,18 @@
         - postgresql_stig__pgaudit_pkg is defined
         - not (postgresql_stig__pgaudit_pkg.failed | default(false))
 
-    - name: Enable logging_collector
+    - name: Configure PostgreSQL to log to syslog
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_stig_conf_file }}"
+        regexp: '^\s*#?\s*log_destination\s*='
+        line: "log_destination = '{{ postgresql_stig_log_destination }}'"
+        state: present
+        backup: true
+      notify: restart postgresql
+      tags:
+        - logging
+
+    - name: Disable logging_collector
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
         regexp: '^\s*#?\s*logging_collector\s*='
@@ -142,8 +169,26 @@
         state: present
         backup: true
       notify: restart postgresql
+      tags:
+        - logging
 
-    - name: Set log_directory
+    - name: PostgreSQL STIG | Enforce logging connection controls
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_stig_conf_file }}"
+        regexp: "^\\s*#?\\s*{{ item.key }}\\s*="
+        line: "{{ item.key }} = {{ item.value }}"
+        state: present
+        backup: true
+      loop: "{{ postgresql_stig_logging_connection_settings }}"
+      notify: Reload PostgreSQL
+      tags:
+        - logging
+        - audit
+      when:
+        - postgresql_stig_logging_connection_settings is defined
+        - postgresql_stig_logging_connection_settings | length > 0
+
+    - name: Set log_directory (only when logging_collector is on)
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
         regexp: '^\s*#?\s*log_directory\s*='
@@ -151,8 +196,11 @@
         state: present
         backup: true
       notify: restart postgresql
+      when: (postgresql_stig_logging_collector | lower) == 'on'
+      tags:
+        - logging
 
-    - name: Set log_filename
+    - name: Set log_filename (only when logging_collector is on)
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
         regexp: '^\s*#?\s*log_filename\s*='
@@ -160,6 +208,9 @@
         state: present
         backup: true
       notify: restart postgresql
+      when: (postgresql_stig_logging_collector | lower) == 'on'
+      tags:
+        - logging
 
     - name: Flush handlers (apply PostgreSQL restart/reload before next roles)
       ansible.builtin.meta: flush_handlers
