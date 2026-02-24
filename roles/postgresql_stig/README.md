@@ -4,16 +4,16 @@ PostgreSQL hardening role used by `playbooks/services/sonarqube-stig.yml`.
 
 ## Defaults
 This role **defaults to PostgreSQL 15** (PGDG-style layout):
-- `postgres_service_name: postgresql-15`
-- `pg_data_dir: /var/lib/pgsql/15/data`
+- `postgresql_stig_service_name: postgresql-15`
+- `postgresql_stig_data_dir: /var/lib/pgsql/15/data`
 
 ## Parameterizing other versions/layouts
 If your host uses a different service name or data directory layout, override these variables in `group_vars` / inventory / `-e`:
 ```yaml
-postgres_service_name: postgresql
-pg_data_dir: /var/lib/pgsql/data
-pg_conf_file: "{{ pg_data_dir }}/postgresql.conf"
-pg_hba_file: "{{ pg_data_dir }}/pg_hba.conf"
+postgresql_stig_service_name: postgresql
+postgresql_stig_data_dir: /var/lib/pgsql/data
+postgresql_stig_conf_file: "{{ postgresql_stig_data_dir }}/postgresql.conf"
+postgresql_stig_hba_file: "{{ postgresql_stig_data_dir }}/pg_hba.conf"
 ```
 
 ## STIG fixes applied by this role

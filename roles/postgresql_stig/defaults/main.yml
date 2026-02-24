@@ -3,27 +3,27 @@
 # This role defaults to PostgreSQL 15 (PGDG-style layout).
 # Other versions/layouts must be provided via inventory/group_vars/-e.
 
-postgres_user: postgres
+postgresql_stig_postgres_user: postgres
 
 # PostgreSQL 15 defaults
-postgres_service_name: postgresql-15
-pg_data_dir: /var/lib/pgsql/15/data
-pg_conf_file: "{{ pg_data_dir }}/postgresql.conf"
-pg_hba_file: "{{ pg_data_dir }}/pg_hba.conf"
+postgresql_stig_service_name: postgresql-15
+postgresql_stig_data_dir: /var/lib/pgsql/15/data
+postgresql_stig_conf_file: "{{ postgresql_stig_data_dir }}/postgresql.conf"
+postgresql_stig_hba_file: "{{ postgresql_stig_data_dir }}/pg_hba.conf"
 
 # Fail fast when config files are not found
 postgresql_stig_fail_when_paths_missing: true
 
 # Settings
-pg_max_connections: 100
+postgresql_stig_max_connections: 100
 
 # pgaudit
-postgresql_stig_enable_pgaudit: true
+postgresql_stig_pgaudit_enabled: true
 # Package naming differs by distro/repo (examples: pgaudit, pgaudit_15)
-pg_pgaudit_package: pgaudit
-postgresql_stig_require_pgaudit: false
+postgresql_stig_pgaudit_package: pgaudit
+postgresql_stig_pgaudit_required: false
 
 # Logging collector
-pg_logging_collector: "on"
-pg_log_directory: "log"
-pg_log_filename: "postgresql-%a.log"
+postgresql_stig_logging_collector: "on"
+postgresql_stig_log_directory: "log"
+postgresql_stig_log_filename: "postgresql-%a.log"

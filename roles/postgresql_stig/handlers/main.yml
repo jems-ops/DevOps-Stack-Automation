@@ -2,11 +2,11 @@
 - name: reload postgresql
   become: true
   ansible.builtin.systemd:
-    name: "{{ postgres_service_name }}"
+    name: "{{ postgresql_stig_service_name }}"
     state: reloaded
 
 - name: restart postgresql
   become: true
   ansible.builtin.systemd:
-    name: "{{ postgres_service_name }}"
+    name: "{{ postgresql_stig_service_name }}"
     state: restarted
