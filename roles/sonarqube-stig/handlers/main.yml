@@ -1,0 +1,24 @@
+---
+- name: verify sonarqube
+  become: true
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ sonarqube_stig_sonarqube_port }}"
+    delay: 5
+    timeout: 120
+  listen: verify sonarqube
+
+- name: verify sonarqube http
+  become: true
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ sonarqube_stig_sonarqube_port }}/"
+    method: GET
+    timeout: 10
+    status_code:
+      - 200
+      - 302
+  register: sonarqube_stig__http_check
+  retries: 6
+  delay: 5
+  until: sonarqube_stig__http_check.status is defined and sonarqube_stig__http_check.status in [200, 302]
+  listen: verify sonarqube

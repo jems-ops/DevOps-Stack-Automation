@@ -1,35 +1,26 @@
 ---
 # Defaults for postgresql_stig
-# Keep these overridable from inventory/group_vars/-e.
+# This role defaults to PostgreSQL 15 (PGDG-style layout).
+# Other versions/layouts must be provided via inventory/group_vars/-e.
 
 postgres_user: postgres
 
-# Default to PostgreSQL 15 (PGDG-style). If you're using AppStream (postgresql.service + /var/lib/pgsql/data),
-# auto-detection will adjust automatically.
+# PostgreSQL 15 defaults
 postgres_service_name: postgresql-15
-postgresql_stig_autodetect_service: true
-
-# Default to PostgreSQL 15 data directory layout
 pg_data_dir: /var/lib/pgsql/15/data
 pg_conf_file: "{{ pg_data_dir }}/postgresql.conf"
 pg_hba_file: "{{ pg_data_dir }}/pg_hba.conf"
 
-# If true, try to query a running PostgreSQL instance for its real config paths.
-# This avoids hard-coding /var/lib/pgsql/<ver>/data vs /var/lib/pgsql/data.
-postgresql_stig_autodetect_paths: true
-
-# Fail fast when config files are not found (recommended)
+# Fail fast when config files are not found
 postgresql_stig_fail_when_paths_missing: true
 
 # Settings
 pg_max_connections: 100
-pg_role_connection_limits: []   # e.g. [{role: "appuser", limit: 5}]
 
 # pgaudit
 postgresql_stig_enable_pgaudit: true
-# Most distros call it 'pgaudit'. If you're using PGDG packages it may be pgaudit_13 / pgaudit_15 etc.
+# Package naming differs by distro/repo (examples: pgaudit, pgaudit_15)
 pg_pgaudit_package: pgaudit
-# When true, fail the play if pgaudit can't be installed.
 postgresql_stig_require_pgaudit: false
 
 # Logging collector

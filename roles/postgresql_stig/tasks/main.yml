@@ -3,73 +3,15 @@
 # PostgreSQL STIG Enforcement Role (Consolidated)
 ############################################################
 
-- name: PostgreSQL STIG | Gather service facts (for service auto-detection)
+- name: PostgreSQL STIG | Verify PostgreSQL service exists (no auto-detection)
   become: true
-  ansible.builtin.service_facts:
-  when: postgresql_stig_autodetect_service | bool
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Auto-detect PostgreSQL service name when default does not exist
-  ansible.builtin.set_fact:
-    postgres_service_name: >-
-      {{
-        (
-          (postgresql_stig_supported_service_units | default([]))
-          | select('in', (ansible_facts.services | default({}) | dict2items | map(attribute='key') | list))
-          | first
-          | default(postgres_service_name ~ '.service')
-        )
-        | regex_replace('\\.service$', '')
-      }}
-  when:
-    - postgresql_stig_autodetect_service | bool
-    - ansible_facts.services is defined
-    - (ansible_facts.services | length) > 0
-    - ((postgres_service_name ~ '.service') not in (ansible_facts.services | default({})))
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Auto-detect running PostgreSQL paths (data_directory/config_file/hba_file)
-  become: true
-  become_user: "{{ postgres_user }}"
-  ansible.builtin.command: >-
-    psql -tA -d postgres
-    -c "show data_directory"
-    -c "show config_file"
-    -c "show hba_file"
-    -c "show server_version"
-  register: postgresql_stig__psql_show
+  ansible.builtin.command: "systemctl status {{ postgres_service_name }}"
+  register: postgresql_stig__svc_status
   changed_when: false
-  failed_when: false
-  when: postgresql_stig_autodetect_paths | bool
   tags:
     - always
 
-- name: PostgreSQL STIG | Parse running PostgreSQL path output
-  ansible.builtin.set_fact:
-    postgresql_stig__show_lines: "{{ postgresql_stig__psql_show.stdout_lines | map('trim') | reject('equalto','') | list }}"
-  when:
-    - postgresql_stig_autodetect_paths | bool
-    - postgresql_stig__psql_show.rc == 0
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Set paths from running PostgreSQL when available
-  ansible.builtin.set_fact:
-    pg_data_dir: "{{ (postgresql_stig__show_lines[0] | default(pg_data_dir)) }}"
-    pg_conf_file: "{{ (postgresql_stig__show_lines[1] | default(pg_conf_file)) }}"
-    pg_hba_file: "{{ (postgresql_stig__show_lines[2] | default(pg_hba_file)) }}"
-    pg_server_version: "{{ (postgresql_stig__show_lines[3] | default('unknown')) }}"
-  when:
-    - postgresql_stig_autodetect_paths | bool
-    - postgresql_stig__psql_show.rc == 0
-    - postgresql_stig__show_lines is defined
-    - (postgresql_stig__show_lines | length) >= 3
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Validate PostgreSQL config files exist
+- name: PostgreSQL STIG | Validate PostgreSQL config files exist (no fallback)
   ansible.builtin.stat:
     path: "{{ item }}"
   loop:
@@ -80,63 +22,14 @@
   tags:
     - always
 
-- name: PostgreSQL STIG | Try fallback data-dir discovery when config paths are missing
-  ansible.builtin.stat:
-    path: "{{ item }}/postgresql.conf"
-  loop: "{{ postgresql_stig_supported_data_dirs | default([]) }}"
-  register: postgresql_stig__fallback_conf_stat
-  changed_when: false
-  when:
-    - postgresql_stig_fail_when_paths_missing | bool
-    - (postgresql_stig__conf_stat.results | selectattr('stat.exists','defined') | selectattr('stat.exists','equalto',false) | list | length) > 0
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Pick fallback data dir when found
-  ansible.builtin.set_fact:
-    postgresql_stig__fallback_data_dir: "{{ (postgresql_stig__fallback_conf_stat.results | default([]) | selectattr('stat','defined') | selectattr('stat.exists','equalto',true) | map(attribute='item') | first) }}"
-  when:
-    - postgresql_stig_fail_when_paths_missing | bool
-    - postgresql_stig__fallback_conf_stat is defined
-    - postgresql_stig__fallback_conf_stat.results is defined
-    - (postgresql_stig__fallback_conf_stat.results | default([]) | selectattr('stat','defined') | selectattr('stat.exists','equalto',true) | list | length) > 0
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Set pg_* paths from fallback data dir
-  ansible.builtin.set_fact:
-    pg_data_dir: "{{ postgresql_stig__fallback_data_dir }}"
-    pg_conf_file: "{{ postgresql_stig__fallback_data_dir }}/postgresql.conf"
-    pg_hba_file: "{{ postgresql_stig__fallback_data_dir }}/pg_hba.conf"
-  when:
-    - postgresql_stig_fail_when_paths_missing | bool
-    - postgresql_stig__fallback_data_dir is defined
-    - (postgresql_stig__fallback_data_dir | length) > 0
-  tags:
-    - always
-
-- name: PostgreSQL STIG | Re-validate PostgreSQL config files exist (after fallback)
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  loop:
-    - "{{ pg_conf_file }}"
-    - "{{ pg_hba_file }}"
-  register: postgresql_stig__conf_stat_after_fallback
-  changed_when: false
-  when:
-    - postgresql_stig_fail_when_paths_missing | bool
-    - postgresql_stig__fallback_conf_stat is defined
-    - postgresql_stig__fallback_conf_stat.results is defined
-  tags:
-    - always
-
 - name: PostgreSQL STIG | Fail when PostgreSQL config paths are missing
   ansible.builtin.fail:
     msg: >-
       PostgreSQL config file not found: {{ item.stat.path }}.
-      Detected (if running): {{ pg_server_version | default('unknown') }}.
-      Current vars: pg_data_dir={{ pg_data_dir }}, pg_conf_file={{ pg_conf_file }}, pg_hba_file={{ pg_hba_file }}.
-  loop: "{{ (postgresql_stig__conf_stat_after_fallback.results | default(postgresql_stig__conf_stat.results)) | default([]) }}"
+      Current vars: postgres_service_name={{ postgres_service_name }},
+      pg_data_dir={{ pg_data_dir }}, pg_conf_file={{ pg_conf_file }}, pg_hba_file={{ pg_hba_file }}.
+      If you're not using PostgreSQL 15 defaults, override these variables in inventory/group_vars.
+  loop: "{{ postgresql_stig__conf_stat.results | default([]) }}"
   when:
     - postgresql_stig_fail_when_paths_missing | bool
     - item.stat.exists is defined
@@ -144,203 +37,302 @@
   tags:
     - always
 
-- name: PostgreSQL STIG | Consolidated configuration
+- name: PostgreSQL STIG | Apply PostgreSQL settings
   become: true
   tags:
     - postgresql
     - stig
   block:
+    - name: Set max_connections
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*max_connections\s*='
+        line: "max_connections = {{ pg_max_connections }}"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-    ############################################################
-    # CONNECTION CONTROLS
-    ############################################################
-    - name: PostgreSQL STIG | Connection controls
+    - name: Set client_min_messages to error
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*client_min_messages\s*='
+        line: "client_min_messages = error"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+    - name: Enforce secure pg_hba rules
+      ansible.builtin.blockinfile:
+        path: "{{ pg_hba_file }}"
+        marker: "# {mark} ANSIBLE STIG MANAGED BLOCK"
+        insertbefore: BOF
+        backup: true
+        block: |
+          # Local connections
+          local   all             all                                     peer
+
+          # IPv4 local connections
+          host    all             all             127.0.0.1/32            scram-sha-256
+
+          # IPv6 local connections
+          host    all             all             ::1/128                 scram-sha-256
+      notify: restart postgresql
+
+    - name: Ensure pgaudit package is installed (optional)
+      ansible.builtin.package:
+        name: "{{ pg_pgaudit_package }}"
+        state: present
+      register: postgresql_stig__pgaudit_pkg
+      failed_when: postgresql_stig_require_pgaudit | bool and (postgresql_stig__pgaudit_pkg is failed)
+      when: postgresql_stig_enable_pgaudit | bool
+
+    - name: Query current shared_preload_libraries (optional)
+      become_user: "{{ postgres_user }}"
+      ansible.builtin.command: "psql -tA -d postgres -c 'show shared_preload_libraries'"
+      register: postgresql_stig__spl
+      changed_when: false
+      failed_when: false
+      when:
+        - postgresql_stig_enable_pgaudit | bool
+        - postgresql_stig__pgaudit_pkg is defined
+        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+
+    - name: Compute desired shared_preload_libraries with pgaudit
+      ansible.builtin.set_fact:
+        postgresql_stig__spl_current: "{{ postgresql_stig__spl.stdout | default('') | trim }}"
+      when:
+        - postgresql_stig_enable_pgaudit | bool
+        - postgresql_stig__pgaudit_pkg is defined
+        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+
+    - name: Set shared_preload_libraries to include pgaudit
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*shared_preload_libraries\s*='
+        line: >-
+          shared_preload_libraries = '{{
+            (((postgresql_stig__spl_current | default('') | length) > 0)
+              | ternary((postgresql_stig__spl_current.split(',')), []))
+            | map('trim')
+            | reject('equalto','')
+            | list
+            + ['pgaudit']
+            | unique
+            | join(', ')
+          }}'
+        state: present
+        backup: true
+      notify: restart postgresql
+      when:
+        - postgresql_stig_enable_pgaudit | bool
+        - postgresql_stig__pgaudit_pkg is defined
+        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+
+    - name: Enforce pgaudit.log categories (ddl, role, read, write)
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*pgaudit\.log\s*='
+        line: "pgaudit.log = 'ddl, role, read, write'"
+        state: present
+        backup: true
+      notify: restart postgresql
+      when:
+        - postgresql_stig_enable_pgaudit | bool
+        - postgresql_stig__pgaudit_pkg is defined
+        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+    - name: PostgreSQL STIG | Enable connection logging
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*log_connections\s*='
+        line: "log_connections = on"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+    - name: PostgreSQL STIG | Enable disconnection logging
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*log_disconnections\s*='
+        line: "log_disconnections = on"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+    - name: PostgreSQL STIG | Set log_line_prefix with required fields
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*log_line_prefix\s*='
+        line: "log_line_prefix = '< %m %a %u %d %r %p %c >'"
+        state: present
+        backup: true
+      notify: restart postgresql
       tags:
-        - connection
-      block:
-
-        - name: Set max_connections
-          lineinfile:
-            path: "{{ pg_conf_file }}"
-            regexp: '^\s*#?\s*max_connections\s*='
-            line: "max_connections = {{ pg_max_connections }}"
-            state: present
-            backup: true
-          notify: restart postgresql
-
-        - name: Get current role connection limits (for idempotency)
-          become_user: "{{ postgres_user }}"
-          when:
-            - pg_role_connection_limits is defined
-            - pg_role_connection_limits | length > 0
-          command: >
-            psql -tAc "SELECT rolname || ':' || rolconnlimit FROM pg_roles;"
-          register: _pg_role_limits
-          changed_when: false
-
-        - name: Enforce role connection limits
-          become_user: "{{ postgres_user }}"
-          when:
-            - pg_role_connection_limits is defined
-            - pg_role_connection_limits | length > 0
-          loop: "{{ pg_role_connection_limits }}"
-          loop_control:
-            label: "{{ item.role }}"
-          command: >
-            psql -tAc "ALTER ROLE {{ item.role }} CONNECTION LIMIT {{ item.limit }};"
-          changed_when: >-
-            {{
-              (_pg_role_limits.stdout is defined) and
-              ((item.role ~ ':' ~ (item.limit | string)) not in (_pg_role_limits.stdout_lines | default([])))
-            }}
-          notify: restart postgresql
-
-    ############################################################
-    # LOGGING CONTROLS
-    ############################################################
-    - name: PostgreSQL STIG | Logging controls
-      tags:
+        - postgresql
+        - stig
         - logging
-      block:
 
-        - name: Set client_min_messages to error
-          lineinfile:
-            path: "{{ pg_conf_file }}"
-            regexp: '^\s*#?\s*client_min_messages\s*='
-            line: "client_min_messages = error"
-            state: present
-            backup: true
-          notify: restart postgresql
+    - name: Enable logging_collector
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*logging_collector\s*='
+        line: "logging_collector = {{ pg_logging_collector }}"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-    ############################################################
-    # AUTHENTICATION CONTROLS
-    ############################################################
-    - name: PostgreSQL STIG | Authentication controls
-      tags:
-        - authentication
-      block:
+    - name: Set log_directory
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*log_directory\s*='
+        line: "log_directory = '{{ pg_log_directory }}'"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-        - name: Enforce secure pg_hba rules
-          blockinfile:
-            path: "{{ pg_hba_file }}"
-            marker: "# {mark} ANSIBLE STIG MANAGED BLOCK"
-            insertbefore: BOF
-            backup: true
-            block: |
-              # Local connections
-              local   all             all                                     peer
+    - name: Set log_filename
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*log_filename\s*='
+        line: "log_filename = '{{ pg_log_filename }}'"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-              # IPv4 local connections
-              host    all             all             127.0.0.1/32            scram-sha-256
+    - name: Flush handlers (apply PostgreSQL restart/reload before next roles)
+      ansible.builtin.meta: flush_handlers
 
-              # IPv6 local connections
-              host    all             all             ::1/128                 scram-sha-256
-          notify: restart postgresql
+    - name: Ensure PostgreSQL service is running
+      ansible.builtin.systemd:
+        name: "{{ postgres_service_name }}"
+        state: started
+        enabled: true
 
-    ############################################################
-    # AUDIT CONTROLS (pgaudit + logging collector)
-    ############################################################
-    - name: PostgreSQL STIG | Audit controls (pgaudit)
-      tags:
-        - audit
-        - pgaudit
-        - logging
-      block:
+############################################################
+# SSL CONTROLS
+############################################################
 
-        - name: Ensure pgaudit package is installed (best-effort)
-          ansible.builtin.package:
-            name: "{{ pg_pgaudit_package }}"
-            state: present
-          register: postgresql_stig__pgaudit_pkg
-          failed_when: postgresql_stig_require_pgaudit | bool and (postgresql_stig__pgaudit_pkg is failed)
+- name: PostgreSQL STIG | SSL configuration
+  become: true
+  tags:
+    - postgresql
+    - stig
+    - ssl
+  block:
 
-        - name: Read postgresql.conf
-          ansible.builtin.slurp:
-            src: "{{ pg_conf_file }}"
-          register: _pg_conf_slurp
-          when:
-            - postgresql_stig_enable_pgaudit | bool
-            - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+    - name: Enable SSL
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*ssl\s*='
+        line: "ssl = on"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-        - name: Parse shared_preload_libraries from postgresql.conf
-          ansible.builtin.set_fact:
-            _existing_spl_line: >-
-              {{
-                (
-                  (_pg_conf_slurp.content | b64decode)
-                  | regex_findall("(?m)^\\s*#?\\s*shared_preload_libraries\\s*=\\s*'?([^\\n']*)'?\\s*$")
-                  | default([])
-                  | first
-                )
-                | default('')
-              }}
-          when:
-            - postgresql_stig_enable_pgaudit | bool
-            - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+    - name: Enforce strong password encryption (SCRAM)
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*password_encryption\s*='
+        line: "password_encryption = scram-sha-256"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-        - name: Compute shared_preload_libraries list
-          ansible.builtin.set_fact:
-            _spl_list: >-
-              {{
-                (
-                  (_existing_spl_line | default('') | length > 0)
-                  | ternary((_existing_spl_line | default('')).split(','), [])
-                )
-                | map('trim')
-                | reject('equalto','')
-                | list
-              }}
-          when:
-            - postgresql_stig_enable_pgaudit | bool
-            - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+    - name: Enforce hostssl rules with client certificate requirement
+      blockinfile:
+        path: "{{ pg_data_dir }}/pg_hba.conf"
+        marker: "# {mark} ANSIBLE STIG SSL MANAGED BLOCK"
+        backup: true
+        block: |
+          # Enforce SSL connections only
+          hostssl all all 0.0.0.0/0 scram-sha-256 clientcert=1
+          hostssl all all ::0/0      scram-sha-256 clientcert=1
+      notify: restart postgresql
 
-        - name: Compute shared_preload_libraries with pgaudit included
-          ansible.builtin.set_fact:
-            pg_shared_preload_libraries: >-
-              {{
-                ((_spl_list | default([])) + ['pgaudit'])
-                | unique
-                | join(', ')
-              }}
-          when:
-            - postgresql_stig_enable_pgaudit | bool
-            - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+############################################################
+# SESSION / TCP HARDENING CONTROLS
+############################################################
 
-        - name: Enforce shared_preload_libraries includes pgaudit
-          ansible.builtin.lineinfile:
-            path: "{{ pg_conf_file }}"
-            regexp: '^\s*#?\s*shared_preload_libraries\s*='
-            line: "shared_preload_libraries = '{{ pg_shared_preload_libraries }}'"
-            state: present
-            backup: true
-          notify: restart postgresql
-          when:
-            - postgresql_stig_enable_pgaudit | bool
-            - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+- name: PostgreSQL STIG | Session and TCP keepalive controls
+  become: true
+  tags:
+    - postgresql
+    - stig
+    - session
+    - tcp
+  block:
 
-        - name: Enable logging_collector
-          lineinfile:
-            path: "{{ pg_conf_file }}"
-            regexp: '^\s*#?\s*logging_collector\s*='
-            line: "logging_collector = {{ pg_logging_collector }}"
-            state: present
-            backup: true
-          notify: restart postgresql
+    - name: Set statement_timeout
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*statement_timeout\s*='
+        line: "statement_timeout = 10000"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-        - name: Set log_directory
-          lineinfile:
-            path: "{{ pg_conf_file }}"
-            regexp: '^\s*#?\s*log_directory\s*='
-            line: "log_directory = '{{ pg_log_directory }}'"
-            state: present
-            backup: true
-          notify: restart postgresql
+    - name: Set tcp_keepalives_idle
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*tcp_keepalives_idle\s*='
+        line: "tcp_keepalives_idle = 10"
+        state: present
+        backup: true
+      notify: restart postgresql
 
-        - name: Set log_filename
-          lineinfile:
-            path: "{{ pg_conf_file }}"
-            regexp: '^\s*#?\s*log_filename\s*='
-            line: "log_filename = '{{ pg_log_filename }}'"
-            state: present
-            backup: true
-          notify: restart postgresql
+    - name: Set tcp_keepalives_interval
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*tcp_keepalives_interval\s*='
+        line: "tcp_keepalives_interval = 10"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+    - name: Set tcp_keepalives_count
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*tcp_keepalives_count\s*='
+        line: "tcp_keepalives_count = 10"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+############################################################
+# CENTRALIZED LOGGING (SYSLOG)
+############################################################
+
+- name: PostgreSQL STIG | Enable syslog logging
+  become: true
+  tags:
+    - postgresql
+    - stig
+    - logging
+    - syslog
+  block:
+
+    - name: Ensure log_destination includes syslog
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*log_destination\s*='
+        line: "log_destination = 'stderr, syslog'"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+    - name: Set syslog_facility
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*syslog_facility\s*='
+        line: "syslog_facility = 'LOCAL0'"
+        state: present
+        backup: true
+      notify: restart postgresql
+
+    - name: Set syslog_ident
+      lineinfile:
+        path: "{{ pg_conf_file }}"
+        regexp: '^\s*#?\s*syslog_ident\s*='
+        line: "syslog_ident = 'postgres'"
+        state: present
+        backup: true
+      notify: restart postgresql

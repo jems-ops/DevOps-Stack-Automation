@@ -1,44 +1,29 @@
 # postgresql_stig
 
-Skeleton Ansible role intended to hold **PostgreSQL STIG** (database-specific) hardening controls.
+PostgreSQL hardening role used by `playbooks/services/sonarqube-stig.yml`.
 
-## What this role does (currently)
-- Optionally enforces EL8 (disabled by default)
-- Auto-detects a PostgreSQL systemd service name (or you can provide one)
-- Optionally ensures the PostgreSQL service is enabled and running
+## Defaults
+This role **defaults to PostgreSQL 15** (PGDG-style layout):
+- `postgres_service_name: postgresql-15`
+- `pg_data_dir: /var/lib/pgsql/15/data`
 
-## Role variables
+## Parameterizing other versions/layouts
+If your host uses a different service name or data directory layout, override these variables in `group_vars` / inventory / `-e`:
 ```yaml
-# Master enable/disable switch
-postgresql_stig_enabled: true
-
-# Optional safety check
-postgresql_stig_enforce_el8: false
-
-# If true, fail when PostgreSQL is not detected
-postgresql_stig_fail_if_postgres_missing: false
-
-# If empty, role tries to auto-detect among common service names
-postgresql_stig_service_name: ""
-
-# Best-effort service verification
-postgresql_stig_ensure_service_running: true
-
-# Tailoring map for future controls
-postgresql_stig_vars: {}
+postgres_service_name: postgresql
+pg_data_dir: /var/lib/pgsql/data
+pg_conf_file: "{{ pg_data_dir }}/postgresql.conf"
+pg_hba_file: "{{ pg_data_dir }}/pg_hba.conf"
 ```
 
-## Example usage
-```yaml
----
-- name: Apply PostgreSQL STIG controls
-  hosts: sonarqube
-  become: true
-  roles:
-    - role: postgresql_stig
-      vars:
-        postgresql_stig_service_name: postgresql
-```
+## STIG fixes applied by this role
+This role currently enforces the following (simple, file-based) PostgreSQL hardening items:
+- `max_connections` (via `pg_max_connections`)
+- `client_min_messages = error`
+- Local `pg_hba.conf` rules to require `scram-sha-256` for `127.0.0.1/32` and `::1/128`
+- Optional `pgaudit` enablement (installs `pg_pgaudit_package` and ensures `shared_preload_libraries` includes `pgaudit`)
+- Logging collector + log directory/filename (`logging_collector`, `log_directory`, `log_filename`)
 
-## Next step
-Tell me which PostgreSQL STIG/benchmark source you want to align to (DISA STIG, CIS, OpenSCAP content, etc.) and which PostgreSQL major version you’re running, and I can start implementing concrete controls + a CSV report for Postgres findings similar to the OS exceptions report.
+## Notes
+- The role defaults to PostgreSQL 15 paths/service and does not attempt cross-version auto-detection.
+- If `pg_conf_file` or `pg_hba_file` are missing, the role fails early with a clear error.

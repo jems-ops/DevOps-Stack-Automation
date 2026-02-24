@@ -83,6 +83,9 @@
     enabled: true
     state: started
     daemon_reload: true
+  register: sonarqube_stig__sonarqube_systemd
+  notify:
+    - verify sonarqube
   when:
     - sonarqube_stig_ensure_sonarqube_service | bool
     - sonarqube_stig__sonarqube_unit.stat.exists | default(false)
@@ -90,11 +93,8 @@
     - sonarqube
     - service
 
-- name: Wait for SonarQube port to be reachable (post-STIG)
-  ansible.builtin.wait_for:
-    port: "{{ sonarqube_stig_sonarqube_port }}"
-    delay: 5
-    timeout: 120
+- name: Flush handlers (verify SonarQube after changes)
+  ansible.builtin.meta: flush_handlers
   when:
     - sonarqube_stig_ensure_sonarqube_service | bool
     - sonarqube_stig__sonarqube_unit.stat.exists | default(false)
