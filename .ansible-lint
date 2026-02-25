@@ -13,6 +13,17 @@ exclude_paths:
   - molecule/
   - __pycache__/
   - '*.vault'
+  # Third-party / vendor content
+  - roles/rhel8-stig/
+  - playbooks/install-freeipa-server.yml
+  # Virtualenvs (third-party content, not part of the Ansible codebase)
+  - '**/venv/'
+  - '**/.venv/'
+  - saml-integration-webapp/backend/venv/
+  - saml-integration-webapp/backend/.venv/
+  # Node dependencies (third-party content)
+  - '**/node_modules/'
+  - saml-integration-webapp/frontend/node_modules/
 
 # Skip specific rules if needed
 skip_list:
@@ -44,14 +55,9 @@ quiet: false
 verbosity: 1
 
 # File types to lint
-kinds:
-  - playbook: "**/*playbook*.{yml,yaml}"
-  - tasks: "**/tasks/**/*.{yml,yaml}"
-  - handlers: "**/handlers/**/*.{yml,yaml}"
-  - vars: "**/vars/**/*.{yml,yaml}"
-  - defaults: "**/defaults/**/*.{yml,yaml}"
-  - meta: "**/meta/**/*.{yml,yaml}"
-  - yaml: "**/*.{yml,yaml}"
+# NOTE: Avoid "crawl the repo" patterns (like **/*.{yml,yaml}) because it makes pre-commit run ansible-lint
+# against third-party/vendor trees (node_modules, venv, etc.) and unrelated playbooks.
+# Let pre-commit pass the files to lint.
 
 # Mock modules and roles for offline linting
 mock_modules:

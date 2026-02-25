@@ -33,12 +33,22 @@ repos:
     hooks:
       - id: ansible-lint
         name: Ansible Lint
-        files: \.(yaml|yml)$
+        # Only lint Ansible content (avoid linting generic YAML like .pre-commit-config.yaml, node_modules, etc.)
+        files: ^(playbooks|roles|group_vars|host_vars)/.*\.(yaml|yml)$
+        # IMPORTANT: lint only the files passed by pre-commit (avoid crawling the whole repo).
+        pass_filenames: true
+        args: ["--config-file", ".ansible-lint"]
+        # ansible-lint v6.x is not compatible with ansible-core 2.19+ (import removed).
+        # Pin ansible-core to a compatible range for consistent pre-commit results.
+        additional_dependencies:
+          - ansible-core<2.19
         exclude: |
           (?x)^(
             group_vars/all/vault\.yml|
             molecule/.*|
-            .github/.*
+            .github/.*|
+            saml-integration-webapp/backend/venv/.*|
+            saml-integration-webapp/backend/\.venv/.*
           )$
 
   # Simple vault security checks
@@ -68,5 +78,10 @@ exclude: |
     __pycache__/|
     \\.molecule/|
     molecule/.*/\\.molecule/|
-    \\.secrets\\.baseline
+    \\.secrets\\.baseline|
+    # Python virtualenvs (can contain third-party YAML files that break yamllint/ansible-lint)
+    .*\/\.venv\/.*|
+    .*\/venv\/.*|
+    # JavaScript dependencies (third-party content)
+    .*\/node_modules\/.*
   )$

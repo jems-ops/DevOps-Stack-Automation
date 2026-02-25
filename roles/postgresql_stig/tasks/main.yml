@@ -10,11 +10,21 @@
 
 # STIG mapping (V-2140XX support): validate we're enforcing controls against the intended PostgreSQL instance.
 # This prevents "false compliant" runs where we would edit the wrong service or wrong config path.
-- name: PostgreSQL STIG | Verify PostgreSQL service exists
+#
+# NOTE: Do not use "systemctl status" as an existence check (it returns non-zero when the unit is stopped/failed).
+- name: PostgreSQL STIG | Verify PostgreSQL systemd unit exists
   become: true
-  ansible.builtin.command: "systemctl status {{ postgresql_stig_service_name }}"
-  register: postgresql_stig__svc_status
+  ansible.builtin.command: "systemctl show {{ postgresql_stig_service_name }} -p LoadState"
+  register: postgresql_stig__svc_show
   changed_when: false
+  failed_when: false
+  tags:
+    - always
+
+- name: PostgreSQL STIG | Fail when PostgreSQL systemd unit is not found
+  ansible.builtin.fail:
+    msg: "PostgreSQL systemd unit not found: {{ postgresql_stig_service_name }}"
+  when: "'LoadState=not-found' in (postgresql_stig__svc_show.stdout | default(''))"
   tags:
     - always
 
@@ -122,55 +132,155 @@
       when: postgresql_stig_pgaudit_enabled | bool
 
     # STIG ID: V-2140XX - ensure audit provider is loaded at server start (shared_preload_libraries).
-    - name: Query current shared_preload_libraries (optional)
-      become: true
-      become_user: "{{ postgresql_stig_postgres_user }}"
-      ansible.builtin.command: "psql -tA -d postgres -c 'show shared_preload_libraries'"
-      register: postgresql_stig__spl
+    # NOTE: We avoid querying via psql here so the role can still remediate when PostgreSQL is down.
+    - name: PostgreSQL STIG | Derive PostgreSQL major version (best effort)
+      ansible.builtin.set_fact:
+        postgresql_stig__pg_major_from_svc: >-
+          {{ postgresql_stig_service_name | regex_search('postgresql-([0-9]+)$', '\\1') | default('') }}
+        postgresql_stig__pg_major_from_data: >-
+          {{ postgresql_stig_data_dir | regex_search('/([0-9]+)/data$', '\\1') | default('') }}
+        postgresql_stig__pg_major: >-
+          {{
+            postgresql_stig__pg_major_from_svc
+            if (postgresql_stig__pg_major_from_svc | length > 0)
+            else postgresql_stig__pg_major_from_data
+          }}
       changed_when: false
-      failed_when: false
-      when:
-        - postgresql_stig_pgaudit_enabled | bool
-        - postgresql_stig__pgaudit_pkg is defined
-        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
 
-    # STIG ID: V-2140XX - compute + apply a safe shared_preload_libraries value that includes pgaudit.
-    - name: Compute desired shared_preload_libraries with pgaudit
+    - name: PostgreSQL STIG | Build pgaudit library search paths (best effort)
       ansible.builtin.set_fact:
-        postgresql_stig__spl_current: "{{ postgresql_stig__spl.stdout | default('') | trim }}"
-      when:
-        - postgresql_stig_pgaudit_enabled | bool
-        - postgresql_stig__pgaudit_pkg is defined
-        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+        postgresql_stig__pgaudit_lib_dirs: >-
+          {{
+            ((postgresql_stig__pg_major | default('') | length) > 0)
+            | ternary([
+              '/usr/pgsql-' ~ postgresql_stig__pg_major ~ '/lib'
+            ], [])
+            + [
+              '/usr/lib64/pgsql',
+              '/usr/lib/pgsql',
+              '/usr/lib64/postgresql',
+              '/usr/lib/postgresql'
+            ]
+          }}
+      changed_when: false
 
-    # STIG ID: V-2140XX - compute + apply a safe shared_preload_libraries value that includes pgaudit.
-    - name: Compute desired shared_preload_libraries with pgaudit
+    - name: PostgreSQL STIG | Check for pgaudit.so
+      ansible.builtin.stat:
+        path: "{{ item }}/pgaudit.so"
+      loop: "{{ postgresql_stig__pgaudit_lib_dirs }}"
+      register: postgresql_stig__pgaudit_lib_stat
+      changed_when: false
+
+    - name: PostgreSQL STIG | Set pgaudit library found fact
       ansible.builtin.set_fact:
+        postgresql_stig__pgaudit_lib_found: >-
+          {{
+            (postgresql_stig__pgaudit_lib_stat.results | default([])
+              | selectattr('stat.exists','defined')
+              | selectattr('stat.exists')
+              | list
+              | length) > 0
+          }}
+      changed_when: false
+
+    - name: PostgreSQL STIG | Read postgresql.conf for shared_preload_libraries
+      ansible.builtin.slurp:
+        src: "{{ postgresql_stig_conf_file }}"
+      register: postgresql_stig__conf_slurp
+      changed_when: false
+
+    - name: PostgreSQL STIG | Compute desired shared_preload_libraries (add/remove pgaudit)
+      ansible.builtin.set_fact:
+        postgresql_stig__conf_text: "{{ postgresql_stig__conf_slurp.content | b64decode }}"
+        postgresql_stig__spl_current: >-
+          {{
+            (postgresql_stig__conf_text
+              | regex_search("(?m)^\\s*shared_preload_libraries\\s*=\\s*([^\\n#]+)", "\\1"))
+            | default('')
+            | trim
+            | regex_replace("^'", '')
+            | regex_replace("'$", '')
+            | regex_replace('^"', '')
+            | regex_replace('"$', '')
+            | trim
+          }}
         postgresql_stig__spl_list: >-
           {{
-            ((postgresql_stig__spl_current | default('') | trim) != '')
+            ((postgresql_stig__spl_current | default('')) != '')
             | ternary((postgresql_stig__spl_current.split(',') | map('trim') | reject('equalto','') | list), [])
           }}
-        postgresql_stig__spl_new: >-
-          {{ ((postgresql_stig__spl_list | default([])) + ['pgaudit']) | unique | join(', ') }}
-      when:
-        - postgresql_stig_pgaudit_enabled | bool
-        - postgresql_stig__pgaudit_pkg is defined
-        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+        postgresql_stig__pgaudit_pkg_failed: >-
+          {{
+            (postgresql_stig__pgaudit_pkg is defined)
+            and (postgresql_stig__pgaudit_pkg.failed | default(false))
+          }}
+        postgresql_stig__pgaudit_pkg_ok: "{{ not (postgresql_stig__pgaudit_pkg_failed | bool) }}"
+        postgresql_stig__pgaudit_should_be_enabled: >-
+          {{
+            (postgresql_stig_pgaudit_enabled | bool)
+            and (postgresql_stig__pgaudit_pkg_ok | bool)
+            and (postgresql_stig__pgaudit_lib_found | bool)
+          }}
+        postgresql_stig__spl_new_list: >-
+          {{
+            (postgresql_stig__pgaudit_should_be_enabled | bool)
+            | ternary(
+              ((postgresql_stig__spl_list | default([])) + ['pgaudit']) | unique | list,
+              (postgresql_stig__spl_list | default([])) | reject('equalto','pgaudit') | list
+            )
+          }}
+        postgresql_stig__spl_new: "{{ postgresql_stig__spl_new_list | join(', ') }}"
+      changed_when: false
 
-    # STIG ID: V-2140XX - enforce audit provider is loaded (requires restart).
-    - name: Set shared_preload_libraries to include pgaudit
+    - name: PostgreSQL STIG | Set shared_preload_libraries when needed
       ansible.builtin.lineinfile:
         path: "{{ postgresql_stig_conf_file }}"
-        regexp: '^\s*#?\s*shared_preload_libraries\s*='
+        regexp: '^\\s*#?\\s*shared_preload_libraries\\s*='
         line: "shared_preload_libraries = '{{ postgresql_stig__spl_new }}'"
         state: present
         backup: true
       notify: restart postgresql
+      when: (postgresql_stig__spl_new_list | length) > 0
+
+    - name: PostgreSQL STIG | Remove shared_preload_libraries when empty
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_stig_conf_file }}"
+        regexp: '^\\s*#?\\s*shared_preload_libraries\\s*='
+        state: absent
+        backup: true
+      notify: restart postgresql
+      when: (postgresql_stig__spl_new_list | length) == 0
+
+    - name: PostgreSQL STIG | Note when pgaudit is enabled but library is missing
+      ansible.builtin.debug:
+        msg: >-
+          pgaudit requested but pgaudit.so was not found in expected library paths.
+          PostgreSQL will be configured WITHOUT pgaudit to avoid startup failure.
+          Checked: {{ postgresql_stig__pgaudit_lib_dirs }}
+          Package attempted: {{ postgresql_stig_pgaudit_package }}
+        verbosity: 1
       when:
         - postgresql_stig_pgaudit_enabled | bool
-        - postgresql_stig__pgaudit_pkg is defined
-        - not (postgresql_stig__pgaudit_pkg.failed | default(false))
+        - not (postgresql_stig__pgaudit_should_be_enabled | bool)
+
+    - name: Flush handlers (attempt service recovery before failing for missing required pgaudit)
+      ansible.builtin.meta: flush_handlers
+      when:
+        - postgresql_stig_pgaudit_enabled | bool
+        - postgresql_stig_pgaudit_required | bool
+        - not (postgresql_stig__pgaudit_lib_found | bool)
+
+    - name: PostgreSQL STIG | Fail when pgaudit is required but the library is missing
+      ansible.builtin.fail:
+        msg: >-
+          pgaudit is required but PostgreSQL cannot load it (missing pgaudit.so).
+          Fix by installing the correct pgaudit package for this PostgreSQL version (override postgresql_stig_pgaudit_package)
+          or disable via postgresql_stig_pgaudit_enabled=false.
+          Checked: {{ postgresql_stig__pgaudit_lib_dirs }}
+      when:
+        - postgresql_stig_pgaudit_enabled | bool
+        - postgresql_stig_pgaudit_required | bool
+        - not (postgresql_stig__pgaudit_lib_found | bool)
 
     # STIG ID: V-2140XX - configure audit/log forwarding to an approved central logging facility (syslog).
     - name: Configure PostgreSQL to log to syslog
