@@ -123,6 +123,7 @@
 
     # STIG ID: V-2140XX - ensure audit provider is loaded at server start (shared_preload_libraries).
     - name: Query current shared_preload_libraries (optional)
+      become: true
       become_user: "{{ postgresql_stig_postgres_user }}"
       ansible.builtin.command: "psql -tA -d postgres -c 'show shared_preload_libraries'"
       register: postgresql_stig__spl

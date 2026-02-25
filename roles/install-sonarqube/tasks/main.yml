@@ -60,6 +60,7 @@
 - name: Ensure PostgreSQL uses SCRAM password encryption (required for scram-sha-256 pg_hba rules)
   block:
     - name: Get postgresql.conf path from PostgreSQL
+      become: true
       become_user: postgres
       ansible.builtin.command:
         cmd: psql -tAc "show config_file;"
@@ -83,6 +84,7 @@
 - name: Configure PostgreSQL auth for SonarQube on localhost (avoid ident)
   block:
     - name: Get pg_hba.conf path from PostgreSQL
+      become: true
       become_user: postgres
       ansible.builtin.command:
         cmd: psql -tAc "show hba_file;"
@@ -125,6 +127,7 @@
   ansible.builtin.meta: flush_handlers
 
 - name: Create SonarQube database user
+  become: true
   become_user: postgres
   postgresql_user:
     name: "{{ postgresql_db_user }}"
@@ -132,6 +135,7 @@
     state: present
 
 - name: Check SonarQube DB user password hash format
+  become: true
   become_user: postgres
   ansible.builtin.command:
     cmd: >-
@@ -147,6 +151,7 @@
   failed_when: false
 
 - name: Re-set SonarQube DB user password to generate a SCRAM secret
+  become: true
   become_user: postgres
   ansible.builtin.command:
     argv:
@@ -159,6 +164,7 @@
   no_log: true
 
 - name: Create SonarQube database
+  become: true
   become_user: postgres
   postgresql_db:
     name: "{{ postgresql_db_name }}"
