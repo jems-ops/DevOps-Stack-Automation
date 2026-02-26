@@ -1,0 +1,8 @@
+---
+- name: Apply PostgreSQL STIG role only
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: postgresql_stig

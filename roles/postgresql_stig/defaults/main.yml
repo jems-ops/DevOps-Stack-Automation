@@ -30,12 +30,6 @@ postgresql_stig_logging_connection_settings:
   - { key: "log_disconnections", value: "on" }
   - { key: "log_line_prefix", value: "'< %m %u %d %c >'" }
 
-# pgaudit
-postgresql_stig_pgaudit_enabled: true
-# Package naming differs by distro/repo (examples: pgaudit, pgaudit_15)
-postgresql_stig_pgaudit_package: pgaudit
-postgresql_stig_pgaudit_required: false
-
 # Logging
 # For STIG, we default to syslog and disable the logging collector.
 postgresql_stig_log_destination: "syslog"

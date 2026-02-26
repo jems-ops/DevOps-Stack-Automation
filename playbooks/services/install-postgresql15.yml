@@ -1,0 +1,73 @@
+---
+- name: Install PostgreSQL 15.12 (PGDG) on SonarQube hosts
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: true
+  become: true
+
+  vars:
+    postgresql15_version: "15.12"
+    postgresql15_data_dir: /var/lib/pgsql/15/data
+    postgresql15_service_name: postgresql-15
+
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Stop and disable AppStream PostgreSQL service (if present)
+      ansible.builtin.systemd:
+        name: postgresql
+        state: stopped
+        enabled: false
+      when: "'postgresql.service' in (ansible_facts.services | default({}))"
+
+    - name: Disable AppStream postgresql module (required for PGDG)
+      ansible.builtin.command: dnf -y module disable postgresql
+      register: postgresql15__dnf_module_disable
+      changed_when: "'Nothing to do' not in (postgresql15__dnf_module_disable.stdout | default(''))"
+
+    - name: Import PGDG RPM repository GPG keys
+      ansible.builtin.rpm_key:
+        key: "{{ item }}"
+        state: present
+      loop:
+        # Newer key used for repository RPMs/packages (published Jan 2024+)
+        - https://download.postgresql.org/pub/repos/yum/keys/RPM-GPG-KEY-PGDG
+        # Older key (kept for compatibility)
+        - https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL
+
+    - name: Install PGDG repository RPM
+      ansible.builtin.dnf:
+        name: >-
+          https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-{{ ansible_architecture }}/pgdg-redhat-repo-latest.noarch.rpm
+        state: present
+
+    - name: Install PostgreSQL 15.12 packages
+      ansible.builtin.dnf:
+        name:
+          - "postgresql15-{{ postgresql15_version }}*"
+          - "postgresql15-server-{{ postgresql15_version }}*"
+          - "postgresql15-libs-{{ postgresql15_version }}*"
+          - "postgresql15-contrib-{{ postgresql15_version }}*"
+        state: present
+      register: postgresql15__pkgs
+
+    - name: Initialize PostgreSQL 15 database (initdb)
+      ansible.builtin.command:
+        cmd: /usr/pgsql-15/bin/postgresql-15-setup initdb
+        creates: "{{ postgresql15_data_dir }}/PG_VERSION"
+
+    - name: Enable and start PostgreSQL 15 service
+      ansible.builtin.systemd:
+        name: "{{ postgresql15_service_name }}"
+        state: started
+        enabled: true
+
+    - name: Verify PostgreSQL version is 15.12
+      ansible.builtin.command: /usr/pgsql-15/bin/psql --version
+      register: postgresql15__psql_version
+      changed_when: false
+      failed_when: "'15.12' not in (postgresql15__psql_version.stdout | default(''))"
+
+    - name: Show PostgreSQL version
+      ansible.builtin.debug:
+        msg: "{{ postgresql15__psql_version.stdout | default('') | trim }}"

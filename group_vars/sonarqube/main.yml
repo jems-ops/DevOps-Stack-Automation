@@ -12,6 +12,19 @@ ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.vagrant.d/insecure_p
 postgresql_db_password: "sonar123"
 sonarqube_db_password: "sonar123"
 
+# PostgreSQL STIG exceptions (role-level)
+# We are explicitly not enabling pgaudit right now because it is not installable in this lab environment.
+# Use exact V- IDs from your PostgreSQL STIG release to replace the placeholder.
+postgresql_stig_exceptions:
+  - id: V-2140XX
+    control: pgaudit
+    value: false
+    reason: pgaudit is not available on this server; enabling it would prevent PostgreSQL from starting.
+
+# PostgreSQL STIG role overrides (this host is still on the distro PostgreSQL 13 service/layout)
+postgresql_stig_service_name: postgresql
+postgresql_stig_data_dir: /var/lib/pgsql/data
+
 # Disable EL8 hard guard because our SonarQube host is Rocky 9.x
 sonarqube_stig_enforce_el8: false
 
