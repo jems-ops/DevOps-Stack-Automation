@@ -49,10 +49,6 @@ warn_list:
 # This ensures compatibility with your Ansible version
 offline: false
 
-# Display progress
-parseable: true
-quiet: false
-verbosity: 1
 
 # File types to lint
 # NOTE: Avoid "crawl the repo" patterns (like **/*.{yml,yaml}) because it makes pre-commit run ansible-lint

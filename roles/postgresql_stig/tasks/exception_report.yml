@@ -1,0 +1,40 @@
+############################################################
+# PostgreSQL STIG | Generate Exception Report(s)
+############################################################
+
+- name: PostgreSQL STIG | Create local exception report directory (per host)
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+  ansible.builtin.file:
+    path: "{{ postgresql_stig_exception_report_dir }}/{{ inventory_hostname }}"
+    state: directory
+    mode: '0755'
+
+- name: PostgreSQL STIG | Query PostgreSQL server version (best effort)
+  become: true
+  become_user: "{{ postgresql_stig_postgres_user }}"
+  ansible.builtin.command:
+    cmd: psql -tAc "SHOW server_version;"
+  register: postgresql_stig__server_version_cmd
+  changed_when: false
+  failed_when: false
+
+- name: PostgreSQL STIG | Set server version fact
+  ansible.builtin.set_fact:
+    postgresql_stig__server_version: "{{ postgresql_stig__server_version_cmd.stdout | default('') | trim | default('unknown') }}"
+  changed_when: false
+
+- name: PostgreSQL STIG | Generate STIG exception reports (local)
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+  ansible.builtin.template:
+    src: stig_exception_report.j2
+    dest: "{{ postgresql_stig_exception_report_dir }}/{{ inventory_hostname }}/{{ (item.id | default('unknown')) | regex_replace('[^A-Za-z0-9._-]', '_') }}.txt"
+    mode: '0644'
+  loop: "{{ postgresql_stig_exceptions }}"
+  loop_control:
+    label: "{{ item.id | default('unknown') }}"

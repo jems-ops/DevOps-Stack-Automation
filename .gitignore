@@ -97,3 +97,6 @@ Icon
 # Local configuration overrides
 local_settings.yml
 local_vars.yml
+
+# Generated exception report artifacts
+roles/postgresql_stig/exceptions-report/

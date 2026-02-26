@@ -1,21 +1,60 @@
 ---
 # Defaults for postgresql_stig
-# This role defaults to PostgreSQL 15 (PGDG-style layout).
-# Other versions/layouts must be provided via inventory/group_vars/-e.
+# Default layout is the distro-packaged PostgreSQL service/unit and data directory.
+# The role can also support PGDG-style installs (e.g., postgresql-15) via auto-detection
+# or by overriding variables in inventory/group_vars/-e.
 
 postgresql_stig_postgres_user: postgres
 
-# PostgreSQL 15 defaults
-postgresql_stig_service_name: postgresql-15
-postgresql_stig_data_dir: /var/lib/pgsql/15/data
+# PostgreSQL defaults (distro layout)
+postgresql_stig_service_name: postgresql
+postgresql_stig_data_dir: /var/lib/pgsql/data
 postgresql_stig_conf_file: "{{ postgresql_stig_data_dir }}/postgresql.conf"
 postgresql_stig_hba_file: "{{ postgresql_stig_data_dir }}/pg_hba.conf"
+
+# Optional: auto-detect which PostgreSQL systemd unit/layout to manage.
+# This lets one role work across hosts that run the distro service (`postgresql`) or
+# PGDG versioned services (example: `postgresql-15`).
+postgresql_stig_auto_detect: true
+postgresql_stig_candidate_services:
+  - postgresql
+  - postgresql-16
+  - postgresql-15
+
+# Map systemd service name -> PostgreSQL data directory
+postgresql_stig_data_dir_map:
+  postgresql: /var/lib/pgsql/data
+  postgresql-16: /var/lib/pgsql/16/data
+  postgresql-15: /var/lib/pgsql/15/data
 
 # Fail fast when config files are not found
 postgresql_stig_fail_when_paths_missing: true
 
+# Exception report generation (evidence / POA&M support)
+# Reports are generated on the controller (localhost) into the role folder.
+postgresql_stig_exception_reports_enabled: true
+postgresql_stig_exception_report_dir: "{{ role_path }}/exceptions-report"
+
 # Settings
-postgresql_stig_max_connections: 100
+postgresql_stig_max_connections: 50
+
+# Optional: enforce per-role connection limits (DB-level DoS control).
+# NOTE: This is environment-specific; roles that don't exist will be ignored.
+postgresql_stig_role_connection_limits:
+  postgres: 5
+  pg_database_owner: 5
+  pg_read_all_data: 5
+  pg_write_all_data: 5
+  pg_monitor: 5
+  pg_read_all_settings: 5
+  pg_read_all_stats: 5
+  pg_stat_scan_tables: 5
+  pg_read_server_files: 5
+  pg_write_server_files: 5
+  pg_execute_server_program: 5
+  pg_signal_backend: 5
+  pg_checkpoint: 5
+  sonarqube: 5
 
 # Connection and timeout controls
 postgresql_stig_connection_timeout_settings:
@@ -34,6 +73,25 @@ postgresql_stig_logging_connection_settings:
 # For STIG, we default to syslog and disable the logging collector.
 postgresql_stig_log_destination: "syslog"
 postgresql_stig_logging_collector: "off"
+
+# Log denials/errors (e.g., authentication failures / permission errors).
+# These parameters affect verbosity; they do not require enabling file logging.
+postgresql_stig_denial_logging_settings:
+  - { key: "log_min_messages", value: "error" }
+  - { key: "log_min_error_statement", value: "error" }
+
+############################################################
+# PostgreSQL STIG | Logging & pgaudit
+############################################################
+# Optional logging profile frequently used alongside pgaudit.
+# NOTE: pgaudit is a documented exception in this repo; this only manages logging settings.
+postgresql_stig_pgaudit_logging_enabled: false
+postgresql_stig_pgaudit_logging_settings:
+  - { key: "logging_collector", value: "on" }
+  - { key: "log_min_messages", value: "error" }
+  - { key: "log_min_error_statement", value: "error" }
+  - { key: "log_destination", value: "stderr" }
+  - { key: "log_directory", value: "log" }
 
 # Only applies when postgresql_stig_logging_collector is "on"
 postgresql_stig_log_directory: "log"

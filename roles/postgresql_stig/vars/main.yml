@@ -1,0 +1,33 @@
+---
+# NOTE: This file uses role vars (high precedence) to define the active exception register.
+# This will override any postgresql_stig_exceptions defined in inventory/group_vars.
+
+postgresql_stig_exceptions:
+  - id: V-2140XX
+    control: pgaudit
+    value: false
+    reason: >-
+      pgaudit is not available/installable in this environment; enabling it would prevent PostgreSQL from starting.
+    mitigation: >-
+      PostgreSQL is operating within a controlled boundary; OS hardening and logging controls are applied.
+
+  - id: CCI-000015
+    control: centralized_authentication
+    value: local (peer + scram-sha-256)
+    reason: >-
+      Centralized authentication (LDAP/Kerberos/SSPI via pg_hba methods like ldap/gss/sspi)
+      is not yet available in this lab environment; the system is awaiting enterprise identity integration.
+    mitigation: >-
+      Database access is restricted; local authentication uses SCRAM-SHA-256 and RBAC; OS STIG hardening and logging are enabled.
+    poam: docs/stig-exceptions/postgresql-centralized-auth-cci-000015.md
+
+  - id: CCI-002422
+    control: ssl_enforcement
+    value: ssl=off; pg_hba host (non-hostssl) without clientcert
+    reason: >-
+      SSL/TLS enforcement and client certificate validation with enterprise PKI are not yet implemented;
+      the system is operating within an isolated boundary and is not externally accessible.
+    mitigation: >-
+      Localhost-only access where applicable; firewall restrictions; encrypted network segment;
+      OS STIG hardened; strong password policies; audit logging enabled.
+    poam: docs/stig-exceptions/postgresql-ssl-enforcement-cci-002422.md

@@ -1,0 +1,24 @@
+============================================================
+PostgreSQL STIG Exception Report
+============================================================
+
+Generated On: {{ ansible_date_time.iso8601 }}
+Host: {{ inventory_hostname }}
+PostgreSQL Version: {{ postgresql_stig__server_version | default('unknown') }}
+
+------------------------------------------------------------
+ID / Control: {{ item.id | default('TBD') }}
+Control Name: {{ item.control | default('') }}
+Value: {{ item.value | default('') }}
+------------------------------------------------------------
+
+Reason / Justification:
+{{ item.reason | default('') }}
+
+Mitigation / Compensating Controls:
+{{ item.mitigation | default('') }}
+
+POA&M / Evidence:
+{{ item.poam | default('') }}
+
+============================================================
