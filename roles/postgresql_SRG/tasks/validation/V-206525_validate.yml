@@ -1,0 +1,94 @@
+############################################################
+# PostgreSQL STIG | V-206525 Validation
+# Validate auditing of privilege/role retrieval
+############################################################
+
+- name: Validate shared_preload_libraries includes pgaudit
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW shared_preload_libraries;"
+  register: spl_check
+  changed_when: false
+  tags:
+    - audit
+    - V-206525
+
+- name: Fail if pgaudit not enabled
+  fail:
+    msg: "pgaudit is not enabled in shared_preload_libraries."
+  when: "'pgaudit' not in spl_check.stdout"
+  tags:
+    - audit
+    - V-206525
+
+
+- name: Validate pgaudit.log includes read or role
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW pgaudit.log;"
+  register: pgaudit_log_check
+  changed_when: false
+  tags:
+    - audit
+    - V-206525
+
+- name: Fail if pgaudit.log does not include required classes
+  fail:
+    msg: "pgaudit.log must include 'read' or 'role' to audit privilege retrieval."
+  when: "'read' not in pgaudit_log_check.stdout and 'role' not in pgaudit_log_check.stdout"
+  tags:
+    - audit
+    - V-206525
+
+
+- name: Validate pgaudit.log_catalog is enabled
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW pgaudit.log_catalog;"
+  register: catalog_check
+  changed_when: false
+  tags:
+    - audit
+    - V-206525
+
+- name: Fail if pgaudit.log_catalog is not on
+  fail:
+    msg: "pgaudit.log_catalog must be enabled to audit catalog access."
+  when: "'on' not in catalog_check.stdout"
+  tags:
+    - audit
+    - V-206525
+
+
+############################################################
+# Functional Validation – Generate Test Event
+############################################################
+
+- name: Generate privilege retrieval event
+  become: true
+  become_user: postgres
+  command: psql -tAc "SELECT * FROM pg_roles;"
+  register: privilege_query
+  changed_when: false
+  tags:
+    - audit
+    - V-206525
+
+
+- name: Check audit log contains READ event for pg_roles
+  become: true
+  shell: |
+    grep -i "AUDIT" {{ pg_data_dir }}/log/* | grep -i "pg_roles" | tail -1
+  register: audit_check
+  changed_when: false
+  tags:
+    - audit
+    - V-206525
+
+- name: Fail if privilege retrieval was not audited
+  fail:
+    msg: "Privilege retrieval (pg_roles) was not logged."
+  when: audit_check.stdout == ""
+  tags:
+    - audit
+    - V-206525

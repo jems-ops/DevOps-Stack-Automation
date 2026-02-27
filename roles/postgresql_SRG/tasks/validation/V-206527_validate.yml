@@ -1,0 +1,88 @@
+############################################################
+# PostgreSQL STIG | V-206527
+# Validation - Session Auditing
+############################################################
+
+- name: Read postgresql.conf
+  become: true
+  slurp:
+    path: "{{ pg_conf_file }}"
+  register: pg_conf_slurp
+  tags:
+    - audit
+    - V-206527
+
+- name: Decode configuration content
+  set_fact:
+    pg_conf_text: "{{ pg_conf_slurp.content | b64decode }}"
+  tags:
+    - audit
+    - V-206527
+
+############################################################
+# Configuration Validation
+############################################################
+
+- name: Validate logging_collector is enabled
+  fail:
+    msg: "V-206527 FAIL: logging_collector is not enabled."
+  when: pg_conf_text is not search("logging_collector\s*=\s*on")
+  tags:
+    - audit
+    - V-206527
+
+- name: Validate log_connections is enabled
+  fail:
+    msg: "V-206527 FAIL: log_connections is not enabled."
+  when: pg_conf_text is not search("log_connections\s*=\s*on")
+  tags:
+    - audit
+    - V-206527
+
+- name: Validate log_disconnections is enabled
+  fail:
+    msg: "V-206527 FAIL: log_disconnections is not enabled."
+  when: pg_conf_text is not search("log_disconnections\s*=\s*on")
+  tags:
+    - audit
+    - V-206527
+
+- name: Validate log_line_prefix includes session identifier (%c)
+  fail:
+    msg: "V-206527 FAIL: log_line_prefix does not include session identifier (%c)."
+  when: pg_conf_text is not search("log_line_prefix.*%c")
+  tags:
+    - audit
+    - V-206527
+
+############################################################
+# Runtime Validation (Optional but Recommended)
+############################################################
+
+- name: Generate test connection
+  become: true
+  become_user: postgres
+  command: psql -tAc "SELECT 1;"
+  register: test_connection
+  changed_when: false
+  tags:
+    - audit
+    - V-206527
+
+- name: Check recent logs for connection entry
+  become: true
+  shell: |
+    grep -E "connection authorized|disconnection" {{ pg_data_dir }}/log/* | tail -2
+  register: session_log_check
+  changed_when: false
+  failed_when: session_log_check.stdout == ""
+  tags:
+    - audit
+    - V-206527
+
+- name: Success message
+  debug:
+    msg: "V-206527 PASS: Session auditing is properly configured and operational."
+  tags:
+    - audit
+    - V-206527

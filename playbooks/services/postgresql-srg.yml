@@ -1,0 +1,15 @@
+---
+- name: Apply PostgreSQL SRG role
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: true
+  become: true
+
+  vars:
+    # NOTE: This playbook does not install PostgreSQL or pgaudit. Provision those separately
+    # (e.g., via install-sonarqube), then use this role for validation.
+    postgresql_srg_enforcement_enabled: true
+    postgresql_srg_validation_enabled: true
+    postgresql_srg_pgaudit_enabled: true
+
+  roles:
+    - role: postgresql_SRG

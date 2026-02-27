@@ -1,0 +1,21 @@
+- name: Check log directory permissions
+  become: true
+  stat:
+    path: "{{ pg_data_dir }}/log"
+  register: log_dir_stat
+
+- name: Fail if directory not 0700
+  fail:
+    msg: "Log directory permissions are not secure."
+  when: log_dir_stat.stat.mode != "0700"
+
+- name: Verify log file permissions
+  become: true
+  shell: find {{ pg_data_dir }}/log -type f ! -perm 0600 -print
+  register: log_modes
+  changed_when: false
+
+- name: Fail if any log file permissions are not 0600
+  fail:
+    msg: "One or more log files have insecure permissions (expected 0600)."
+  when: log_modes.stdout | length > 0

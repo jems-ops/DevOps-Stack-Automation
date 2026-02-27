@@ -1,0 +1,69 @@
+############################################################
+# PostgreSQL STIG | V-206530 Validation
+# Ensure audit records include WHERE the event occurred
+############################################################
+
+- name: Read current log_line_prefix setting
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW log_line_prefix;"
+  register: log_prefix
+  changed_when: false
+  tags:
+    - audit
+    - V-206530
+
+- name: Fail if log_line_prefix missing required tokens
+  fail:
+    msg: >
+      log_line_prefix does not include required tokens (%H, %d, %c)
+      Current value: {{ log_prefix.stdout }}
+  when: >
+    ('%H' not in log_prefix.stdout) or
+    ('%d' not in log_prefix.stdout) or
+    ('%c' not in log_prefix.stdout)
+  tags:
+    - audit
+    - V-206530
+
+############################################################
+# Generate a test event
+############################################################
+
+- name: Generate test audit event
+  become: true
+  become_user: postgres
+  command: psql -c "SELECT current_database();"
+  changed_when: false
+  tags:
+    - audit
+    - V-206530
+
+############################################################
+# Validate log contains hostname and database
+############################################################
+
+- name: Get latest log entry
+  become: true
+  shell: tail -n 5 {{ pg_data_dir }}/log/*
+  register: log_output
+  changed_when: false
+  tags:
+    - audit
+    - V-206530
+
+- name: Fail if database name not found in audit log
+  fail:
+    msg: "Database name not present in audit log entry."
+  when: "'{{ pg_database | default(\"postgres\") }}' not in log_output.stdout"
+  tags:
+    - audit
+    - V-206530
+
+- name: Fail if hostname not found in audit log
+  fail:
+    msg: "Hostname not present in audit log entry."
+  when: "'%h' not in log_prefix.stdout"
+  tags: 
+   - audit
+   - V-206530

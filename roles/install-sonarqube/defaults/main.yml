@@ -15,11 +15,50 @@ sonarqube_temp_dir: "{{ sonarqube_home }}/temp"
 java_package: java-17-openjdk-devel
 
 # PostgreSQL configuration
-postgresql_version: "13"
+#
+# Use an available PostgreSQL 16.x that supports pgaudit.
+# Default install method is PGDG (keeps you on the latest 16.x + provides pgaudit packages).
+sonarqube_postgresql_major_version: 16
+sonarqube_postgresql_install_method: pgdg  # pgdg | distro_module
+sonarqube_postgresql_install_pgaudit: true
+sonarqube_postgresql_configure_pgaudit: true
+
+# PGDG repo RPM (computed from target host facts)
+sonarqube_pgdg_repo_rpm_url: >-
+  https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-{{ ansible_architecture }}/pgdg-redhat-repo-latest.noarch.rpm
+
+# Derived instance targeting used by the tasks below
+postgresql_service_name: >-
+  {{ 'postgresql-' ~ sonarqube_postgresql_major_version if sonarqube_postgresql_install_method == 'pgdg' else 'postgresql' }}
+sonarqube_postgresql_data_dir: >-
+  {{ '/var/lib/pgsql/' ~ sonarqube_postgresql_major_version ~ '/data' if sonarqube_postgresql_install_method == 'pgdg' else '/var/lib/pgsql/data' }}
+sonarqube_postgresql_initdb_cmd: >-
+  {{ '/usr/pgsql-' ~ sonarqube_postgresql_major_version ~ '/bin/postgresql-' ~ sonarqube_postgresql_major_version ~ '-setup initdb'
+     if sonarqube_postgresql_install_method == 'pgdg'
+     else 'postgresql-setup --initdb' }}
+
+sonarqube_postgresql_psql_cmd: >-
+  {{ '/usr/pgsql-' ~ sonarqube_postgresql_major_version ~ '/bin/psql'
+     if sonarqube_postgresql_install_method == 'pgdg'
+     else 'psql' }}
+
+sonarqube_postgresql_packages: >-
+  {{ sonarqube_postgresql_packages_pgdg if sonarqube_postgresql_install_method == 'pgdg' else sonarqube_postgresql_packages_distro }}
+
+sonarqube_postgresql_packages_pgdg:
+  - "postgresql{{ sonarqube_postgresql_major_version }}"
+  - "postgresql{{ sonarqube_postgresql_major_version }}-server"
+  - "postgresql{{ sonarqube_postgresql_major_version }}-contrib"
+  - "pgaudit_{{ sonarqube_postgresql_major_version }}"
+
+sonarqube_postgresql_packages_distro:
+  - postgresql
+  - postgresql-server
+  - postgresql-contrib
+
 postgresql_db_name: sonarqube
 postgresql_db_user: sonar
 postgresql_db_password: "{{ vault_postgresql_db_password | default('sonar123') }}"
-postgresql_service_name: postgresql
 
 # SonarQube service configuration
 sonarqube_port: 9000
@@ -35,8 +74,6 @@ sonarqube_required_packages:
   - wget
   - unzip
   - curl
-  - postgresql
-  - postgresql-server
   - python3-psycopg2
 
 # SonarQube properties

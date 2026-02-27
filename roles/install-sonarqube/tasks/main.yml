@@ -44,18 +44,8 @@
     system: yes
     create_home: no
 
-- name: Initialize PostgreSQL database (idempotent)
-  ansible.builtin.command:
-    cmd: postgresql-setup --initdb
-    creates: /var/lib/pgsql/data/PG_VERSION
-  register: postgres_init
-  changed_when: postgres_init.rc == 0
-
-- name: Start and enable PostgreSQL service
-  ansible.builtin.systemd:
-    name: "{{ postgresql_service_name }}"
-    state: started
-    enabled: yes
+- name: Install and start PostgreSQL (16.x) and pgaudit (pre-install)
+  ansible.builtin.import_tasks: postgresql.yml
 
 - name: Ensure PostgreSQL uses SCRAM password encryption (required for scram-sha-256 pg_hba rules)
   block:
@@ -63,7 +53,7 @@
       become: true
       become_user: postgres
       ansible.builtin.command:
-        cmd: psql -tAc "show config_file;"
+        cmd: "{{ sonarqube_postgresql_psql_cmd }} -tAc \"show config_file;\""
       register: postgresql_config_file_cmd
       changed_when: false
 
@@ -78,6 +68,70 @@
         line: "password_encryption = 'scram-sha-256'"
       notify: restart postgresql
 
+    - name: Get current shared_preload_libraries
+      become: true
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: "{{ sonarqube_postgresql_psql_cmd }} -tAc \"show shared_preload_libraries;\""
+      register: postgresql_shared_preload_libraries_cmd
+      changed_when: false
+      when:
+        - sonarqube_postgresql_install_pgaudit | bool
+        - sonarqube_postgresql_configure_pgaudit | bool
+
+    - name: Compute shared_preload_libraries list
+      ansible.builtin.set_fact:
+        postgresql_shared_preload_libraries_list: >-
+          {{ (postgresql_shared_preload_libraries_cmd.stdout | trim)
+             | split(',')
+             | map('trim')
+             | reject('equalto', '')
+             | list }}
+      when:
+        - sonarqube_postgresql_install_pgaudit | bool
+        - sonarqube_postgresql_configure_pgaudit | bool
+
+    - name: Compute shared_preload_libraries value with pgaudit
+      ansible.builtin.set_fact:
+        postgresql_shared_preload_libraries_new: >-
+          {{ (postgresql_shared_preload_libraries_list
+              + (['pgaudit'] if 'pgaudit' not in postgresql_shared_preload_libraries_list else []))
+             | unique
+             | join(', ') }}
+      when:
+        - sonarqube_postgresql_install_pgaudit | bool
+        - sonarqube_postgresql_configure_pgaudit | bool
+
+    - name: Ensure pgaudit is in shared_preload_libraries
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_conf_file }}"
+        regexp: "^#?\\s*shared_preload_libraries\\s*="
+        line: "shared_preload_libraries = '{{ postgresql_shared_preload_libraries_new }}'"
+      notify: restart postgresql
+      when:
+        - sonarqube_postgresql_install_pgaudit | bool
+        - sonarqube_postgresql_configure_pgaudit | bool
+
+    - name: Configure pgaudit.log baseline
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_conf_file }}"
+        regexp: "^#?\\s*pgaudit\\.log\\s*="
+        line: "pgaudit.log = 'ddl, role, write'"
+      notify: restart postgresql
+      when:
+        - sonarqube_postgresql_install_pgaudit | bool
+        - sonarqube_postgresql_configure_pgaudit | bool
+
+    - name: Configure pgaudit.log_catalog baseline
+      ansible.builtin.lineinfile:
+        path: "{{ postgresql_conf_file }}"
+        regexp: "^#?\\s*pgaudit\\.log_catalog\\s*="
+        line: "pgaudit.log_catalog = on"
+      notify: restart postgresql
+      when:
+        - sonarqube_postgresql_install_pgaudit | bool
+        - sonarqube_postgresql_configure_pgaudit | bool
+
     - name: Flush handlers so PostgreSQL restarts before role password is set
       ansible.builtin.meta: flush_handlers
 
@@ -87,7 +141,7 @@
       become: true
       become_user: postgres
       ansible.builtin.command:
-        cmd: psql -tAc "show hba_file;"
+        cmd: "{{ sonarqube_postgresql_psql_cmd }} -tAc \"show hba_file;\""
       register: postgresql_pg_hba_file_cmd
       changed_when: false
 
@@ -139,7 +193,7 @@
   become_user: postgres
   ansible.builtin.command:
     cmd: >-
-      psql -tAc "select case
+      {{ sonarqube_postgresql_psql_cmd }} -tAc "select case
         when rolpassword like 'SCRAM-SHA-256$%' then 'scram'
         when rolpassword like 'md5%' then 'md5'
         when rolpassword is null then 'null'
@@ -155,7 +209,7 @@
   become_user: postgres
   ansible.builtin.command:
     argv:
-      - psql
+      - "{{ sonarqube_postgresql_psql_cmd }}"
       - -v
       - "pass={{ postgresql_db_password }}"
       - -tAc
@@ -171,6 +225,71 @@
     owner: "{{ postgresql_db_user }}"
     state: present
 
+- name: Enable pgaudit extension in SonarQube database
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_ext:
+    name: pgaudit
+    db: "{{ postgresql_db_name }}"
+    state: present
+  when: sonarqube_postgresql_install_pgaudit | bool
+
+- name: Validate SonarQube DB credentials (before starting SonarQube)
+  ansible.builtin.command:
+    argv:
+      - "{{ sonarqube_postgresql_psql_cmd }}"
+      - -h
+      - 127.0.0.1
+      - -U
+      - "{{ postgresql_db_user }}"
+      - -d
+      - "{{ postgresql_db_name }}"
+      - -tAc
+      - select 1;
+  environment:
+    PGPASSWORD: "{{ postgresql_db_password }}"
+  register: sonarqube_db_login_test
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Repair SonarQube DB role password when login fails
+  become: true
+  become_user: postgres
+  ansible.builtin.command:
+    argv:
+      - "{{ sonarqube_postgresql_psql_cmd }}"
+      - -v
+      - "pass={{ postgresql_db_password }}"
+      - -tAc
+      - "ALTER ROLE {{ postgresql_db_user }} PASSWORD :'pass';"
+  when: sonarqube_db_login_test.rc != 0
+  no_log: true
+  notify: restart postgresql
+
+- name: Flush handlers so PostgreSQL restarts before SonarQube starts
+  ansible.builtin.meta: flush_handlers
+  when: sonarqube_db_login_test.rc != 0
+
+- name: Re-validate SonarQube DB credentials
+  ansible.builtin.command:
+    argv:
+      - "{{ sonarqube_postgresql_psql_cmd }}"
+      - -h
+      - 127.0.0.1
+      - -U
+      - "{{ postgresql_db_user }}"
+      - -d
+      - "{{ postgresql_db_name }}"
+      - -tAc
+      - select 1;
+  environment:
+    PGPASSWORD: "{{ postgresql_db_password }}"
+  register: sonarqube_db_login_test2
+  changed_when: false
+  no_log: true
+  failed_when: sonarqube_db_login_test.rc != 0 and sonarqube_db_login_test2.rc != 0
+
 - name: Check if SonarQube is already downloaded
   stat:
     path: "{{ sonarqube_home }}"
@@ -182,14 +301,6 @@
     dest: /tmp/sonarqube.zip
     mode: '0644'
   when: not sonarqube_installed.stat.exists
-
-- name: Create SonarQube home directory
-  file:
-    path: "{{ sonarqube_home }}"
-    state: directory
-    owner: "{{ sonarqube_user }}"
-    group: "{{ sonarqube_group }}"
-    mode: '0755'
 
 - name: Extract SonarQube
   unarchive:
@@ -214,6 +325,25 @@
     group: "{{ sonarqube_group }}"
     recurse: yes
     state: directory
+
+- name: Find jopt-simple jar in bundled Elasticsearch
+  ansible.builtin.find:
+    paths: "{{ sonarqube_home }}/elasticsearch/lib"
+    patterns: "jopt-simple-*.jar"
+    recurse: false
+    file_type: file
+  register: sonarqube_jopt_simple_jars
+  changed_when: false
+
+- name: Ensure jopt-simple jar is accessible to Elasticsearch cli-launcher
+  ansible.builtin.copy:
+    src: "{{ sonarqube_jopt_simple_jars.files[0].path }}"
+    dest: "{{ sonarqube_home }}/elasticsearch/lib/cli-launcher/{{ sonarqube_jopt_simple_jars.files[0].path | basename }}"
+    remote_src: true
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    mode: '0644'
+  when: (sonarqube_jopt_simple_jars.files | length) > 0
 
 - name: Create SonarQube data directories
   file:
@@ -253,6 +383,12 @@
     state: enabled
     immediate: yes
   ignore_errors: yes
+
+- name: Reset failed state for SonarQube service (if it previously hit start-limit)
+  ansible.builtin.command:
+    cmd: systemctl reset-failed sonarqube
+  changed_when: false
+  failed_when: false
 
 - name: Start and enable SonarQube service
   systemd:

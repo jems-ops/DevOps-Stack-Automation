@@ -1,0 +1,63 @@
+############################################################
+# PostgreSQL STIG | V-206528
+# Validate audit records include event type
+############################################################
+
+- name: Check shared_preload_libraries includes pgaudit
+  become: true
+  shell: |
+    grep -E "^\s*shared_preload_libraries" {{ pg_conf_file }}
+  register: spl_check
+  changed_when: false
+  failed_when: "'pgaudit' not in spl_check.stdout"
+  tags:
+    - audit
+    - V-206528
+
+- name: Check pgaudit.log is configured
+  become: true
+  shell: |
+    grep -E "^\s*pgaudit\.log\s*=" {{ pg_conf_file }}
+  register: pgaudit_log_check
+  changed_when: false
+  failed_when: pgaudit_log_check.stdout == ""
+  tags:
+    - audit
+    - V-206528
+
+- name: Check pgaudit.log_catalog is enabled
+  become: true
+  shell: |
+    grep -E "^\s*pgaudit\.log_catalog\s*=\s*on" {{ pg_conf_file }}
+  register: catalog_check
+  changed_when: false
+  failed_when: catalog_check.stdout == ""
+  tags:
+    - audit
+    - V-206528
+
+############################################################
+# Runtime Validation – Confirm Event Type Appears in Logs
+############################################################
+
+- name: Generate test DDL event
+  become: true
+  become_user: postgres
+  shell: |
+    psql -tAc "CREATE TABLE IF NOT EXISTS stig_event_test(id int);" ;
+    psql -tAc "DROP TABLE IF EXISTS stig_event_test;"
+  ignore_errors: true
+  tags:
+    - audit
+    - V-206528
+
+- name: Verify audit log contains event type classification
+  become: true
+  shell: |
+    grep -E "AUDIT: SESSION,[0-9]+,[0-9]+,(DDL|ROLE|WRITE|READ)" {{ pg_data_dir }}/log/* | tail -1
+  register: audit_event_check
+  changed_when: false
+  failed_when: audit_event_check.stdout == ""
+  tags:
+    - audit
+    - V-206528

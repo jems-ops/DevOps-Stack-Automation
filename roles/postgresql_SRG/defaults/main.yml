@@ -1,0 +1,52 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for postgresql_SRG
+#
+# Purpose
+# - This role implements PostgreSQL SRG/STIG-oriented controls referenced by V-IDs (e.g., V-2065xx).
+# - Many controls are file-based remediations against postgresql.conf/pg_hba.conf plus optional runtime validation.
+#
+# IMPORTANT
+# - Some controls require pgaudit. If pgaudit cannot be installed in your environment, set
+#   postgresql_srg_pgaudit_enabled: false and document an exception/POA&M.
+
+# Enable/disable major role phases
+# This role is intended to be used primarily for validation after PostgreSQL/pgaudit are provisioned.
+postgresql_srg_enforcement_enabled: false
+postgresql_srg_validation_enabled: true
+
+# PostgreSQL instance targeting
+postgresql_srg_postgres_user: postgres
+
+# Default to distro service/layout (PostgreSQL 16 commonly uses the unversioned unit on RHEL-like distros)
+postgresql_srg_service_name: postgresql
+postgresql_srg_data_dir: /var/lib/pgsql/data
+postgresql_srg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
+postgresql_srg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
+
+# Optional: auto-detect a supported systemd unit and set matching data_dir.
+postgresql_srg_auto_detect: true
+postgresql_srg_candidate_services:
+  - postgresql
+  - postgresql-16
+  - postgresql-15
+  # Some environments name the unit simply "postgres"
+  - postgres
+
+postgresql_srg_data_dir_map:
+  postgresql: /var/lib/pgsql/data
+  postgresql-16: /var/lib/pgsql/16/data
+  postgresql-15: /var/lib/pgsql/15/data
+  postgres: /var/lib/pgsql/data
+
+# Backwards-compatible aliases used by the task files (V-2065xx.yml)
+pg_service_name: "{{ postgresql_srg_service_name }}"
+pg_data_dir: "{{ postgresql_srg_data_dir }}"
+pg_conf_file: "{{ postgresql_srg_conf_file }}"
+pg_hba_file: "{{ postgresql_srg_hba_file }}"
+
+# pgaudit toggle (many SRG controls assume it is available)
+postgresql_srg_pgaudit_enabled: false
+
+# Optional common logging knobs used by multiple controls
+postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "

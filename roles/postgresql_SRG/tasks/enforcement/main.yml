@@ -1,0 +1,25 @@
+---
+- ansible.builtin.import_tasks: V-206519.yml
+- ansible.builtin.import_tasks: V-206522.yml
+
+# pgaudit-dependent controls (skip when pgaudit is unavailable)
+- ansible.builtin.import_tasks: V-206523.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206524.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206525.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206526.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206528.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206534.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+
+- ansible.builtin.import_tasks: V-206527.yml
+- ansible.builtin.import_tasks: V-206529.yml
+- ansible.builtin.import_tasks: V-206530.yml
+- ansible.builtin.import_tasks: V-206531.yml
+- ansible.builtin.import_tasks: V-206532.yml
+- ansible.builtin.import_tasks: V-206533.yml
+- ansible.builtin.import_tasks: V-206538.yml

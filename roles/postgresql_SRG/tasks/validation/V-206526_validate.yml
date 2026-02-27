@@ -1,0 +1,90 @@
+############################################################
+# PostgreSQL STIG | V-206526 VALIDATION
+# Ensure denied access to privileges/role memberships is audited
+############################################################
+
+- name: Read postgresql.conf
+  become: true
+  slurp:
+    path: "{{ pg_conf_file }}"
+  register: pg_conf_raw
+  tags:
+    - audit
+    - V-206526
+
+- name: Decode configuration
+  set_fact:
+    pg_conf_text: "{{ pg_conf_raw.content | b64decode }}"
+  tags:
+    - audit
+    - V-206526
+
+############################################################
+# Validate required parameters
+############################################################
+
+- name: Validate log_min_error_statement is set to error
+  assert:
+    that:
+      - pg_conf_text is search('log_min_error_statement\s*=\s*error')
+    fail_msg: "log_min_error_statement is not set to error."
+    success_msg: "log_min_error_statement correctly configured."
+  tags:
+    - audit
+    - V-206526
+
+- name: Validate pgaudit logs role activity
+  assert:
+    that:
+      - pg_conf_text is search('pgaudit\.log\s*=\s*.*role')
+    fail_msg: "pgaudit.log does not include 'role'."
+    success_msg: "pgaudit.log includes role auditing."
+  tags:
+    - audit
+    - V-206526
+
+- name: Validate pgaudit.log_catalog is enabled
+  assert:
+    that:
+      - pg_conf_text is search('pgaudit\.log_catalog\s*=\s*on')
+    fail_msg: "pgaudit.log_catalog is not enabled."
+    success_msg: "pgaudit.log_catalog enabled."
+  tags:
+    - audit
+    - V-206526
+
+############################################################
+# Functional Validation – Generate Denied Event
+############################################################
+
+- name: Create limited test role
+  become: true
+  become_user: postgres
+  command: psql -tAc "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='stig_limited') THEN CREATE ROLE stig_limited LOGIN; END IF; END $$;"
+  changed_when: false
+  tags:
+    - audit
+    - V-206526
+
+- name: Attempt unauthorized privilege access
+  become: true
+  become_user: postgres
+  shell: |
+    psql -tAc "SET ROLE stig_limited; SELECT * FROM pg_auth_members;"
+  ignore_errors: true
+  register: denied_test
+  changed_when: false
+  tags:
+    - audit
+    - V-206526
+
+- name: Check logs for permission denied entry
+  become: true
+  shell: |
+    grep -i "permission denied" {{ pg_data_dir }}/log/* | tail -1
+  register: log_check
+  changed_when: false
+  failed_when: log_check.stdout == ""
+  tags:
+    - audit
+    - V-206526

@@ -13,7 +13,7 @@ postgresql_db_password: "sonar123"
 sonarqube_db_password: "sonar123"
 
 # PostgreSQL STIG exceptions (role-level)
-# We are explicitly not enabling pgaudit right now because it is not installable in this lab environment.
+# pgaudit (pgaudit_16) is now installed; enforcement is enabled via the postgresql-srg playbook.
 # Use exact V- IDs from your PostgreSQL STIG release to replace the placeholder.
 postgresql_stig_exceptions:
   - id: V-2140XX

@@ -1,0 +1,76 @@
+---
+# PostgreSQL installation for SonarQube
+#
+# This role intentionally installs PostgreSQL + (optionally) pgaudit here so that the postgresql_SRG role
+# can focus on validation/enforcement only.
+
+- name: Configure PostgreSQL repositories (PGDG)
+  when: sonarqube_postgresql_install_method == 'pgdg'
+  block:
+    - name: Import PGDG RPM GPG key
+      ansible.builtin.rpm_key:
+        key: https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL
+        state: present
+
+    - name: Install PGDG repository RPM
+      ansible.builtin.dnf:
+        name: "{{ sonarqube_pgdg_repo_rpm_url }}"
+        state: present
+        # Bootstrap: the repo RPM is used to install trusted repo config + keys. Some images
+        # fail signature validation on first install, so we disable GPG check just for this RPM.
+        disable_gpg_check: true
+
+    - name: Disable distro PostgreSQL module to avoid package conflicts
+      ansible.builtin.command:
+        cmd: dnf -qy module disable postgresql
+      register: sonarqube_pgdg_disable_module
+      changed_when: sonarqube_pgdg_disable_module.rc == 0
+
+- name: Configure PostgreSQL module stream (distro)
+  when: sonarqube_postgresql_install_method == 'distro_module'
+  ansible.builtin.command:
+    cmd: "dnf -qy module enable postgresql:{{ sonarqube_postgresql_major_version }}"
+  register: sonarqube_distro_enable_module
+  changed_when: sonarqube_distro_enable_module.rc == 0
+
+- name: Install PostgreSQL packages
+  ansible.builtin.dnf:
+    name: "{{ sonarqube_postgresql_packages }}"
+    state: present
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Stop and disable conflicting distro PostgreSQL service (avoid port 5432 conflict)
+  ansible.builtin.systemd:
+    name: postgresql
+    state: stopped
+    enabled: false
+  when:
+    - sonarqube_postgresql_install_method == 'pgdg'
+    - postgresql_service_name != 'postgresql'
+    - "'postgresql.service' in ansible_facts.services"
+  ignore_errors: true
+
+- name: Kill any remaining distro postmaster holding port 5432
+  ansible.builtin.shell: |
+    pgpid=$(ss -tlnp | grep ':5432 ' | grep -oP 'pid=\K[0-9]+' | head -1)
+    if [ -n "$pgpid" ]; then kill "$pgpid" && sleep 2; fi
+  changed_when: false
+  failed_when: false
+  when:
+    - sonarqube_postgresql_install_method == 'pgdg'
+    - postgresql_service_name != 'postgresql'
+
+- name: Initialize PostgreSQL database (idempotent)
+  ansible.builtin.command:
+    cmd: "{{ sonarqube_postgresql_initdb_cmd }}"
+    creates: "{{ sonarqube_postgresql_data_dir }}/PG_VERSION"
+  register: postgres_init
+  changed_when: postgres_init.rc == 0
+
+- name: Start and enable PostgreSQL service
+  ansible.builtin.systemd:
+    name: "{{ postgresql_service_name }}"
+    state: started
+    enabled: true

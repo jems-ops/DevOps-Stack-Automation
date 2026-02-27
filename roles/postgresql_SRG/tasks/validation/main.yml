@@ -1,0 +1,29 @@
+---
+# NOTE: Validation tasks can be intrusive. Run on non-prod or in check/audit mode.
+# pgaudit-dependent validations (skip when pgaudit is unavailable)
+- ansible.builtin.import_tasks: V-206519_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+
+- ansible.builtin.import_tasks: V-206522_validate.yml
+
+# pgaudit-dependent validations (skip when pgaudit is unavailable)
+- ansible.builtin.import_tasks: V-206523_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206524_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206525_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206526_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206528_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+- ansible.builtin.import_tasks: V-206534_validate.yml
+  when: postgresql_srg_pgaudit_enabled | bool
+
+- ansible.builtin.import_tasks: V-206527_validate.yml
+- ansible.builtin.import_tasks: V-206529_validate.yml
+- ansible.builtin.import_tasks: V-206530_validate.yml
+- ansible.builtin.import_tasks: V-206531_validate.yml
+- ansible.builtin.import_tasks: V-206532_validate.yml
+- ansible.builtin.import_tasks: V-206533_validate.yml
+- ansible.builtin.import_tasks: V-206538_validate.yml

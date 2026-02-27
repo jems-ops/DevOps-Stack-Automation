@@ -1,10 +1,11 @@
 [Unit]
 Description=SonarQube service
-After=syslog.target network.target postgresql.service
-Wants=postgresql.service
+After=syslog.target network.target {{ postgresql_service_name }}.service
+Wants={{ postgresql_service_name }}.service
 
 [Service]
 Type=forking
+WorkingDirectory={{ sonarqube_home }}/bin/linux-x86-64
 ExecStart={{ sonarqube_home }}/bin/linux-x86-64/sonar.sh start
 ExecStop={{ sonarqube_home }}/bin/linux-x86-64/sonar.sh stop
 ExecReload={{ sonarqube_home }}/bin/linux-x86-64/sonar.sh restart
