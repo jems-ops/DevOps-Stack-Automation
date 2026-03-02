@@ -23,3 +23,12 @@
 - ansible.builtin.import_tasks: V-206532.yml
 - ansible.builtin.import_tasks: V-206533.yml
 - ansible.builtin.import_tasks: V-206538.yml
+
+# CAT 1's should be remediated first, then move on to lower priority controls
+- ansible.builtin.import_tasks: V-206521.yml
+- ansible.builtin.import_tasks: V-206545.yml
+
+# CAT 1 upgrade unsupported DBMS or unsupported componnets to supported version of product 
+- ansible.builtin.import_tasks: V-265854.yml
+- ansible.builtin.import_tasks: V-233495.yml
+

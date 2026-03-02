@@ -27,3 +27,14 @@
 - ansible.builtin.import_tasks: V-206532_validate.yml
 - ansible.builtin.import_tasks: V-206533_validate.yml
 - ansible.builtin.import_tasks: V-206538_validate.yml
+
+# CAT 1's should be remediated first, then move on to lower priority controls
+- ansible.builtin.import_tasks: V-206521_validate.yml
+- ansible.builtin.import_tasks: V-206545_validate.yml
+
+# CAT 1 upgrade unsupported DBMS or unsupported componnets to supported version of product 
+- ansible.builtin.import_tasks: V-265854_validate.yml
+
+# CAT 1 Deploy database compatible to NSA-approved cryptography
+# If the DBMS is deployed in an unclassified environment, this is not applicable (NA).
+- ansible.builtin.import_tasks: V-233495_validate.yml

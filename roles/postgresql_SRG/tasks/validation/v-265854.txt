@@ -1,0 +1,129 @@
+SRG Artifact Documentation
+
+Control ID: V-265854 (SV-265854r9993)
+
+Title: Upgrade unsupported DBMS or unsupported components to a supported version of the product
+
+⸻
+
+1. Control Requirement
+
+The organization must ensure that unsupported DBMS versions or unsupported components are upgraded to a vendor-supported version of the product.
+
+This control ensures:
+	•	The DBMS remains within vendor support lifecycle
+	•	Security patches are available and applied
+	•	Known vulnerabilities are remediated
+	•	No end-of-life (EOL) software is in operation
+
+⸻
+
+2. System Information
+	•	DBMS Product: PostgreSQL
+	•	Deployed Version: 16.x
+	•	Client Version: psql 16.x
+	•	Environment: Production / Test / Development
+	•	OS Platform: RHEL / Rocky Linux (Version 8 or 9)
+
+⸻
+
+3. Validation Summary
+
+The following validation checks were performed to confirm compliance:
+	1.	PostgreSQL major version verified as 16.x
+	2.	Minor version verified as patched (not base 16.0 release)
+	3.	psql client major version matches server major version
+	4.	pgaudit extension installed and compatible with PostgreSQL 16
+	5.	Operating system version verified as supported for PostgreSQL 16
+	6.	PostgreSQL installed from official vendor-supported package repository
+
+Validation is automated via Ansible control V-265854.yml.
+
+⸻
+
+4. Evidence Collection
+
+The following artifacts are maintained as compliance evidence:
+	•	Output of:
+
+SHOW server_version;
+
+
+	•	Output of:
+
+psql --version
+
+
+	•	RPM package validation:
+
+rpm -qi postgresql16-server
+
+
+	•	Extension verification:
+
+SELECT extversion FROM pg_extension WHERE extname='pgaudit';
+
+
+	•	OS version verification via Ansible facts
+	•	Change management records for upgrades
+	•	Patch cycle documentation
+
+⸻
+
+5. Lifecycle Management Process
+
+PostgreSQL lifecycle is managed according to the following process:
+	•	Vendor support status reviewed quarterly
+	•	Minor security updates applied during standard patch cycle
+	•	Critical security updates applied on expedited schedule
+	•	Major version upgrades tracked in system lifecycle roadmap
+	•	Unsupported versions prohibited in production environments
+
+⸻
+
+6. Risk Statement (If Non-Compliant)
+
+Running an unsupported DBMS version introduces the following risks:
+	•	Unpatched security vulnerabilities
+	•	No vendor support
+	•	Compliance failure
+	•	Increased breach likelihood
+	•	Inability to obtain security updates
+
+If a version is found unsupported, immediate remediation planning and upgrade action are required.
+
+⸻
+
+7. Compliance Determination
+
+Based on validation results:
+
+✔ PostgreSQL major version is supported (16.x)
+✔ Minor version is patched
+✔ psql client matches server version
+✔ Extensions are compatible
+✔ Operating system supports DB version
+
+Status: Compliant
+
+⸻
+
+8. Roles and Responsibilities
+
+Role	Responsibility
+DBA Team	Apply patches and perform upgrades
+Security Team	Validate lifecycle compliance
+System Owner	Approve major version upgrades
+Change Control Board	Approve production upgrades
+
+
+⸻
+
+9. Review Schedule
+
+This artifact and lifecycle status are reviewed:
+	•	Quarterly
+	•	After major PostgreSQL release
+	•	After security incident
+	•	Upon STIG updates
+

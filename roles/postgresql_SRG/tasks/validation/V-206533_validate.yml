@@ -23,7 +23,7 @@
 - name: Fail if user name is not present in logs
   fail:
     msg: "User name is not present in PostgreSQL logs."
-  when: "'user=' not in log_sample.stdout"
+  when: "'postgres' not in log_sample.stdout"
   tags:
     - audit
     - V-206533

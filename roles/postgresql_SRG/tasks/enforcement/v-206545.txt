@@ -1,0 +1,259 @@
+Installation Account Usage Procedure
+
+Control Reference: V-206545
+System: PostgreSQL DBMS
+Applies To: DBMS Software Installation Account (postgres)
+Classification: Administrative + Technical Control
+
+⸻
+
+1. Purpose
+
+This procedure defines the requirements and controls governing the use of the PostgreSQL DBMS installation account (postgres).
+
+The objectives are to:
+	•	Restrict use of the installation account to authorized personnel only
+	•	Prevent routine operational use
+	•	Ensure all usage is logged and auditable
+	•	Maintain least privilege and accountability
+	•	Satisfy SRG control V-206545
+
+⸻
+
+2. Scope
+
+This procedure applies to:
+	•	All PostgreSQL database servers
+	•	All environments (Development, Test, Production)
+	•	All administrators and database administrators (DBAs)
+	•	All systems where PostgreSQL is deployed
+
+⸻
+
+3. Definition
+
+The DBMS installation account refers to:
+	•	OS Account: postgres
+	•	Database Superuser Role: postgres
+
+This account has unrestricted privileges and can:
+	•	Modify database configuration
+	•	Create, alter, or remove superusers
+	•	Modify audit configuration
+	•	Bypass access controls
+	•	Access all database objects
+
+Due to its elevated privileges, strict governance and monitoring are required.
+
+⸻
+
+4. Policy Requirements
+
+4.1 Authorized Use
+
+The postgres account may only be used for:
+	•	Initial DBMS installation
+	•	Emergency maintenance
+	•	Security configuration changes
+	•	Audit configuration changes
+	•	Superuser-level recovery operations
+
+The postgres account must NOT be used for:
+	•	Application connections
+	•	Routine database queries
+	•	Daily operational tasks
+	•	Development activities
+	•	User account provisioning
+
+⸻
+
+4.2 Access Restrictions
+
+The following restrictions shall be enforced:
+	•	Direct SSH login as postgres is prohibited
+	•	Password authentication for postgres is disabled or locked
+	•	Access must occur via authorized sudo elevation
+	•	Use requires prior approval (ticket or change request)
+	•	Access must originate from an individual named administrative account
+
+Approved method example:
+
+sudo -u postgres psql
+
+
+⸻
+
+4.3 Authentication Requirements
+	•	Access must be performed using an individual named account
+	•	Shared administrative accounts are prohibited
+	•	Multi-factor authentication (MFA) is required where supported
+	•	sudo access must be restricted to approved DBAs
+	•	The postgres account password shall remain locked at all times
+
+⸻
+
+4.4 Logging and Auditing
+
+All usage of the installation account must be logged:
+	•	OS-level sudo logs (/var/log/secure or journal)
+	•	PostgreSQL connection logs
+	•	PostgreSQL disconnection logs
+	•	Session activity logs (pgaudit enabled)
+	•	Centralized SIEM ingestion (where implemented)
+
+Required PostgreSQL configuration:
+
+log_connections = on
+log_disconnections = on
+pgaudit.log = 'all'
+
+Logs must be retained per organizational retention policy.
+
+⸻
+
+4.5 Monitoring and Review
+
+Installation account usage must be reviewed:
+	•	At least monthly
+	•	Within 72 hours following emergency use
+	•	During quarterly access reviews
+
+Review must verify:
+	•	Who accessed the account
+	•	When access occurred
+	•	What actions were performed
+	•	Whether access was authorized
+	•	Whether change management approval existed
+
+⸻
+
+4.6 Superuser Control
+
+The number of superuser accounts must be minimized.
+
+Only the postgres account and explicitly approved administrative accounts listed in system authorization documentation may possess superuser privileges.
+
+Validation query:
+
+SELECT rolname FROM pg_roles WHERE rolsuper = true;
+
+Unauthorized superusers must be immediately revoked and investigated.
+
+⸻
+
+5. Emergency Access Procedure
+
+In case of emergency:
+	1.	A change ticket must be opened
+	2.	Approval from Security Officer or System Owner required
+	3.	Access must occur via sudo
+	4.	All actions must be documented in the ticket
+	5.	Post-event log review required
+	6.	Security review conducted within 72 hours
+
+⸻
+
+6. Prohibited Actions
+
+The following actions are strictly prohibited:
+	•	Sharing the postgres account
+	•	Embedding postgres credentials in applications
+	•	Allowing direct SSH login as postgres
+	•	Disabling audit logging
+	•	Creating undocumented superusers
+	•	Using the installation account for routine operations
+
+Violations may result in disciplinary action and incident response escalation.
+
+⸻
+
+7. Roles and Responsibilities
+
+Role	Responsibility
+DBA Team	Implement technical controls and perform monthly reviews
+Security Team	Validate compliance and review audit logs
+System Owner	Approve installation account use
+ISSO	Approve emergency access and verify controls
+Change Control Board	Approve production-level access events
+
+
+⸻
+
+8. Technical Enforcement Summary
+
+Control	Implementation
+Password disabled	passwd -l postgres
+No direct SSH login	sshd_config restriction
+sudo logging	/var/log/secure or journald
+Session auditing	PostgreSQL log settings
+Superuser review	Periodic SQL validation
+Automated validation	Ansible compliance role
+
+
+⸻
+
+9. Technical Verification
+
+Compliance with this procedure is verified using automated configuration management (Ansible) and periodic validation checks, including:
+	•	passwd -S postgres validation
+	•	SSH configuration inspection
+	•	Superuser query validation
+	•	PostgreSQL session logging verification
+	•	sudo log review
+	•	Detection of unauthorized installation account use
+
+Automation artifacts are retained as compliance evidence.
+
+⸻
+
+10. Non-Compliance Handling
+
+If unauthorized use of the installation account is detected:
+	1.	Access is immediately revoked
+	2.	Incident response procedures are initiated
+	3.	A security review is conducted
+	4.	Root cause analysis is performed
+	5.	Corrective actions are documented
+	6.	Findings are reported to the System Owner
+
+⸻
+
+11. Compliance Evidence
+
+The following artifacts demonstrate compliance with V-206545:
+	•	/etc/passwd showing locked postgres account
+	•	SSH configuration showing restricted login
+	•	PostgreSQL logs showing audited sessions
+	•	sudo logs showing user elevation
+	•	Superuser validation output
+	•	Change management tickets
+	•	Ansible validation run output
+	•	This documented procedure
+
+⸻
+
+12. Review and Maintenance
+
+This procedure shall be reviewed:
+	•	Annually
+	•	After major PostgreSQL upgrades
+	•	After security incidents
+	•	Upon STIG or SRG updates
+
+⸻
+
+13. Approval
+
+Role	Name	Date
+System Owner		
+Security Officer		
+DBA Lead		
+
+
+⸻
+
+Compliance Statement
+
+This procedure satisfies SRG control V-206545 by documenting and enforcing restrictions and monitoring requirements for the PostgreSQL DBMS installation account.
+
+Technical enforcement and validation are implemented through automated configuration management and periodic compliance review.

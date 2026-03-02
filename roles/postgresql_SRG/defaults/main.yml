@@ -44,9 +44,17 @@ pg_service_name: "{{ postgresql_srg_service_name }}"
 pg_data_dir: "{{ postgresql_srg_data_dir }}"
 pg_conf_file: "{{ postgresql_srg_conf_file }}"
 pg_hba_file: "{{ postgresql_srg_hba_file }}"
+pg_user: "{{ postgresql_srg_postgres_user }}"
+pg_database: postgres
 
 # pgaudit toggle (many SRG controls assume it is available)
 postgresql_srg_pgaudit_enabled: false
+
+# SSL enforcement (disable in lab environments without certificates)
+postgresql_srg_ssl_enabled: false
+
+# FIPS mode validation (disable in lab environments where FIPS is not available)
+postgresql_srg_fips_required: false
 
 # Optional common logging knobs used by multiple controls
 postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "

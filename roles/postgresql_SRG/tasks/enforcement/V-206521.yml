@@ -1,0 +1,94 @@
+---
+############################################################
+# PostgreSQL STIG | V-206521
+#
+# FINDING DEFINITION:
+# Configure the DBMS settings and access controls to permit
+# user access only to objects and data that the user is
+# authorized to view or interact with, and prevent access
+# to all other objects and data.
+#
+# CONTROL INTENT:
+# Enforce least privilege (AC-6). Users must only access
+# explicitly authorized database objects. All other access
+# must be denied by default.
+#
+# COMPLIANCE CHECKLIST:
+# ✔ PUBLIC does NOT have CONNECT on database
+# ✔ PUBLIC does NOT have USAGE on schema
+# ✔ PUBLIC does NOT have CREATE on schema
+# ✔ Default privileges are revoked from PUBLIC
+# ✔ Access is role-based (RBAC model)
+# ✔ Superuser accounts are minimized
+#
+# FAILED CONDITIONS (Finding if any are true):
+# ✖ PUBLIC retains CONNECT privilege on database
+# ✖ PUBLIC retains USAGE or CREATE on schema
+# ✖ Default privileges grant access to PUBLIC
+# ✖ Excessive direct object grants to users
+# ✖ Excessive superuser accounts
+# ✖ Users can access objects without explicit authorization
+#
+############################################################
+
+- name: V-206521 | Revoke database CONNECT from PUBLIC
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -c "REVOKE ALL ON DATABASE {{ pg_database }} FROM PUBLIC;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206521
+    - enforcement
+
+- name: V-206521 | Revoke schema privileges from PUBLIC
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -c "REVOKE ALL ON SCHEMA public FROM PUBLIC;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206521
+    - enforcement
+
+- name: V-206521 | Revoke CREATE privilege on public schema
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206521
+    - enforcement
+
+- name: V-206521 | Revoke default table privileges from PUBLIC
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -c "ALTER DEFAULT PRIVILEGES REVOKE ALL ON TABLES FROM PUBLIC;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206521
+    - enforcement
+
+############################################################
+# NOTE:
+# This control assumes a Role-Based Access Control (RBAC)
+# model is implemented separately via:
+#   - Dedicated application roles
+#   - Explicit GRANT statements
+#   - No direct privilege grants to individual users
+#
+# Validation tasks should confirm:
+#   - No PUBLIC privileges remain
+#   - Only authorized roles have object access
+#   - Superuser count is restricted
+############################################################

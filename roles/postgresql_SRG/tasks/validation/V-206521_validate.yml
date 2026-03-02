@@ -1,0 +1,60 @@
+---
+- name: Check PUBLIC privileges on database
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -tAc "SELECT count(*) FROM (SELECT unnest(datacl)::text AS acl FROM pg_database WHERE datname='{{ pg_database }}') s WHERE acl LIKE '=%';"
+  register: db_public_count
+  changed_when: false
+  tags:
+    - validation
+    - V-206521
+
+- name: Validate PUBLIC has no privileges on database
+  fail:
+    msg: "PUBLIC still has privileges on {{ pg_database }}."
+  when: (db_public_count.stdout | trim | int) > 0
+  tags:
+    - validation
+    - V-206521
+
+- name: Check PUBLIC privileges on public schema
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -tAc "SELECT nspname, nspacl FROM pg_namespace WHERE nspname='public';"
+  register: schema_acl
+  changed_when: false
+  tags:
+    - validation
+    - V-206521
+
+- name: Validate PUBLIC has no privileges on public schema
+  assert:
+    that:
+      - "'=UC/{{ pg_user }}' not in schema_acl.stdout"
+  tags:
+    - validation
+    - V-206521
+
+- name: Check default table privileges for PUBLIC
+  become: true
+  become_user: postgres
+  command: >
+    psql -d {{ pg_database }}
+    -tAc "SELECT defaclobjtype, defaclacl FROM pg_default_acl WHERE defaclobjtype='r';"
+  register: default_acl
+  changed_when: false
+  tags:
+    - validation
+    - V-206521
+
+- name: Validate PUBLIC has no default table privileges
+  assert:
+    that:
+      - "'=r/{{ pg_user }}' not in default_acl.stdout"
+  tags:
+    - validation
+    - V-206521

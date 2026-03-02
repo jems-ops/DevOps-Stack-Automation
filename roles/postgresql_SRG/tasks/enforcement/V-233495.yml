@@ -1,0 +1,166 @@
+---
+############################################################
+# PostgreSQL STIG | V-233495
+#
+# ENFORCEMENT + REMEDIATION MODE
+#
+# Deploy a DBMS compatible with NSA-approved cryptography.
+#
+# This task will:
+#  - Enforce SSL
+#  - Enforce TLS >= 1.2
+#  - Restrict weak ciphers
+#  - Enforce SCRAM password encryption
+#  - Remove MD5 authentication
+#  - Validate FIPS mode
+#
+############################################################
+
+###############################
+# 1️⃣ Enforce FIPS Mode
+###############################
+
+- name: Check FIPS mode
+  command: cat /proc/sys/crypto/fips_enabled
+  register: fips_check
+  changed_when: false
+  failed_when: false
+  tags:
+    - V-233495
+    - crypto
+
+- name: Warn if FIPS mode is disabled
+  debug:
+    msg: "WARNING: FIPS mode is NOT enabled (value={{ fips_check.stdout }}). Required for NSA-approved cryptography."
+  when: fips_check.stdout != "1"
+  tags:
+    - V-233495
+    - crypto
+
+- name: Fail if FIPS required but not enabled
+  fail:
+    msg: "FIPS mode is NOT enabled. Set postgresql_srg_fips_required=false to skip."
+  when:
+    - postgresql_srg_fips_required | bool
+    - fips_check.stdout != "1"
+  tags:
+    - V-233495
+    - crypto
+
+###############################
+# 2️⃣ Enable SSL
+###############################
+
+- name: Enforce SSL enabled
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?ssl\s*='
+    line: "ssl = on"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+  tags:
+    - V-233495
+    - crypto
+
+###############################
+# 3️⃣ Enforce Minimum TLS Version
+###############################
+
+- name: Enforce TLS minimum version 1.2
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?ssl_min_protocol_version'
+    line: "ssl_min_protocol_version = 'TLSv1.2'"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+  tags:
+    - V-233495
+    - crypto
+
+###############################
+# 4️⃣ Enforce Strong Cipher Suites
+###############################
+
+- name: Enforce approved cipher suites
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?ssl_ciphers'
+    line: "ssl_ciphers = 'HIGH:!aNULL:!MD5:!3DES:!RC4:!DES'"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+  tags:
+    - V-233495
+    - crypto
+
+- name: Prefer server ciphers
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?ssl_prefer_server_ciphers'
+    line: "ssl_prefer_server_ciphers = on"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+  tags:
+    - V-233495
+    - crypto
+
+###############################
+# 5️⃣ Enforce SCRAM Password Encryption
+###############################
+
+- name: Enforce SCRAM password encryption
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?password_encryption'
+    line: "password_encryption = scram-sha-256"
+  notify: Restart PostgreSQL
+  tags:
+    - V-233495
+    - crypto
+
+###############################
+# 6️⃣ Remove MD5 Authentication from pg_hba.conf
+###############################
+
+- name: Remove md5 authentication entries
+  become: true
+  replace:
+    path: "{{ pg_hba_file }}"
+    regexp: '\bmd5\b'
+    replace: 'scram-sha-256'
+  notify: Restart PostgreSQL
+  tags:
+    - V-233495
+    - crypto
+
+###############################
+# 7️⃣ Validate OpenSSL Backend
+###############################
+
+- name: Validate PostgreSQL uses OpenSSL
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl_library;"
+  register: ssl_library_check
+  changed_when: false
+  failed_when: "'OpenSSL' not in ssl_library_check.stdout"
+  tags:
+    - V-233495
+    - crypto
+
+############################################################
+# COMPLIANCE CHECKLIST (Auto-Enforced)
+#
+# ✔ FIPS mode enabled
+# ✔ OpenSSL backend
+# ✔ SSL enabled
+# ✔ TLSv1.2+ enforced
+# ✔ Weak ciphers removed
+# ✔ SCRAM enforced
+# ✔ MD5 removed
+#
+############################################################

@@ -1,0 +1,161 @@
+---
+############################################################
+# PostgreSQL STIG | V-233495
+#
+# FINDING DEFINITION:
+# Deploy a DBMS compatible with the use of NSA-approved
+# cryptography.
+#
+# COMPLIANCE CHECKLIST:
+# ✔ FIPS mode enabled
+# ✔ OpenSSL in use
+# ✔ SSL enabled
+# ✔ TLSv1.2+ enforced
+# ✔ Weak ciphers disabled
+# ✔ SCRAM enabled
+# ✔ MD5 disabled
+#
+# FAILED CONDITIONS:
+# ✖ FIPS disabled
+# ✖ Non-OpenSSL SSL backend
+# ✖ SSL disabled
+# ✖ TLS < 1.2 allowed
+# ✖ Weak ciphers enabled
+# ✖ password_encryption != scram-sha-256
+# ✖ md5 present in pg_hba.conf
+############################################################
+
+###############################
+# 1️⃣ Validate FIPS Mode
+###############################
+
+- name: Check FIPS mode
+  command: cat /proc/sys/crypto/fips_enabled
+  register: fips_check
+  changed_when: false
+
+- name: Warn if FIPS mode disabled
+  debug:
+    msg: "WARNING: FIPS mode is NOT enabled (value={{ fips_check.stdout }}). Required for NSA-approved cryptography."
+  when: fips_check.stdout != "1"
+
+- name: Fail if FIPS required but not enabled
+  fail:
+    msg: "FIPS mode is NOT enabled. Set postgresql_srg_fips_required=false to skip."
+  when:
+    - postgresql_srg_fips_required | bool
+    - fips_check.stdout != "1"
+
+
+###############################
+# 2️⃣ Validate OpenSSL Backend
+###############################
+
+- name: Check SSL library
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl_library;"
+  register: ssl_library_check
+  changed_when: false
+
+- name: Fail if not using OpenSSL
+  fail:
+    msg: "PostgreSQL is not using OpenSSL."
+  when: "'OpenSSL' not in ssl_library_check.stdout"
+
+
+###############################
+# 3️⃣ Validate SSL Enabled
+###############################
+
+- name: Check SSL enabled
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl;"
+  register: ssl_enabled_check
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: Fail if SSL is disabled
+  fail:
+    msg: "SSL is not enabled in PostgreSQL."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - ssl_enabled_check.stdout != "on"
+
+- name: Warn SSL not enforced
+  debug:
+    msg: "WARNING: SSL enforcement skipped (postgresql_srg_ssl_enabled=false). Set to true when certificates are available."
+  when: not (postgresql_srg_ssl_enabled | bool)
+
+
+###############################
+# 4️⃣ Validate TLS Version
+###############################
+
+- name: Check minimum TLS version
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl_min_protocol_version;"
+  register: tls_version_check
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: Fail if TLS < 1.2
+  fail:
+    msg: "TLS minimum version must be 1.2 or higher."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - tls_version_check.stdout is version('TLSv1.2', '<')
+
+
+###############################
+# 5️⃣ Validate Cipher Restrictions
+###############################
+
+- name: Check configured SSL ciphers
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl_ciphers;"
+  register: cipher_check
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: Fail if weak cipher indicators present
+  fail:
+    msg: "Weak cipher detected in ssl_ciphers configuration."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - cipher_check.stdout is search("MD5|RC4|3DES|DES|NULL")
+
+
+###############################
+# 6️⃣ Validate SCRAM Password Encryption
+###############################
+
+- name: Check password encryption method
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW password_encryption;"
+  register: password_encryption_check
+  changed_when: false
+
+- name: Fail if not SCRAM
+  fail:
+    msg: "Password encryption must be scram-sha-256."
+  when: password_encryption_check.stdout != "scram-sha-256"
+
+
+###############################
+# 7️⃣ Validate No MD5 in pg_hba.conf
+###############################
+
+- name: Check for md5 authentication in pg_hba.conf
+  shell: "grep -E '\\bmd5\\b' {{ pg_hba_file }} || true"
+  register: md5_check
+  changed_when: false
+
+- name: Fail if md5 authentication found
+  fail:
+    msg: "MD5 authentication found in pg_hba.conf. Not NSA-approved."
+  when: md5_check.stdout != ""

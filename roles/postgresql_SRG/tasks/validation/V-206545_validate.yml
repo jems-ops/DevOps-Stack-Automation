@@ -1,0 +1,73 @@
+---
+############################################################
+# PostgreSQL STIG | V-206545 Validation
+############################################################
+
+###############################
+# Validate OS password locked
+###############################
+
+- name: Check postgres account lock status
+  command: passwd -S postgres
+  register: passwd_status
+  changed_when: false
+
+- name: Fail if postgres account is not locked
+  fail:
+    msg: "Postgres OS account password is not locked."
+  when: "'L' not in passwd_status.stdout"
+
+###############################
+# Validate SSH restriction
+###############################
+
+- name: Check SSH DenyUsers configuration
+  shell: grep '^DenyUsers' /etc/ssh/sshd_config || true
+  register: ssh_deny_check
+  changed_when: false
+
+- name: Fail if postgres not restricted from SSH
+  fail:
+    msg: "Postgres SSH login not restricted."
+  when: "'postgres' not in ssh_deny_check.stdout"
+
+###############################
+# Validate superuser minimization
+###############################
+
+- name: Get superuser accounts
+  become: true
+  become_user: postgres
+  command: psql -tAc "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: superusers
+  changed_when: false
+
+- name: Fail if unauthorized superusers exist
+  fail:
+    msg: "Unauthorized superuser accounts detected: {{ superusers.stdout_lines }}"
+  when: superusers.stdout_lines | difference(['postgres']) | length > 0
+
+###############################
+# Validate no active application use of postgres
+###############################
+
+- name: Check active postgres sessions
+  become: true
+  become_user: postgres
+  command: psql -tAc "SELECT usename FROM pg_stat_activity WHERE usename='postgres';"
+  register: postgres_sessions
+  changed_when: false
+
+- name: Warn if postgres account actively used
+  debug:
+    msg: "Active postgres sessions detected: {{ postgres_sessions.stdout_lines }}"
+  when: postgres_sessions.stdout != ""
+
+############################################################
+# NOTE:
+# This control assumes a Role-Based Access Control (RBAC)
+# model is implemented separately via:
+#   - Dedicated application roles
+#   - Minimal superuser accounts
+#   - Auditing of all sessions
+#   - Restriction of direct use of postgres account
