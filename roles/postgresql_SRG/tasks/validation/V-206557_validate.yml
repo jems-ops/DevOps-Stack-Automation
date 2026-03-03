@@ -1,0 +1,80 @@
+---
+############################################################
+# STIG V-206557 Validation
+# Verify encrypted password transmission
+############################################################
+
+############################################################
+# Check SSL Setting (only when SSL is enabled)
+############################################################
+
+- name: "V-206557 | Check PostgreSQL SSL setting"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW ssl;"
+  register: ssl_status
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: "V-206557 | Fail if SSL is not enabled"
+  fail:
+    msg: "STIG V-206557 FAILED - SSL is not enabled."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - "'on' not in ssl_status.stdout"
+
+############################################################
+# Check Password Encryption Method
+############################################################
+
+- name: "V-206557 | Check password_encryption setting"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW password_encryption;"
+  register: encryption_status
+  changed_when: false
+
+- name: "V-206557 | Fail if password_encryption is not SCRAM"
+  fail:
+    msg: "STIG V-206557 FAILED - password_encryption is not scram-sha-256."
+  when: "'scram-sha-256' not in encryption_status.stdout"
+
+############################################################
+# Verify pg_hba.conf uses hostssl only (when SSL enabled)
+############################################################
+
+- name: "V-206557 | Check for non-SSL host entries"
+  become: true
+  shell: grep -E '^[^#]*\bhost\b' {{ pg_hba_file }}
+  register: non_ssl_entries
+  ignore_errors: true
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: "V-206557 | Fail if non-SSL host entries are present"
+  fail:
+    msg: "STIG V-206557 FAILED - Non-SSL host entries detected in pg_hba.conf."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - non_ssl_entries.stdout | default('') != ""
+
+############################################################
+# Verify active sessions are encrypted (when SSL enabled)
+############################################################
+
+- name: "V-206557 | Check active SSL sessions"
+  become: true
+  become_user: postgres
+  command: >
+    psql -t -c
+    "SELECT count(*) FROM pg_stat_ssl WHERE ssl = false;"
+  register: ssl_sessions
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: "V-206557 | Fail if unencrypted sessions detected"
+  fail:
+    msg: "STIG V-206557 FAILED - Unencrypted client sessions detected."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - ssl_sessions.stdout | default('0') | int > 0

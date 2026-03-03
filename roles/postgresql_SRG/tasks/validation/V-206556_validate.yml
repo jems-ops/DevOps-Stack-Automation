@@ -1,0 +1,66 @@
+---
+############################################################
+# 1️ Check password_encryption setting
+############################################################
+
+- name: "V-206556 | Check password_encryption"
+  become: true
+  become_user: postgres
+  shell: psql -t -c "SHOW password_encryption;"
+  register: password_encryption_result
+  changed_when: false
+
+- name: "V-206556 | Report password_encryption"
+  debug:
+    msg: "password_encryption = {{ password_encryption_result.stdout | trim }}"
+
+############################################################
+# 2️ Check for MD5 hashes (not allowed)
+############################################################
+
+- name: "V-206556 | Detect MD5 password hashes"
+  become: true
+  become_user: postgres
+  shell: >
+    psql -t -c
+    "SELECT rolname FROM pg_authid WHERE rolpassword LIKE 'md5%';"
+  register: md5_hashes
+  changed_when: false
+
+- name: "V-206556 | Report MD5 findings"
+  debug:
+    var: md5_hashes.stdout_lines
+
+############################################################
+# 3️ Scan filesystem for plaintext passwords
+############################################################
+
+- name: "V-206556 | Scan for plaintext password= entries"
+  become: true
+  shell: >
+    grep -Ril "password=" {{ item }} 2>/dev/null || true
+  loop: "{{ postgresql_srg_config_search_paths }}"
+  register: password_scan
+  changed_when: false
+
+- name: "V-206556 | Report password file findings"
+  debug:
+    msg: "{{ password_scan.results | map(attribute='stdout_lines') | list }}"
+
+############################################################
+# 4️ Audit .pgpass permissions
+############################################################
+
+- name: "V-206556 | Find .pgpass files"
+  become: true
+  find:
+    paths: "{{ pgpass_search_path }}"
+    patterns: ".pgpass"
+    recurse: yes
+  register: pgpass_files
+
+- name: "V-206556 | Report .pgpass permissions"
+  debug:
+    msg: "{{ item.path }} mode={{ item.mode }}"
+  loop: "{{ pgpass_files.files }}"
+  when: pgpass_files.matched > 0

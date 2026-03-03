@@ -1,0 +1,66 @@
+---
+############################################################
+# PostgreSQL STIG | V-206570
+#
+# Protect confidentiality and integrity of data at rest
+############################################################
+
+############################
+# Restrict PGDATA directory
+############################
+
+- name: V-206570 | Ensure PGDATA directory secured
+  become: true
+  file:
+    path: "{{ pg_data_dir }}"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+
+- name: V-206570 | Ensure WAL directory secured
+  become: true
+  file:
+    path: "{{ pg_data_dir }}/pg_wal"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+
+- name: V-206570 | Ensure server private key secured
+  become: true
+  file:
+    path: "{{ pg_data_dir }}/server.key"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  when: postgresql_srg_ssl_enabled | bool
+
+############################
+# Validate Data Checksums
+############################
+
+- name: V-206570 | Check if data checksums enabled
+  become: true
+  become_user: postgres
+  command: "{{ postgresql_srg_pg_bin_path }}/pg_controldata {{ pg_data_dir }}"
+  register: checksum_status
+  changed_when: false
+
+- name: V-206570 | Fail if data checksums disabled
+  fail:
+    msg: "V-206570 FAILED: Data page checksums are disabled."
+  when: "'Data page checksum version: 0' in checksum_status.stdout"
+
+############################
+# Validate disk encryption (basic check)
+############################
+
+- name: V-206570 | Check if underlying disk is encrypted (LUKS example)
+  become: true
+  command: lsblk -o NAME,TYPE,MOUNTPOINT
+  register: disk_info
+  changed_when: false
+
+- name: V-206570 | Debug disk layout (manual validation required)
+  debug:
+    msg: "{{ disk_info.stdout }}"
+  when: "'luks' in disk_info.stdout"  

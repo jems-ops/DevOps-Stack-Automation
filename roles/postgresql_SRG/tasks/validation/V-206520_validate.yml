@@ -1,0 +1,60 @@
+---
+#################################################################
+  # 1️⃣ Validate No Trust Authentication
+  #################################################################
+
+- name: Check for trust authentication
+  shell: grep -i '\btrust\b' {{ pg_hba_file }} || true
+  register: postgresql_srg_trust_check
+  changed_when: false
+
+- name: Fail if trust authentication exists
+  fail:
+    msg: "NON-COMPLIANT: Trust authentication detected in pg_hba.conf"
+  when: postgresql_srg_trust_check.stdout != ""
+
+  #################################################################
+  # 2️⃣ Validate LDAP or GSS Exists
+  #################################################################
+
+- name: Check for centralized authentication method
+  shell: grep -E 'ldap|gss' {{ pg_hba_file }} || true
+  register: postgresql_srg_auth_check
+  changed_when: false
+
+- name: Fail if centralized authentication missing
+  fail:
+    msg: "NON-COMPLIANT: LDAP or GSS authentication not configured"
+  when: postgresql_srg_auth_check.stdout == ""
+
+  #################################################################
+  # 3️⃣ Validate Approved Login Roles Only
+  #################################################################
+
+- name: Collect PostgreSQL login roles
+  become: true
+  become_user: postgres
+  shell: psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin;"
+  register: postgresql_srg_roles_raw
+  changed_when: false
+
+- name: Normalize roles
+  set_fact:
+    postgresql_srg_login_roles: "{{ postgresql_srg_roles_raw.stdout_lines | map('trim') | list }}"
+
+- name: Identify unauthorized roles
+  set_fact:
+    postgresql_srg_unauthorized_roles: "{{ postgresql_srg_login_roles | difference(postgresql_srg_approved_local_accounts) }}"
+
+- name: Fail if unauthorized roles exist
+  fail:
+    msg: "NON-COMPLIANT: Unauthorized login roles detected: {{ postgresql_srg_unauthorized_roles }}"
+  when: postgresql_srg_unauthorized_roles | length > 0
+
+  #################################################################
+  # 4️⃣ Report Success
+  #################################################################
+
+- name: Report compliant status
+  debug:
+    msg: "V-206520 COMPLIANT - Centralized authentication properly enforced."

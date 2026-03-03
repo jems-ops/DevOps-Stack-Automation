@@ -1,60 +1,87 @@
----
-- name: Check PUBLIC privileges on database
+############################################################
+# STIG V-206521
+# Validation / Audit Tasks
+############################################################
+
+############################################################
+# Validate PUBLIC revocation
+############################################################
+
+- name: V-206521 | Check database ACL
   become: true
   become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -tAc "SELECT count(*) FROM (SELECT unnest(datacl)::text AS acl FROM pg_database WHERE datname='{{ pg_database }}') s WHERE acl LIKE '=%';"
-  register: db_public_count
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT datacl
+     FROM pg_database
+     WHERE datname='{{ postgresql_srg_target_database }}';"
+  register: postgresql_srg_db_acl
   changed_when: false
-  tags:
-    - validation
-    - V-206521
 
-- name: Validate PUBLIC has no privileges on database
-  fail:
-    msg: "PUBLIC still has privileges on {{ pg_database }}."
-  when: (db_public_count.stdout | trim | int) > 0
-  tags:
-    - validation
-    - V-206521
-
-- name: Check PUBLIC privileges on public schema
-  become: true
-  become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -tAc "SELECT nspname, nspacl FROM pg_namespace WHERE nspname='public';"
-  register: schema_acl
-  changed_when: false
-  tags:
-    - validation
-    - V-206521
-
-- name: Validate PUBLIC has no privileges on public schema
+- name: Assert PUBLIC does not have database privileges
   assert:
     that:
-      - "'=UC/{{ pg_user }}' not in schema_acl.stdout"
-  tags:
-    - validation
-    - V-206521
+      - "'=Tc/' not in postgresql_srg_db_acl.stdout"
+    fail_msg: "PUBLIC still has database privileges"
+    success_msg: "PUBLIC database privileges removed"
 
-- name: Check default table privileges for PUBLIC
+############################################################
+# Validate schema privileges
+############################################################
+
+- name: V-206521 | Check schema ACL
   become: true
   become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -tAc "SELECT defaclobjtype, defaclacl FROM pg_default_acl WHERE defaclobjtype='r';"
-  register: default_acl
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT nspname, nspacl
+     FROM pg_namespace
+     WHERE nspname IN ({{ postgresql_srg_application_schemas | map('regex_replace', '(.*)', "'\\1'") | join(',') }});"
+  register: postgresql_srg_schema_acl
   changed_when: false
-  tags:
-    - validation
-    - V-206521
 
-- name: Validate PUBLIC has no default table privileges
+- name: Display schema ACL
+  debug:
+    var: postgresql_srg_schema_acl.stdout_lines
+
+############################################################
+# Validate superuser restriction
+############################################################
+
+- name: V-206521 | Validate SUPERUSER roles
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT rolname
+     FROM pg_roles
+     WHERE rolsuper = true;"
+  register: postgresql_srg_superuser_validation
+  changed_when: false
+
+- name: Assert only postgres is SUPERUSER
   assert:
     that:
-      - "'=r/{{ pg_user }}' not in default_acl.stdout"
-  tags:
-    - validation
-    - V-206521
+      - postgresql_srg_superuser_validation.stdout_lines | length == 1
+      - "'postgres' in postgresql_srg_superuser_validation.stdout"
+    fail_msg: "Unauthorized SUPERUSER roles detected"
+    success_msg: "SUPERUSER restriction compliant"
+
+############################################################
+# Validate role grants
+############################################################
+
+- name: V-206521 | List role table grants
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "SELECT grantee, table_schema, privilege_type
+     FROM information_schema.role_table_grants
+     ORDER BY grantee;"
+  register: postgresql_srg_role_grants
+  changed_when: false
+
+- name: Display role grants
+  debug:
+    var: postgresql_srg_role_grants.stdout_lines

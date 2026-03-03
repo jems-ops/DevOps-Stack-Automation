@@ -1,0 +1,50 @@
+---
+############################################################
+# PostgreSQL STIG | V-206561 VALIDATION
+############################################################
+
+- name: Check SCRAM password encryption
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW password_encryption;"
+  register: pw_enc
+  changed_when: false
+
+- name: Fail if SCRAM not enforced
+  fail:
+    msg: "V-206561 FAILED: SCRAM not enforced."
+  when: pw_enc.stdout.strip() != "scram-sha-256"
+
+
+- name: Check for trust authentication
+  become: true
+  shell: grep -v '^#' {{ pg_hba_file }} | grep -E "host.*trust"
+  register: trust_check
+  changed_when: false
+  ignore_errors: true
+
+- name: Fail if trust authentication exists
+  fail:
+    msg: "V-206561 FAILED: trust authentication present."
+  when: trust_check.rc == 0
+
+
+- name: Validate .pgpass permissions
+  become: true
+  find:
+    paths: "{{ pgpass_search_path }}"
+    patterns: ".pgpass"
+  register: pgpass_files
+
+- name: Fail if .pgpass not 0600
+  become: true
+  stat:
+    path: "{{ item.path }}"
+  loop: "{{ pgpass_files.files }}"
+  register: pgpass_stats
+
+- name: Enforce permission validation
+  fail:
+    msg: "V-206561 FAILED: .pgpass permissions not secure."
+  when: item.stat.mode != "0600"
+  loop: "{{ pgpass_stats.results }}"

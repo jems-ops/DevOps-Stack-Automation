@@ -1,0 +1,119 @@
+---
+############################################################
+# PostgreSQL STIG | V-206604 VALIDATION
+#
+# Validation-only tasks (no changes made)
+############################################################
+
+############################
+# Validate DB Crypto Config
+############################
+
+- name: V-206604 | Check SSL status
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl;"
+  register: ssl_status
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Fail if SSL not enabled
+  fail:
+    msg: "V-206604 FAILED: SSL is not enabled."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - ssl_status.stdout.strip() != "on"
+
+
+- name: V-206604 | Check TLS minimum version
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl_min_protocol_version;"
+  register: tls_version
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Fail if TLS < 1.2
+  fail:
+    msg: "V-206604 FAILED: TLS minimum version is below 1.2."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - tls_version.stdout not in ["TLSv1.2", "TLSv1.3"]
+
+
+- name: V-206604 | Check password encryption
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW password_encryption;"
+  register: pw_enc
+  changed_when: false
+
+- name: Fail if SCRAM not enforced
+  fail:
+    msg: "V-206604 FAILED: SCRAM-SHA-256 is not enforced."
+  when: pw_enc.stdout.strip() != "scram-sha-256"
+
+
+#########################################
+# Validate pg_hba does not contain md5
+#########################################
+
+- name: V-206604 | Check for md5 entries in pg_hba.conf
+  become: true
+  shell: grep -v '^#' {{ pg_hba_file }} | grep -w md5
+  register: md5_check
+  changed_when: false
+  ignore_errors: true
+
+- name: Fail if md5 authentication still present
+  fail:
+    msg: "V-206604 FAILED: md5 authentication entries detected."
+  when: md5_check.rc == 0
+
+
+#########################################
+# Validate FIPS Mode
+#########################################
+
+- name: V-206604 | Validate FIPS mode
+  become: true
+  command: cat /proc/sys/crypto/fips_enabled
+  register: fips_status
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: V-206604 | Fail if FIPS not enabled
+  fail:
+    msg: "V-206604 FAILED: FIPS mode is not enabled."
+  when:
+    - postgresql_srg_fips_required | bool
+    - fips_status.stdout.strip() != "1"
+
+
+#########################################
+# Validate Key Permissions
+#########################################
+
+- name: V-206604 | Check server.key permissions
+  become: true
+  stat:
+    path: "{{ pg_data_dir }}/server.key"
+  register: key_stat
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Fail if server.key permissions not 0600
+  fail:
+    msg: "V-206604 FAILED: server.key permissions not secure."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - key_stat.stat.exists | default(false)
+    - key_stat.stat.mode | default('0600') != "0600"
+
+
+############################################################
+# VALIDATION SUCCESS MESSAGE
+############################################################
+
+- name: V-206604 | Compliance Passed
+  debug:
+    msg: "V-206604 COMPLIANT: Cryptographic protections properly configured."

@@ -1,0 +1,58 @@
+---
+############################################################
+# STIG V-206557 Enforcement
+# Encrypt transmission of passwords across the network
+############################################################
+
+- name: "V-206557 | Ensure PostgreSQL SSL is enabled"
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?ssl\s*='
+    line: "ssl = on"
+    create: no
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: "V-206557 | Ensure password_encryption is SCRAM-SHA-256"
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?password_encryption\s*='
+    line: "password_encryption = 'scram-sha-256'"
+    create: no
+  notify: Restart PostgreSQL
+
+############################################################
+# Enforce hostssl in pg_hba.conf
+############################################################
+
+- name: "V-206557 | Replace non-SSL host entries with hostssl"
+  become: true
+  replace:
+    path: "{{ pg_hba_file }}"
+    regexp: '^host\s+'
+    replace: 'hostssl '
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: "V-206557 | Remove insecure trust authentication"
+  become: true
+  lineinfile:
+    path: "{{ pg_hba_file }}"
+    regexp: '\strust\s*$'
+    state: absent
+  notify: Restart PostgreSQL
+
+############################################################
+# Ensure server key permissions are secure
+############################################################
+
+- name: "V-206557 | Ensure server.key has secure permissions"
+  become: true
+  file:
+    path: "{{ pg_data_dir }}/server.key"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  when: postgresql_srg_ssl_enabled | bool

@@ -38,3 +38,15 @@
 # CAT 1 Deploy database compatible to NSA-approved cryptography
 # If the DBMS is deployed in an unclassified environment, this is not applicable (NA).
 - ansible.builtin.import_tasks: V-233495_validate.yml
+
+# New batch controls
+- ansible.builtin.import_tasks: V-206520_validate.yml
+- ansible.builtin.import_tasks: V-206555_validate.yml
+  when: postgresql_srg_password_policy_enabled | bool
+- ansible.builtin.import_tasks: V-206556_validate.yml
+- ansible.builtin.import_tasks: V-206557_validate.yml
+- ansible.builtin.import_tasks: V-206559_validate.yml
+- ansible.builtin.import_tasks: V-206561_validate.yml
+- ansible.builtin.import_tasks: V-206562_validate.yml
+- ansible.builtin.import_tasks: V-206570_validate.yml
+- ansible.builtin.import_tasks: V-206604_validate.yml

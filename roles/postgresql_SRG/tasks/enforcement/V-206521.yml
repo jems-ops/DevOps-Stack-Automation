@@ -31,64 +31,92 @@
 #
 ############################################################
 
-- name: V-206521 | Revoke database CONNECT from PUBLIC
+- name: V-206521 | Revoke PUBLIC access to database
   become: true
   become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -c "REVOKE ALL ON DATABASE {{ pg_database }} FROM PUBLIC;"
-  changed_when: false
-  tags:
-    - stig
-    - V-206521
-    - enforcement
-
-- name: V-206521 | Revoke schema privileges from PUBLIC
-  become: true
-  become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -c "REVOKE ALL ON SCHEMA public FROM PUBLIC;"
-  changed_when: false
-  tags:
-    - stig
-    - V-206521
-    - enforcement
-
-- name: V-206521 | Revoke CREATE privilege on public schema
-  become: true
-  become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
-  changed_when: false
-  tags:
-    - stig
-    - V-206521
-    - enforcement
-
-- name: V-206521 | Revoke default table privileges from PUBLIC
-  become: true
-  become_user: postgres
-  command: >
-    psql -d {{ pg_database }}
-    -c "ALTER DEFAULT PRIVILEGES REVOKE ALL ON TABLES FROM PUBLIC;"
-  changed_when: false
-  tags:
-    - stig
-    - V-206521
-    - enforcement
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE ALL ON DATABASE {{ postgresql_srg_target_database }} FROM PUBLIC;"
+  when:
+    - postgresql_srg_access_control_enabled
+    - postgresql_srg_revoke_public
 
 ############################################################
-# NOTE:
-# This control assumes a Role-Based Access Control (RBAC)
-# model is implemented separately via:
-#   - Dedicated application roles
-#   - Explicit GRANT statements
-#   - No direct privilege grants to individual users
-#
-# Validation tasks should confirm:
-#   - No PUBLIC privileges remain
-#   - Only authorized roles have object access
-#   - Superuser count is restricted
+# Revoke PUBLIC access from schemas
 ############################################################
+
+- name: V-206521 | Revoke PUBLIC access on schemas
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE ALL ON SCHEMA {{ item }} FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when:
+    - postgresql_srg_access_control_enabled
+    - postgresql_srg_revoke_public
+
+############################################################
+# Harden Default Privileges
+############################################################
+
+- name: V-206521 | Remove default PUBLIC table privileges
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+     REVOKE ALL ON TABLES FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when:
+    - postgresql_srg_access_control_enabled
+    - postgresql_srg_enforce_default_privileges
+
+############################################################
+# Example Role-Based Access Model
+############################################################
+
+- name: V-206521 | Ensure readonly role exists
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -tc \
+    "SELECT 1 FROM pg_roles WHERE rolname='{{ postgresql_srg_readonly_role }}';" | \
+    grep -q 1 || \
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "CREATE ROLE {{ postgresql_srg_readonly_role }};"
+  when: postgresql_srg_access_control_enabled
+
+- name: V-206521 | Grant SELECT privileges to readonly role
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "GRANT USAGE ON SCHEMA {{ item }} TO {{ postgresql_srg_readonly_role }};
+     GRANT SELECT ON ALL TABLES IN SCHEMA {{ item }} TO {{ postgresql_srg_readonly_role }};"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when: postgresql_srg_access_control_enabled
+
+############################################################
+# Enforce Superuser Restriction
+############################################################
+
+- name: V-206521 | Check for unauthorized SUPERUSER roles
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT rolname
+     FROM pg_roles
+     WHERE rolsuper = true
+     AND rolname <> 'postgres';"
+  register: postgresql_srg_extra_superusers
+  changed_when: false
+  when: postgresql_srg_access_control_enabled
+
+- name: V-206521 | Fail if extra superusers detected
+  fail:
+    msg: "Unauthorized SUPERUSER roles detected: {{ postgresql_srg_extra_superusers.stdout_lines }}"
+  when:
+    - postgresql_srg_access_control_enabled
+    - postgresql_srg_extra_superusers.stdout | trim != ""

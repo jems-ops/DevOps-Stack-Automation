@@ -1,0 +1,50 @@
+---
+############################################################
+# V-206556 - Protect passwords from disclosure
+# Enforcement
+############################################################
+
+- name: "V-206556 | Check password_encryption"
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW password_encryption;"
+  register: password_encryption_result
+  changed_when: false
+
+- name: "V-206556 | Enforce SCRAM-SHA-256"
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?\s*password_encryption'
+    line: "password_encryption = scram-sha-256"
+  notify: Restart PostgreSQL
+  when: password_encryption_result.stdout | trim != "scram-sha-256"
+
+- name: "V-206556 | Find .pgpass files"
+  become: true
+  find:
+    paths: /root,/home,/var/lib/pgsql
+    patterns: ".pgpass"
+    file_type: file
+    recurse: yes
+  register: pgpass_files
+
+- name: "V-206556 | Enforce secure permissions on .pgpass"
+  become: true
+  file:
+    path: "{{ item.path }}"
+    mode: '0600'
+  loop: "{{ pgpass_files.files }}"
+  when: pgpass_files.matched > 0
+
+- name: "V-206556 | Detect MD5 password hashes"
+  become: true
+  become_user: postgres
+  command: psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword LIKE 'md5%';"
+  register: md5_hashes
+  changed_when: false
+
+- name: "V-206556 | Warn if MD5 hashes exist"
+  debug:
+    msg: "WARNING: MD5 password hashes detected for: {{ md5_hashes.stdout_lines }}. Convert to SCRAM."
+  when: md5_hashes.stdout | trim != ""

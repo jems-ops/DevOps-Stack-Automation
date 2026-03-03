@@ -1,0 +1,79 @@
+---
+############################################################
+# V-206562
+# Validation
+############################################################
+
+# Validate FIPS mode (gated)
+- name: "V-206562 | Validate FIPS mode enabled"
+  command: cat /proc/sys/crypto/fips_enabled
+  register: v206562_validate_fips
+  changed_when: false
+  failed_when: v206562_validate_fips.stdout != "1"
+  become: true
+  when: postgresql_srg_fips_required | bool
+
+# Validate OpenSSL package
+- name: "V-206562 | Validate OpenSSL package"
+  command: rpm -q openssl
+  register: v206562_validate_openssl
+  changed_when: false
+  failed_when: v206562_validate_openssl.rc != 0
+  become: true
+
+# Validate PostgreSQL linked to system OpenSSL (needs shell for command substitution)
+- name: "V-206562 | Validate PostgreSQL uses system OpenSSL"
+  shell: ldd $(which postgres)
+  register: v206562_validate_pg_ssl_link
+  changed_when: false
+  failed_when: "'libssl.so' not in v206562_validate_pg_ssl_link.stdout"
+  become: true
+
+# Validate ssl enabled (gated)
+- name: "V-206562 | Validate ssl setting"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW ssl;"
+  register: v206562_validate_ssl
+  changed_when: false
+  failed_when: v206562_validate_ssl.stdout | trim != "on"
+  when: postgresql_srg_ssl_enabled | bool
+
+# Validate cipher suite (gated)
+- name: "V-206562 | Validate cipher suite"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW ssl_ciphers;"
+  register: v206562_validate_ciphers
+  changed_when: false
+  failed_when: "'MD5' in v206562_validate_ciphers.stdout"
+  when: postgresql_srg_ssl_enabled | bool
+
+# Validate password encryption
+- name: "V-206562 | Validate password encryption"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW password_encryption;"
+  register: v206562_validate_pw
+  changed_when: false
+  failed_when: v206562_validate_pw.stdout | trim != "scram-sha-256"
+
+# Validate TLS minimum protocol (gated)
+- name: "V-206562 | Validate TLS minimum protocol"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW ssl_min_protocol_version;"
+  register: v206562_validate_tls
+  changed_when: false
+  failed_when: "'TLSv1.2' not in v206562_validate_tls.stdout"
+  when: postgresql_srg_ssl_enabled | bool
+
+# Evidence output
+- name: "V-206562 | Display validation summary"
+  debug:
+    msg:
+      - "FIPS Enabled: {{ v206562_validate_fips.stdout | default('skipped') }}"
+      - "OpenSSL: {{ v206562_validate_openssl.stdout }}"
+      - "SSL: {{ v206562_validate_ssl.stdout | default('skipped') | trim }}"
+      - "Password Encryption: {{ v206562_validate_pw.stdout | trim }}"
+      - "TLS Minimum: {{ v206562_validate_tls.stdout | default('skipped') | trim }}"

@@ -1,0 +1,33 @@
+---
+############################################################
+# PostgreSQL STIG | V-206570 VALIDATION
+############################################################
+
+- name: V-206570 | Check PGDATA permissions
+  become: true
+  stat:
+    path: "{{ pg_data_dir }}"
+  register: pgdata_stat
+
+- name: V-206570 | Fail if PGDATA not 0700
+  fail:
+    msg: "V-206570 FAILED: PGDATA permissions not secure."
+  when: pgdata_stat.stat.mode != "0700"
+
+- name: V-206570 | Check data checksum status
+  become: true
+  become_user: postgres
+  command: "{{ postgresql_srg_pg_bin_path }}/pg_controldata {{ pg_data_dir }}"
+  register: checksum_status
+  changed_when: false
+
+- name: V-206570 | Fail if checksums disabled
+  fail:
+    msg: "V-206570 FAILED: Data checksums not enabled."
+  when: "'Data page checksum version: 0' in checksum_status.stdout"
+
+- name: V-206570 | Check if disk is encrypted (LUKS example)
+  become: true
+  command: lsblk -o NAME,TYPE,MOUNTPOINT
+  register: disk_info
+  changed_when: false

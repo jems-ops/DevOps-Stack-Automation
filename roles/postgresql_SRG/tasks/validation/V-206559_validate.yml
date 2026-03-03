@@ -1,0 +1,48 @@
+---
+############################################################
+# PostgreSQL STIG | V-206559 VALIDATION
+############################################################
+
+- name: V-206559 | Check FIPS mode
+  become: true
+  command: cat /proc/sys/crypto/fips_enabled
+  register: fips_status
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: V-206559 | Fail if FIPS not enabled
+  fail:
+    msg: "V-206559 FAILED: System not operating in FIPS mode."
+  when:
+    - postgresql_srg_fips_required | bool
+    - fips_status.stdout.strip() != "1"
+
+- name: V-206559 | Check SSL backend
+  become: true
+  become_user: postgres
+  command: psql -tAc "SHOW ssl_library;"
+  register: ssl_library
+  changed_when: false
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206559 | Fail if not using OpenSSL
+  fail:
+    msg: "V-206559 FAILED: PostgreSQL not using OpenSSL."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - "'OpenSSL' not in ssl_library.stdout"
+
+- name: V-206559 | Validate server.key permissions
+  become: true
+  stat:
+    path: "{{ pg_data_dir }}/server.key"
+  register: key_stat
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206559 | Fail if private key not restricted
+  fail:
+    msg: "V-206559 FAILED: server.key permissions insecure."
+  when:
+    - postgresql_srg_ssl_enabled | bool
+    - key_stat.stat.exists | default(false)
+    - key_stat.stat.mode | default('0600') != "0600"

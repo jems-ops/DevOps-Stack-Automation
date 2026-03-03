@@ -32,3 +32,15 @@
 - ansible.builtin.import_tasks: V-265854.yml
 - ansible.builtin.import_tasks: V-233495.yml
 
+# New batch controls
+- ansible.builtin.import_tasks: V-206520.yml
+- ansible.builtin.import_tasks: V-206555.yml
+  when: postgresql_srg_password_policy_enabled | bool
+- ansible.builtin.import_tasks: V-206556.yml
+- ansible.builtin.import_tasks: V-206557.yml
+- ansible.builtin.import_tasks: V-206559.yml
+- ansible.builtin.import_tasks: V-206561.yml
+- ansible.builtin.import_tasks: V-206562.yml
+- ansible.builtin.import_tasks: V-206570.yml
+- ansible.builtin.import_tasks: V-206604.yml
+

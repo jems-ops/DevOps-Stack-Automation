@@ -1,0 +1,128 @@
+---
+############################################################
+# PostgreSQL STIG | V-206604
+#
+# FINDING DEFINITION:
+# Configure the DBMS, OS/file system, and additional software
+# to provide required cryptographic protection.
+#
+# CONTROL INTENT:
+# Enforce SSL/TLS, strong cryptography, SCRAM authentication,
+# FIPS mode, and secure key/file permissions.
+############################################################
+
+############################
+# DBMS CRYPTO CONFIGURATION
+############################
+
+- name: V-206604 | Enable SSL
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?\s*ssl\s*='
+    line: "ssl = on"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Enforce TLS 1.2 minimum
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?\s*ssl_min_protocol_version'
+    line: "ssl_min_protocol_version = 'TLSv1.2'"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Enforce strong cipher suites
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?\s*ssl_ciphers'
+    line: "ssl_ciphers = 'HIGH:!aNULL:!MD5:!3DES:!RC4:!DES'"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Prefer server ciphers
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?\s*ssl_prefer_server_ciphers'
+    line: "ssl_prefer_server_ciphers = on"
+  notify: Restart PostgreSQL
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Enforce SCRAM password encryption
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^#?\s*password_encryption'
+    line: "password_encryption = scram-sha-256"
+  notify: Restart PostgreSQL
+
+
+#########################################
+# Remove MD5 Authentication from pg_hba
+#########################################
+
+- name: V-206604 | Remove md5 authentication entries
+  become: true
+  replace:
+    path: "{{ pg_hba_file }}"
+    regexp: '\smd5\s*$'
+    replace: ' scram-sha-256'
+  notify: Reload PostgreSQL
+
+
+#########################################
+# OS-LEVEL CRYPTO PROTECTION
+#########################################
+
+- name: V-206604 | Ensure server private key permissions are secure
+  become: true
+  file:
+    path: "{{ pg_data_dir }}/server.key"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  when: postgresql_srg_ssl_enabled | bool
+
+- name: V-206604 | Ensure PGDATA directory permissions are restricted
+  become: true
+  file:
+    path: "{{ pg_data_dir }}"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+
+
+#########################################
+# FIPS MODE VALIDATION
+#########################################
+
+- name: V-206604 | Validate FIPS mode enabled
+  become: true
+  command: cat /proc/sys/crypto/fips_enabled
+  register: fips_status
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: V-206604 | Fail if FIPS not enabled
+  fail:
+    msg: "V-206604 FAILED: FIPS mode is not enabled."
+  when:
+    - postgresql_srg_fips_required | bool
+    - fips_status.stdout | default('1') != "1"
+
+
+############################################################
+# COMPLIANCE CHECKLIST
+#
+# ✔ ssl = on
+# ✔ TLS >= 1.2
+# ✔ Strong cipher suites enforced
+# ✔ SCRAM enabled
+# ✔ MD5 removed
+# ✔ FIPS enabled
+# ✔ Secure key/file permissions
+#
+############################################################

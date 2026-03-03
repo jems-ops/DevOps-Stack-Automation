@@ -58,3 +58,113 @@ postgresql_srg_fips_required: false
 
 # Optional common logging knobs used by multiple controls
 postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "
+
+############################################################
+# PostgreSQL SRG - Password Policy (Used by V-206555)
+############################################################
+
+# Complexity
+postgresql_srg_password_min_length: 15
+
+# Expiration
+postgresql_srg_password_max_days_interactive: 60
+postgresql_srg_password_max_days_noninteractive: 365
+
+# Password History
+postgresql_srg_password_history_count: 5
+
+# Service account naming regex
+postgresql_srg_service_account_pattern: '^svc_'
+
+postgresql_srg_password_policy_enabled: true
+
+############################################################
+# SRG - Installation Account Control (V-206545)
+############################################################
+
+postgresql_srg_install_account_control_enabled: true
+
+# OS installation account
+postgresql_srg_install_os_account: postgres
+
+# DBA group allowed to sudo to postgres
+postgresql_srg_dba_group: dbadmins
+
+# Restrict interactive login shell
+postgresql_srg_install_account_shell: /sbin/nologin
+
+# Enable auditd tracking of postgres binaries
+postgresql_srg_audit_postgres_binaries: true
+
+# PostgreSQL binaries path (adjust per version)
+postgresql_srg_pg_bin_path: "/usr/pgsql-{{ postgresql_srg_pg_version }}/bin"
+
+############################################################
+# SRG - Access Control Enforcement (V-206521)
+############################################################
+
+postgresql_srg_access_control_enabled: true
+
+# Target database
+postgresql_srg_target_database: postgres
+
+# Application schema(s) to control
+postgresql_srg_application_schemas:
+  - public
+
+# Role model (optional example roles)
+postgresql_srg_readonly_role: app_readonly
+postgresql_srg_readwrite_role: app_readwrite
+
+# Enforce PUBLIC revocation
+postgresql_srg_revoke_public: true
+
+# Enforce default privilege hardening
+postgresql_srg_enforce_default_privileges: true
+
+############################################################
+# SRG - Access Control Enforcement (V-206520) 
+############################################################
+
+# Authentication Method: ldap | gss
+postgresql_srg_auth_method: "ldap"
+
+# LDAP Settings
+postgresql_srg_ldap_server: "ldap.example.com"
+postgresql_srg_ldap_basedn: "dc=example,dc=com"
+postgresql_srg_ldap_binddn: "cn=pgbind,dc=example,dc=com"
+postgresql_srg_ldap_bindpw: "REPLACE_WITH_VAULT_SECRET"
+postgresql_srg_ldap_tls: true
+
+# Kerberos Settings
+postgresql_srg_kerberos_realm: "EXAMPLE.COM"
+
+# Approved local roles
+postgresql_srg_approved_local_accounts:
+  - postgres
+  - sonar
+  - pg_monitor
+  - pg_signal_backend
+  # Validation framework test roles (created by V-206519, V-206526)
+  - stig_validate_role
+  - stig_limited
+
+############################################################
+# SRG - PostgreSQL Version (used by pg_controldata, etc.)
+############################################################
+postgresql_srg_pg_version: "16"
+
+############################################################
+# SRG - Filesystem Search Paths
+############################################################
+
+# Directories to search for .pgpass files (V-206556, V-206561)
+pgpass_search_path:
+  - /home
+  - /var/lib/pgsql
+
+# Directories to scan for plaintext password entries (V-206556 validation)
+postgresql_srg_config_search_paths:
+  - /etc
+  - /var/lib/pgsql
+  - "/usr/pgsql-{{ postgresql_srg_pg_version }}"

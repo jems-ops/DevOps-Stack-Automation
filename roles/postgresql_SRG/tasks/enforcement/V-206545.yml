@@ -28,68 +28,97 @@
 #
 ############################################################
 
-- name: V-206545 | Lock postgres OS account password
+- name: V-206545 | Restrict postgres OS account interactive login
   become: true
-  command: passwd -l postgres
-  ignore_errors: true
-  tags:
-    - stig
-    - V-206545
-    - enforcement
+  user:
+    name: "{{ postgresql_srg_install_os_account }}"
+    shell: "{{ postgresql_srg_install_account_shell }}"
+  when: postgresql_srg_install_account_control_enabled
 
-- name: V-206545 | Ensure postgres DB sessions are audited
+############################################################
+# Enforce sudo-based controlled access
+############################################################
+
+- name: V-206545 | Ensure DBA group exists
+  become: true
+  group:
+    name: "{{ postgresql_srg_dba_group }}"
+    state: present
+  when: postgresql_srg_install_account_control_enabled
+
+- name: V-206545 | Configure sudo access for DBA group
+  become: true
+  copy:
+    dest: "/etc/sudoers.d/postgres_admins"
+    content: |
+      %{{ postgresql_srg_dba_group }} ALL=(postgres) ALL
+    owner: root
+    group: root
+    mode: '0440'
+  when: postgresql_srg_install_account_control_enabled
+
+############################################################
+# Restrict PostgreSQL Superuser Roles
+############################################################
+
+- name: V-206545 | Ensure only postgres is SUPERUSER
+  become: true
+  become_user: postgres
+  shell: |
+    psql -d postgres -t -c "
+    SELECT rolname
+    FROM pg_roles
+    WHERE rolsuper = true
+    AND rolname <> 'postgres';"
+  register: postgresql_srg_extra_superusers
+  changed_when: false
+  when: postgresql_srg_install_account_control_enabled
+
+- name: V-206545 | Fail if unauthorized superusers exist
+  fail:
+    msg: "Unauthorized SUPERUSER roles detected: {{ postgresql_srg_extra_superusers.stdout_lines }}"
+  when:
+    - postgresql_srg_install_account_control_enabled
+    - postgresql_srg_extra_superusers.stdout | trim != ""
+
+############################################################
+# Enable pgaudit for privileged activity tracking
+############################################################
+
+- name: V-206545 | Ensure pgaudit is loaded
   become: true
   lineinfile:
     path: "{{ pg_conf_file }}"
-    regexp: '^\s*#?\s*log_connections\s*='
-    line: "log_connections = on"
+    regexp: '^shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
   notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206545
-    - enforcement
+  when: postgresql_srg_install_account_control_enabled
 
-- name: V-206545 | Ensure disconnections are logged
+- name: V-206545 | Configure pgaudit logging
   become: true
-  lineinfile:
+  blockinfile:
     path: "{{ pg_conf_file }}"
-    regexp: '^\s*#?\s*log_disconnections\s*='
-    line: "log_disconnections = on"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - V-206545"
+    block: |
+      pgaudit.log = 'role, ddl, write'
+      log_connections = on
+      log_disconnections = on
   notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206545
-    - enforcement
+  when: postgresql_srg_install_account_control_enabled
 
-- name: Prevent direct SSH login as postgres
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^DenyUsers'
-    line: 'DenyUsers postgres'
-  notify: Restart sshd
-  tags:
-    - stig
-    - V-206545
-    - enforcement
+############################################################
+# Track usage via auditd
+############################################################
 
-- name: Validate superuser count
+- name: V-206545 | Configure auditd rules for PostgreSQL binaries
   become: true
-  become_user: postgres
-  command: psql -tAc "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
-  register: superusers
-  changed_when: false
-  tags:
-    - stig
-    - V-206545
-    - enforcement
-
-- name: Detect application using postgres account
-  become: true
-  become_user: postgres
-  command: psql -tAc "SELECT usename FROM pg_stat_activity WHERE usename='postgres';"
-  register: postgres_sessions
-  changed_when: false
-  tags:
-    - stig
-    - V-206545
-    - enforcement
+  blockinfile:
+    path: /etc/audit/rules.d/postgres.rules
+    create: yes
+    block: |
+      -w {{ postgresql_srg_pg_bin_path }}/psql -p x -k postgres_install_usage
+      -w {{ postgresql_srg_pg_bin_path }}/postgres -p x -k postgres_install_usage
+  notify: restart auditd
+  when:
+    - postgresql_srg_install_account_control_enabled
+    - postgresql_srg_audit_postgres_binaries

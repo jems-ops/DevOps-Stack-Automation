@@ -1,0 +1,61 @@
+############################################################
+# STIG V-206555
+# Validation / Audit Tasks
+############################################################
+
+- name: V-206555 | Check password_encryption setting
+  become: true
+  become_user: postgres
+  shell: psql -t -c "SHOW password_encryption;"
+  register: postgresql_srg_encryption_status
+  changed_when: false
+
+- name: V-206555 | Assert SCRAM is enabled
+  assert:
+    that:
+      - "'scram-sha-256' in postgresql_srg_encryption_status.stdout"
+    fail_msg: "V-206555 FAILED - SCRAM-SHA-256 not enabled"
+    success_msg: "V-206555 PASSED - SCRAM-SHA-256 enabled"
+
+- name: V-206555 | Check shared_preload_libraries
+  become: true
+  become_user: postgres
+  shell: psql -t -c "SHOW shared_preload_libraries;"
+  register: postgresql_srg_spl_status
+  changed_when: false
+
+- name: V-206555 | Assert passwordcheck is loaded
+  assert:
+    that:
+      - "'passwordcheck' in postgresql_srg_spl_status.stdout"
+    fail_msg: "V-206555 FAILED - passwordcheck not enabled"
+    success_msg: "V-206555 PASSED - passwordcheck enabled"
+
+- name: V-206555 | Verify password_history table exists
+  become: true
+  become_user: postgres
+  shell: psql -t -c "SELECT to_regclass('public.password_history');"
+  register: postgresql_srg_history_check
+  changed_when: false
+
+- name: V-206555 | Assert password history table exists
+  assert:
+    that:
+      - "'password_history' in postgresql_srg_history_check.stdout"
+    fail_msg: "V-206555 FAILED - password history table missing"
+    success_msg: "V-206555 PASSED - password history table exists"
+
+- name: V-206555 | Collect role expiration data
+  become: true
+  become_user: postgres
+  shell: |
+    psql -c "
+    SELECT rolname, rolvaliduntil
+    FROM pg_roles
+    WHERE rolcanlogin;"
+  register: postgresql_srg_expiration_data
+  changed_when: false
+
+- name: V-206555 | Display expiration data
+  debug:
+    var: postgresql_srg_expiration_data.stdout_lines

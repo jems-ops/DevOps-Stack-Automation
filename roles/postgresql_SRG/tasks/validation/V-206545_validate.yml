@@ -1,73 +1,75 @@
----
 ############################################################
-# PostgreSQL STIG | V-206545 Validation
+# STIG V-206545
+# Validation / Audit Tasks
 ############################################################
 
-###############################
-# Validate OS password locked
-###############################
-
-- name: Check postgres account lock status
-  command: passwd -S postgres
-  register: passwd_status
+- name: V-206545 | Verify postgres OS account shell
+  become: true
+  shell: "getent passwd {{ postgresql_srg_install_os_account }}"
+  register: postgresql_srg_install_shell
   changed_when: false
 
-- name: Fail if postgres account is not locked
-  fail:
-    msg: "Postgres OS account password is not locked."
-  when: "'L' not in passwd_status.stdout"
+- name: Assert interactive login is disabled
+  assert:
+    that:
+      - "'{{ postgresql_srg_install_account_shell }}' in postgresql_srg_install_shell.stdout"
+    fail_msg: "Installation account shell not restricted"
+    success_msg: "Installation account shell properly restricted"
 
-###############################
-# Validate SSH restriction
-###############################
+############################################################
+# Validate SUPERUSER roles
+############################################################
 
-- name: Check SSH DenyUsers configuration
-  shell: grep '^DenyUsers' /etc/ssh/sshd_config || true
-  register: ssh_deny_check
-  changed_when: false
-
-- name: Fail if postgres not restricted from SSH
-  fail:
-    msg: "Postgres SSH login not restricted."
-  when: "'postgres' not in ssh_deny_check.stdout"
-
-###############################
-# Validate superuser minimization
-###############################
-
-- name: Get superuser accounts
+- name: V-206545 | Check for unauthorized superusers
   become: true
   become_user: postgres
-  command: psql -tAc "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
-  register: superusers
+  shell: |
+    psql -d postgres -t -c "
+    SELECT rolname
+    FROM pg_roles
+    WHERE rolsuper = true
+    AND rolname <> 'postgres';"
+  register: postgresql_srg_superuser_validation
   changed_when: false
 
-- name: Fail if unauthorized superusers exist
-  fail:
-    msg: "Unauthorized superuser accounts detected: {{ superusers.stdout_lines }}"
-  when: superusers.stdout_lines | difference(['postgres']) | length > 0
-
-###############################
-# Validate no active application use of postgres
-###############################
-
-- name: Check active postgres sessions
-  become: true
-  become_user: postgres
-  command: psql -tAc "SELECT usename FROM pg_stat_activity WHERE usename='postgres';"
-  register: postgres_sessions
-  changed_when: false
-
-- name: Warn if postgres account actively used
-  debug:
-    msg: "Active postgres sessions detected: {{ postgres_sessions.stdout_lines }}"
-  when: postgres_sessions.stdout != ""
+- name: Assert no extra superusers exist
+  assert:
+    that:
+      - postgresql_srg_superuser_validation.stdout | trim == ""
+    fail_msg: "Unauthorized SUPERUSER roles detected"
+    success_msg: "Only postgres is SUPERUSER"
 
 ############################################################
-# NOTE:
-# This control assumes a Role-Based Access Control (RBAC)
-# model is implemented separately via:
-#   - Dedicated application roles
-#   - Minimal superuser accounts
-#   - Auditing of all sessions
-#   - Restriction of direct use of postgres account
+# Validate pgaudit
+############################################################
+
+- name: V-206545 | Check shared_preload_libraries
+  become: true
+  become_user: postgres
+  shell: psql -t -c "SHOW shared_preload_libraries;"
+  register: postgresql_srg_spl_validation
+  changed_when: false
+
+- name: Assert pgaudit loaded
+  assert:
+    that:
+      - "'pgaudit' in postgresql_srg_spl_validation.stdout"
+    fail_msg: "pgaudit not enabled"
+    success_msg: "pgaudit enabled"
+
+############################################################
+# Validate auditd rule exists
+############################################################
+
+- name: V-206545 | Verify audit rule file
+  become: true
+  stat:
+    path: /etc/audit/rules.d/postgres.rules
+  register: postgresql_srg_audit_rule
+
+- name: Assert audit rule file exists
+  assert:
+    that:
+      - postgresql_srg_audit_rule.stat.exists
+    fail_msg: "auditd rules for postgres not configured"
+    success_msg: "auditd rules configured"
