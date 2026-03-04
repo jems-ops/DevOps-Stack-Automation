@@ -6,7 +6,7 @@
 - name: Ensure failed statements are logged
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_min_error_statement\s*='
     line: "log_min_error_statement = error"
     backup: true
@@ -18,7 +18,7 @@
 - name: Ensure pgaudit logs role activity
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log\s*='
     line: "pgaudit.log = 'ddl, role, write, read'"
   notify: Restart PostgreSQL
@@ -29,7 +29,7 @@
 - name: Ensure catalog access auditing is enabled
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='
     line: "pgaudit.log_catalog = on"
   notify: Restart PostgreSQL

@@ -6,7 +6,7 @@
 - name: Read postgresql.conf
   become: true
   ansible.builtin.slurp:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
   register: pg_conf_slurp
   tags:
     - audit
@@ -72,7 +72,7 @@
 - name: Check recent logs for connection entry
   become: true
   ansible.builtin.shell: |
-    grep -E "connection authorized|disconnection" {{ pg_data_dir }}/log/* | tail -2
+    grep -E "connection authorized|disconnection" {{ postgresql_srg_data_dir }}/log/* | tail -2
   register: session_log_check
   changed_when: false
   failed_when: session_log_check.stdout == ""

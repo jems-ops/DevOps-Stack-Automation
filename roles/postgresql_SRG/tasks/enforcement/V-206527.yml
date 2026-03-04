@@ -6,7 +6,7 @@
 - name: Ensure logging_collector is enabled
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*logging_collector\s*='
     line: "logging_collector = on"
     backup: true
@@ -18,7 +18,7 @@
 - name: Enable connection logging
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_connections\s*='
     line: "log_connections = on"
   notify: Restart PostgreSQL
@@ -29,7 +29,7 @@
 - name: Enable disconnection logging
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_disconnections\s*='
     line: "log_disconnections = on"
   notify: Restart PostgreSQL
@@ -40,7 +40,7 @@
 - name: Ensure log_line_prefix includes session identifier
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_line_prefix\s*='
     line: "log_line_prefix = '%m %H %p %u %d %c %h %r %a %e '"
   notify: Restart PostgreSQL

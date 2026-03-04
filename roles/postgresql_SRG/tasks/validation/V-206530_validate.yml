@@ -45,7 +45,7 @@
 
 - name: Get latest log entry
   become: true
-  ansible.builtin.shell: tail -n 5 {{ pg_data_dir }}/log/*
+  ansible.builtin.shell: tail -n 5 {{ postgresql_srg_data_dir }}/log/*
   register: log_output
   changed_when: false
   tags:
@@ -55,7 +55,7 @@
 - name: Fail if database name not found in audit log
   ansible.builtin.fail:
     msg: "Database name not present in audit log entry."
-  when: (pg_database | default('postgres')) not in log_output.stdout
+  when: (postgresql_srg_target_database | default('postgres')) not in log_output.stdout
   tags:
     - audit
     - V-206530

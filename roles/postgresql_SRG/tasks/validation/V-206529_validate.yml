@@ -6,7 +6,7 @@
 - name: Check log_line_prefix contains %m
   become: true
   ansible.builtin.shell: |
-    grep -E "^\s*log_line_prefix" {{ pg_conf_file }}
+    grep -E "^\s*log_line_prefix" {{ postgresql_srg_conf_file }}
   register: prefix_check
   changed_when: false
 
@@ -18,7 +18,7 @@
 - name: Check log_timezone is set to UTC
   become: true
   ansible.builtin.shell: |
-    grep -E "^\s*log_timezone" {{ pg_conf_file }}
+    grep -E "^\s*log_timezone" {{ postgresql_srg_conf_file }}
   register: timezone_check
   changed_when: false
 

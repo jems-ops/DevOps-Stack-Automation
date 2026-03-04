@@ -30,10 +30,6 @@
   ansible.builtin.set_fact:
     postgresql_srg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
     postgresql_srg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
-    pg_service_name: "{{ postgresql_srg_service_name }}"
-    pg_data_dir: "{{ postgresql_srg_data_dir }}"
-    pg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
-    pg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
 
 - name: "Auto-detect | Display detected service"
   ansible.builtin.debug:

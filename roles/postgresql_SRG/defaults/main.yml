@@ -38,14 +38,6 @@ postgresql_srg_data_dir_map:
   postgresql-15: /var/lib/pgsql/15/data
   postgres: /var/lib/pgsql/data
 
-# Backwards-compatible aliases (used by CAT II controls V-206519–V-206538)
-pg_service_name: "{{ postgresql_srg_service_name }}"
-pg_data_dir: "{{ postgresql_srg_data_dir }}"
-pg_conf_file: "{{ postgresql_srg_conf_file }}"
-pg_hba_file: "{{ postgresql_srg_hba_file }}"
-pg_user: "{{ postgresql_srg_postgres_user }}"
-pg_database: postgres
-
 ############################################################
 # Feature Toggles
 ############################################################

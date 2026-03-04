@@ -88,7 +88,7 @@
 - name: V-206545 | Ensure pgaudit is loaded
   become: true
   ansible.builtin.lineinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     regexp: '^shared_preload_libraries'
     line: "shared_preload_libraries = 'pgaudit'"
   notify: Restart PostgreSQL
@@ -97,7 +97,7 @@
 - name: V-206545 | Configure pgaudit logging
   become: true
   ansible.builtin.blockinfile:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - V-206545"
     block: |
       pgaudit.log = 'role, ddl, write'

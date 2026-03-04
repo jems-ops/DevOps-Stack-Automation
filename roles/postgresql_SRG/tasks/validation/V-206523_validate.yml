@@ -97,7 +97,7 @@
 - name: V-206523 | Verify audit log contains DDL entry
   become: true
   ansible.builtin.shell: |
-    grep -i "AUDIT" {{ pg_data_dir }}/log/* | tail -1
+    grep -i "AUDIT" {{ postgresql_srg_data_dir }}/log/* | tail -1
   register: audit_entry
   changed_when: false
   failed_when: audit_entry.stdout == ""
@@ -108,7 +108,7 @@
 - name: V-206523 | Verify failed authentication logged
   become: true
   ansible.builtin.shell: |
-    grep -i "authentication failed" {{ pg_data_dir }}/log/* | tail -1
+    grep -i "authentication failed" {{ postgresql_srg_data_dir }}/log/* | tail -1
   register: auth_fail_entry
   changed_when: false
   failed_when: auth_fail_entry.stdout == ""

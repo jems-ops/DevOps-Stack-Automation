@@ -6,3 +6,4 @@ skip_list:
   - role-name                   # Role directory uses uppercase SRG intentionally
   - risky-shell-pipe            # Many validation tasks use pipes intentionally with || true
   - no-changed-when              # Enforcement tasks intentionally change state
+  - command-instead-of-module    # auditd on RHEL 9 requires legacy service command

@@ -70,7 +70,7 @@
 - name: Check audit log contains READ event for pg_roles
   become: true
   ansible.builtin.shell: |
-    grep -i "AUDIT" {{ pg_data_dir }}/log/* | grep -i "pg_roles" | tail -1
+    grep -i "AUDIT" {{ postgresql_srg_data_dir }}/log/* | grep -i "pg_roles" | tail -1
   register: audit_check
   changed_when: false
   tags:

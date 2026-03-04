@@ -6,7 +6,7 @@
 - name: Read postgresql.conf
   become: true
   ansible.builtin.slurp:
-    path: "{{ pg_conf_file }}"
+    path: "{{ postgresql_srg_conf_file }}"
   register: pg_conf_raw
   tags:
     - audit
@@ -85,7 +85,7 @@
 - name: Check logs for permission denied entry
   become: true
   ansible.builtin.shell: |
-    grep -i "permission denied" {{ pg_data_dir }}/log/* | tail -1
+    grep -i "permission denied" {{ postgresql_srg_data_dir }}/log/* | tail -1
   register: log_check
   changed_when: false
   failed_when: log_check.stdout == ""

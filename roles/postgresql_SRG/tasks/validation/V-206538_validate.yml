@@ -1,7 +1,7 @@
 - name: Check log directory permissions
   become: true
   ansible.builtin.stat:
-    path: "{{ pg_data_dir }}/log"
+    path: "{{ postgresql_srg_data_dir }}/log"
   register: log_dir_stat
 
 - name: Fail if directory not 0700
@@ -11,7 +11,7 @@
 
 - name: Verify log file permissions
   become: true
-  ansible.builtin.shell: find {{ pg_data_dir }}/log -type f ! -perm 0600 -print
+  ansible.builtin.shell: find {{ postgresql_srg_data_dir }}/log -type f ! -perm 0600 -print
   register: log_modes
   changed_when: false
 
