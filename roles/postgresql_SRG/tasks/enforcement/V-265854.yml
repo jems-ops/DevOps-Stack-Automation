@@ -6,7 +6,7 @@
 
 - name: "V-265854 | Gather PostgreSQL version"
   become: true
-  ansible.builtin.command: "{{ postgresql_srg_pg_bin_path }}/psql --version"
+  ansible.builtin.command: "{{ postgresql_srg_psql_path }} --version"
   register: postgresql_srg_version
   changed_when: false
 

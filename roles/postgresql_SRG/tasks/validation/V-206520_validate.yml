@@ -28,7 +28,7 @@
 - name: "V-206520 | Check for trust authentication"
   become: true
   ansible.builtin.shell: |
-    grep -i trust {{ postgresql_srg_hba_file }} || true
+    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -iw trust || true
   register: postgresql_srg_trust_check
   changed_when: false
 

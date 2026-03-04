@@ -23,6 +23,7 @@ postgresql_srg_data_dir: /var/lib/pgsql/data
 postgresql_srg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
 postgresql_srg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
 postgresql_srg_pg_bin_path: "/usr/pgsql-{{ postgresql_srg_pg_version }}/bin"
+postgresql_srg_psql_path: "{{ postgresql_srg_pg_bin_path }}/psql"
 
 # Optional: auto-detect a supported systemd unit and set matching data_dir.
 postgresql_srg_auto_detect: true
