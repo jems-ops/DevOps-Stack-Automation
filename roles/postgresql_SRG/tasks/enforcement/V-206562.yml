@@ -1,86 +1,41 @@
 ---
 ############################################################
-# V-206562
-# Ensure DBMS utilizes FIPS 140-2/140-3 validated crypto
-# Enforcement
+# STIG V-206562 Enforcement
+# Ensure FIPS 140-2/140-3 Validated Cryptographic Modules
 ############################################################
 
-############################
-# FIPS enforcement (gated)
-############################
+############################################################
+# Enable FIPS Mode at OS Level
+############################################################
 
-- name: "V-206562 | Ensure dracut-fips installed"
-  package:
+- name: "V-206562 | Ensure FIPS package installed"
+  become: true
+  ansible.builtin.package:
     name: dracut-fips
     state: present
-  become: true
   when: postgresql_srg_fips_required | bool
 
-- name: "V-206562 | Check FIPS mode"
-  command: cat /proc/sys/crypto/fips_enabled
-  register: v206562_fips_status
+- name: "V-206562 | Ensure crypto policy set to FIPS"
+  become: true
+  ansible.builtin.command: update-crypto-policies --set FIPS
+  register: postgresql_srg_crypto_policy
+  changed_when: "'Setting system policy to FIPS' in postgresql_srg_crypto_policy.stdout"
+  when: postgresql_srg_fips_required | bool
+
+############################################################
+# Verify FIPS is enabled
+############################################################
+
+- name: "V-206562 | Check FIPS enabled"
+  become: true
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: postgresql_srg_fips_status
   changed_when: false
-  failed_when: false
-  become: true
   when: postgresql_srg_fips_required | bool
 
-- name: "V-206562 | Enable FIPS mode if disabled"
-  command: fips-mode-setup --enable
+- name: "V-206562 | Fail if FIPS not enabled"
+  ansible.builtin.fail:
+    msg: "FIPS mode is not enabled. System reboot required after enabling FIPS."
   when:
     - postgresql_srg_fips_required | bool
-    - v206562_fips_status.stdout | default('1') != "1"
-  register: v206562_enable_fips
-  become: true
-
-- name: "V-206562 | Reboot if FIPS was enabled"
-  reboot:
-  when:
-    - postgresql_srg_fips_required | bool
-    - v206562_enable_fips is changed
-  become: true
-
-# Ensure OpenSSL package present
-- name: "V-206562 | Ensure OpenSSL installed"
-  package:
-    name: openssl
-    state: present
-  become: true
-
-############################################################
-# PostgreSQL Crypto Enforcement
-############################################################
-
-- name: "V-206562 | Enforce ssl = on"
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?ssl\s*='
-    line: "ssl = on"
-  notify: Restart PostgreSQL
-  become: true
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: "V-206562 | Enforce FIPS cipher suite"
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?ssl_ciphers\s*='
-    line: "ssl_ciphers = 'HIGH:!aNULL:!MD5'"
-  notify: Restart PostgreSQL
-  become: true
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: "V-206562 | Enforce SCRAM password encryption"
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?password_encryption\s*='
-    line: "password_encryption = scram-sha-256"
-  notify: Restart PostgreSQL
-  become: true
-
-- name: "V-206562 | Enforce TLS minimum protocol"
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?ssl_min_protocol_version\s*='
-    line: "ssl_min_protocol_version = 'TLSv1.2'"
-  notify: Restart PostgreSQL
-  become: true
-  when: postgresql_srg_ssl_enabled | bool
+    - postgresql_srg_fips_status.stdout | default('1') != "1"

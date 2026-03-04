@@ -5,7 +5,7 @@
 
 - name: Ensure logging_collector is enabled
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*logging_collector\s*='
     line: "logging_collector = on"
@@ -17,7 +17,7 @@
 
 - name: Ensure log_file_mode is 0600
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_file_mode\s*='
     line: "log_file_mode = 0600"
@@ -28,7 +28,7 @@
 
 - name: Ensure log_truncate_on_rotation is off
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_truncate_on_rotation\s*='
     line: "log_truncate_on_rotation = off"
@@ -39,7 +39,7 @@
 
 - name: Ensure log directory permissions are secure
   become: true
-  file:
+  ansible.builtin.file:
     path: "{{ pg_data_dir }}/log"
     owner: postgres
     group: postgres
@@ -50,7 +50,7 @@
 
 - name: Ensure existing log files are 0600
   become: true
-  shell: |
+  ansible.builtin.shell: |
     find {{ pg_data_dir }}/log -type f -exec chmod 0600 {} \;
   changed_when: false
   tags:

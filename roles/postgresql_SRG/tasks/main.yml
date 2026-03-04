@@ -3,79 +3,9 @@
 # PostgreSQL SRG/STIG Role - Main Loader
 ############################################################
 
-- name: PostgreSQL SRG | Auto-detect PostgreSQL unit/layout (optional)
-  become: true
+- name: PostgreSQL SRG | Auto-detect PostgreSQL instance
+  ansible.builtin.include_tasks: auto-detect.yml
   when: postgresql_srg_auto_detect | bool
-  tags:
-    - always
-  block:
-    - name: PostgreSQL SRG | Check candidate systemd units
-      ansible.builtin.command: "systemctl show {{ item }} -p ActiveState"
-      loop: "{{ postgresql_srg_candidate_services }}"
-      register: postgresql_srg__svc_candidates
-      changed_when: false
-      failed_when: false
-
-    - name: PostgreSQL SRG | Select detected systemd unit (prefer active service)
-      ansible.builtin.set_fact:
-        postgresql_srg__detected_service_name: >-
-          {{
-            (postgresql_srg__svc_candidates.results | default([])
-              | selectattr('stdout', 'search', 'ActiveState=active')
-              | map(attribute='item')
-              | list
-              | first)
-            | default(postgresql_srg_service_name)
-          }}
-      changed_when: false
-
-    - name: PostgreSQL SRG | Set service name + data dir from detected unit
-      ansible.builtin.set_fact:
-        postgresql_srg_service_name: "{{ postgresql_srg__detected_service_name }}"
-        postgresql_srg_data_dir: >-
-          {{
-            postgresql_srg_data_dir_map.get(
-              postgresql_srg__detected_service_name,
-              postgresql_srg_data_dir
-            )
-          }}
-        postgresql_srg_conf_file: >-
-          {{
-            (postgresql_srg_data_dir_map.get(
-              postgresql_srg__detected_service_name,
-              postgresql_srg_data_dir
-            )) ~ '/postgresql.conf'
-          }}
-        postgresql_srg_hba_file: >-
-          {{
-            (postgresql_srg_data_dir_map.get(
-              postgresql_srg__detected_service_name,
-              postgresql_srg_data_dir
-            )) ~ '/pg_hba.conf'
-          }}
-        pg_service_name: "{{ postgresql_srg__detected_service_name }}"
-        pg_data_dir: >-
-          {{
-            postgresql_srg_data_dir_map.get(
-              postgresql_srg__detected_service_name,
-              postgresql_srg_data_dir
-            )
-          }}
-        pg_conf_file: >-
-          {{
-            (postgresql_srg_data_dir_map.get(
-              postgresql_srg__detected_service_name,
-              postgresql_srg_data_dir
-            )) ~ '/postgresql.conf'
-          }}
-        pg_hba_file: >-
-          {{
-            (postgresql_srg_data_dir_map.get(
-              postgresql_srg__detected_service_name,
-              postgresql_srg_data_dir
-            )) ~ '/pg_hba.conf'
-          }}
-      changed_when: false
 
 - name: PostgreSQL SRG | Load Enforcement Tasks
   ansible.builtin.import_tasks: enforcement/main.yml

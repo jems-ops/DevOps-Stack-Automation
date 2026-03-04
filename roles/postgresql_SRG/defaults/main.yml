@@ -1,9 +1,8 @@
-#SPDX-License-Identifier: MIT-0
 ---
 # defaults file for postgresql_SRG
 #
 # Purpose
-# - This role implements PostgreSQL SRG/STIG-oriented controls referenced by V-IDs (e.g., V-2065xx).
+# - This role implements PostgreSQL SRG/STIG-oriented controls referenced by V-IDs.
 # - Many controls are file-based remediations against postgresql.conf/pg_hba.conf plus optional runtime validation.
 #
 # IMPORTANT
@@ -11,18 +10,19 @@
 #   postgresql_srg_pgaudit_enabled: false and document an exception/POA&M.
 
 # Enable/disable major role phases
-# This role is intended to be used primarily for validation after PostgreSQL/pgaudit are provisioned.
 postgresql_srg_enforcement_enabled: false
 postgresql_srg_validation_enabled: true
 
 # PostgreSQL instance targeting
 postgresql_srg_postgres_user: postgres
+postgresql_srg_pg_version: "16"
 
-# Default to distro service/layout (PostgreSQL 16 commonly uses the unversioned unit on RHEL-like distros)
+# Default to distro service/layout
 postgresql_srg_service_name: postgresql
 postgresql_srg_data_dir: /var/lib/pgsql/data
 postgresql_srg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
 postgresql_srg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
+postgresql_srg_pg_bin_path: "/usr/pgsql-{{ postgresql_srg_pg_version }}/bin"
 
 # Optional: auto-detect a supported systemd unit and set matching data_dir.
 postgresql_srg_auto_detect: true
@@ -30,7 +30,6 @@ postgresql_srg_candidate_services:
   - postgresql
   - postgresql-16
   - postgresql-15
-  # Some environments name the unit simply "postgres"
   - postgres
 
 postgresql_srg_data_dir_map:
@@ -39,7 +38,7 @@ postgresql_srg_data_dir_map:
   postgresql-15: /var/lib/pgsql/15/data
   postgres: /var/lib/pgsql/data
 
-# Backwards-compatible aliases used by the task files (V-2065xx.yml)
+# Backwards-compatible aliases (used by CAT II controls V-206519–V-206538)
 pg_service_name: "{{ postgresql_srg_service_name }}"
 pg_data_dir: "{{ postgresql_srg_data_dir }}"
 pg_conf_file: "{{ postgresql_srg_conf_file }}"
@@ -47,124 +46,85 @@ pg_hba_file: "{{ postgresql_srg_hba_file }}"
 pg_user: "{{ postgresql_srg_postgres_user }}"
 pg_database: postgres
 
-# pgaudit toggle (many SRG controls assume it is available)
+############################################################
+# Feature Toggles
+############################################################
+
+# pgaudit (many SRG controls assume it is available)
 postgresql_srg_pgaudit_enabled: false
 
-# SSL enforcement (disable in lab environments without certificates)
-postgresql_srg_ssl_enabled: false
-
-# FIPS mode validation (disable in lab environments where FIPS is not available)
+# FIPS mode (disable in lab environments where FIPS is not available)
 postgresql_srg_fips_required: false
 
-# Optional common logging knobs used by multiple controls
+# Optional common logging knobs
 postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "
 
 ############################################################
-# PostgreSQL SRG - Password Policy (Used by V-206555)
+# V-206520 — Authentication / Role Control
 ############################################################
 
-# Complexity
-postgresql_srg_password_min_length: 15
-
-# Expiration
-postgresql_srg_password_max_days_interactive: 60
-postgresql_srg_password_max_days_noninteractive: 365
-
-# Password History
-postgresql_srg_password_history_count: 5
-
-# Service account naming regex
-postgresql_srg_service_account_pattern: '^svc_'
-
-postgresql_srg_password_policy_enabled: true
-
-############################################################
-# SRG - Installation Account Control (V-206545)
-############################################################
-
-postgresql_srg_install_account_control_enabled: true
-
-# OS installation account
-postgresql_srg_install_os_account: postgres
-
-# DBA group allowed to sudo to postgres
-postgresql_srg_dba_group: dbadmins
-
-# Restrict interactive login shell
-postgresql_srg_install_account_shell: /sbin/nologin
-
-# Enable auditd tracking of postgres binaries
-postgresql_srg_audit_postgres_binaries: true
-
-# PostgreSQL binaries path (adjust per version)
-postgresql_srg_pg_bin_path: "/usr/pgsql-{{ postgresql_srg_pg_version }}/bin"
-
-############################################################
-# SRG - Access Control Enforcement (V-206521)
-############################################################
-
-postgresql_srg_access_control_enabled: true
-
-# Target database
-postgresql_srg_target_database: postgres
-
-# Application schema(s) to control
-postgresql_srg_application_schemas:
-  - public
-
-# Role model (optional example roles)
-postgresql_srg_readonly_role: app_readonly
-postgresql_srg_readwrite_role: app_readwrite
-
-# Enforce PUBLIC revocation
-postgresql_srg_revoke_public: true
-
-# Enforce default privilege hardening
-postgresql_srg_enforce_default_privileges: true
-
-############################################################
-# SRG - Access Control Enforcement (V-206520) 
-############################################################
-
-# Authentication Method: ldap | gss
-postgresql_srg_auth_method: "ldap"
-
-# LDAP Settings
-postgresql_srg_ldap_server: "ldap.example.com"
-postgresql_srg_ldap_basedn: "dc=example,dc=com"
-postgresql_srg_ldap_binddn: "cn=pgbind,dc=example,dc=com"
-postgresql_srg_ldap_bindpw: "REPLACE_WITH_VAULT_SECRET"
-postgresql_srg_ldap_tls: true
-
-# Kerberos Settings
-postgresql_srg_kerberos_realm: "EXAMPLE.COM"
-
-# Approved local roles
-postgresql_srg_approved_local_accounts:
+postgresql_srg_approved_login_roles:
   - postgres
   - sonar
-  - pg_monitor
-  - pg_signal_backend
-  # Validation framework test roles (created by V-206519, V-206526)
   - stig_validate_role
   - stig_limited
 
 ############################################################
-# SRG - PostgreSQL Version (used by pg_controldata, etc.)
-############################################################
-postgresql_srg_pg_version: "16"
-
-############################################################
-# SRG - Filesystem Search Paths
+# V-206521 — Access Control Enforcement
 ############################################################
 
-# Directories to search for .pgpass files (V-206556, V-206561)
-pgpass_search_path:
-  - /home
-  - /var/lib/pgsql
+postgresql_srg_access_control_enabled: true
+postgresql_srg_target_database: postgres
+postgresql_srg_application_schemas:
+  - public
+postgresql_srg_readonly_role: app_readonly
+postgresql_srg_revoke_public: true
+postgresql_srg_enforce_default_privileges: true
 
-# Directories to scan for plaintext password entries (V-206556 validation)
-postgresql_srg_config_search_paths:
-  - /etc
-  - /var/lib/pgsql
-  - "/usr/pgsql-{{ postgresql_srg_pg_version }}"
+############################################################
+# V-206545 — Installation Account Control
+############################################################
+
+postgresql_srg_install_account_control_enabled: true
+postgresql_srg_install_os_account: postgres
+postgresql_srg_dba_group: dbadmins
+postgresql_srg_install_account_shell: /sbin/nologin
+postgresql_srg_audit_postgres_binaries: true
+
+############################################################
+# Per-Control Toggles
+# Set to false to skip individual controls.
+############################################################
+
+# --- CAT I Controls ---
+postgresql_srg_v206520_enabled: true
+postgresql_srg_v206521_enabled: true
+postgresql_srg_v206545_enabled: true
+postgresql_srg_v206555_enabled: true
+postgresql_srg_v206556_enabled: true
+postgresql_srg_v206557_enabled: true
+postgresql_srg_v206559_enabled: true
+postgresql_srg_v206561_enabled: true
+postgresql_srg_v206562_enabled: true
+postgresql_srg_v206570_enabled: true
+postgresql_srg_v206604_enabled: true
+postgresql_srg_v206605_enabled: true
+postgresql_srg_v265854_enabled: true
+postgresql_srg_v233495_enabled: true
+
+# --- CAT II Controls ---
+postgresql_srg_v206519_enabled: false
+postgresql_srg_v206522_enabled: false
+postgresql_srg_v206523_enabled: false
+postgresql_srg_v206524_enabled: false
+postgresql_srg_v206525_enabled: false
+postgresql_srg_v206526_enabled: false
+postgresql_srg_v206527_enabled: false
+postgresql_srg_v206528_enabled: false
+postgresql_srg_v206529_enabled: false
+postgresql_srg_v206530_enabled: false
+postgresql_srg_v206531_enabled: false
+postgresql_srg_v206532_enabled: false
+postgresql_srg_v206533_enabled: false
+postgresql_srg_v206534_enabled: false
+postgresql_srg_v206538_enabled: false

@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # handlers file for postgresql_SRG
 
@@ -20,7 +20,7 @@
     name: sshd
     state: restarted
 
-- name: restart auditd
-  service:
-    name: auditd
-    state: restarted
+- name: Restart auditd
+  become: true
+  ansible.builtin.command: service auditd restart
+  changed_when: true

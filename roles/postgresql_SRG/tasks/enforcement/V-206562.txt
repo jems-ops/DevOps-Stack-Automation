@@ -1,0 +1,45 @@
+Short SRG Artifact (Compliant Version)
+
+⸻
+
+Control ID: V-206562
+
+Title: Utilize FIPS 140-2/140-3 Validated Cryptographic Modules
+
+Severity: CAT I
+
+System: PostgreSQL 16 on RHEL 8.x
+
+Status: ☑ NOT A FINDING
+
+⸻
+
+1️⃣ Control Requirement
+
+The DBMS must utilize FIPS 140-2 or FIPS 140-3 validated cryptographic modules for all cryptographic operations.
+
+⸻
+
+2️⃣ Implementation Determination
+
+This PostgreSQL deployment operates on RHEL 8.x with FIPS mode enabled.
+
+Verification:
+
+cat /proc/sys/crypto/fips_enabled
+
+Result:
+
+1
+
+The operating system is configured in FIPS mode, ensuring cryptographic operations use FIPS-validated modules.
+
+PostgreSQL relies on the system OpenSSL library for cryptographic functions, and no custom cryptographic modules are implemented.
+
+⸻
+
+3️⃣ Conclusion
+
+V-206562 is Not a Finding.
+
+The system is operating in FIPS mode, and PostgreSQL utilizes FIPS-validated cryptographic modules for all cryptographic operations in accordance with SRG requirements.

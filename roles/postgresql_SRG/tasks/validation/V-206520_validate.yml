@@ -1,60 +1,60 @@
 ---
-#################################################################
-  # 1️⃣ Validate No Trust Authentication
-  #################################################################
+############################################################
+# STIG V-206520 Validation (Audit Only)
+############################################################
 
-- name: Check for trust authentication
-  shell: grep -i '\btrust\b' {{ pg_hba_file }} || true
+############################################################
+# Validate listen_addresses
+############################################################
+
+- name: "V-206520 | Validate listen_addresses"
+  become: true
+  ansible.builtin.shell: |
+    grep -E "^listen_addresses" {{ postgresql_srg_conf_file }}
+  register: postgresql_srg_listen_check
+  changed_when: false
+
+- name: "V-206520 | Assert listen_addresses restricted"
+  ansible.builtin.assert:
+    that:
+      - "'localhost' in postgresql_srg_listen_check.stdout"
+    fail_msg: "PostgreSQL is listening on non-local interfaces"
+    success_msg: "PostgreSQL correctly restricted to localhost"
+
+############################################################
+# Validate No Trust Authentication
+############################################################
+
+- name: "V-206520 | Check for trust authentication"
+  become: true
+  ansible.builtin.shell: |
+    grep -i trust {{ postgresql_srg_hba_file }} || true
   register: postgresql_srg_trust_check
   changed_when: false
 
-- name: Fail if trust authentication exists
-  fail:
-    msg: "NON-COMPLIANT: Trust authentication detected in pg_hba.conf"
-  when: postgresql_srg_trust_check.stdout != ""
+- name: "V-206520 | Assert no trust authentication"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_trust_check.stdout == ""
+    fail_msg: "Trust authentication detected in pg_hba.conf"
+    success_msg: "No trust authentication configured"
 
-  #################################################################
-  # 2️⃣ Validate LDAP or GSS Exists
-  #################################################################
+############################################################
+# Validate Login Roles
+############################################################
 
-- name: Check for centralized authentication method
-  shell: grep -E 'ldap|gss' {{ pg_hba_file }} || true
-  register: postgresql_srg_auth_check
-  changed_when: false
-
-- name: Fail if centralized authentication missing
-  fail:
-    msg: "NON-COMPLIANT: LDAP or GSS authentication not configured"
-  when: postgresql_srg_auth_check.stdout == ""
-
-  #################################################################
-  # 3️⃣ Validate Approved Login Roles Only
-  #################################################################
-
-- name: Collect PostgreSQL login roles
+- name: "V-206520 | Get login roles"
   become: true
   become_user: postgres
-  shell: psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin;"
-  register: postgresql_srg_roles_raw
+  ansible.builtin.shell: |
+    psql -tAc "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+  register: postgresql_srg_login_roles_audit
   changed_when: false
 
-- name: Normalize roles
-  set_fact:
-    postgresql_srg_login_roles: "{{ postgresql_srg_roles_raw.stdout_lines | map('trim') | list }}"
-
-- name: Identify unauthorized roles
-  set_fact:
-    postgresql_srg_unauthorized_roles: "{{ postgresql_srg_login_roles | difference(postgresql_srg_approved_local_accounts) }}"
-
-- name: Fail if unauthorized roles exist
-  fail:
-    msg: "NON-COMPLIANT: Unauthorized login roles detected: {{ postgresql_srg_unauthorized_roles }}"
-  when: postgresql_srg_unauthorized_roles | length > 0
-
-  #################################################################
-  # 4️⃣ Report Success
-  #################################################################
-
-- name: Report compliant status
-  debug:
-    msg: "V-206520 COMPLIANT - Centralized authentication properly enforced."
+- name: "V-206520 | Assert only approved login roles exist"
+  ansible.builtin.assert:
+    that:
+      - item in postgresql_srg_approved_login_roles
+    fail_msg: "Unauthorized login role detected: {{ item }}"
+    success_msg: "All login roles approved"
+  loop: "{{ postgresql_srg_login_roles_audit.stdout_lines }}"

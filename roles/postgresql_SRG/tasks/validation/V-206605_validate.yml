@@ -1,0 +1,90 @@
+---
+############################################################
+# STIG V-206605 Validation (Audit Only)
+############################################################
+
+############################################################
+# Validate FIPS Mode
+############################################################
+
+- name: "V-206605 | Check FIPS status"
+  become: true
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: postgresql_srg_fips_check
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: "V-206605 | Assert FIPS enabled"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_fips_check.stdout == "1"
+    fail_msg: "FIPS mode NOT enabled (CAT I Finding)"
+    success_msg: "FIPS mode enabled"
+  when: postgresql_srg_fips_required | bool
+
+############################################################
+# Validate Crypto Policy
+############################################################
+
+- name: "V-206605 | Check crypto policy"
+  become: true
+  ansible.builtin.command: update-crypto-policies --show
+  register: postgresql_srg_crypto_policy_check
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: "V-206605 | Assert crypto policy is FIPS"
+  ansible.builtin.assert:
+    that:
+      - "'FIPS' in postgresql_srg_crypto_policy_check.stdout"
+    fail_msg: "Crypto policy is not FIPS"
+    success_msg: "Crypto policy set to FIPS"
+  when: postgresql_srg_fips_required | bool
+
+############################################################
+# Validate SELinux Enforcing
+############################################################
+
+- name: "V-206605 | Check SELinux mode"
+  become: true
+  ansible.builtin.command: getenforce
+  register: postgresql_srg_selinux_check
+  changed_when: false
+
+- name: "V-206605 | Assert SELinux enforcing"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_selinux_check.stdout == "Enforcing"
+    fail_msg: "SELinux not enforcing"
+    success_msg: "SELinux enforcing"
+
+############################################################
+# Validate PostgreSQL Not Externally Exposed
+############################################################
+
+- name: "V-206605 | Check PostgreSQL port binding"
+  become: true
+  ansible.builtin.shell: ss -tulnp | grep 5432 || true
+  register: postgresql_srg_port_check
+  changed_when: false
+
+- name: "V-206605 | Assert localhost-only binding"
+  ansible.builtin.assert:
+    that:
+      - "'127.0.0.1:5432' in postgresql_srg_port_check.stdout"
+    fail_msg: "PostgreSQL exposed externally"
+    success_msg: "PostgreSQL restricted to localhost"
+
+############################################################
+# Validate OpenSSL Installed
+############################################################
+
+- name: "V-206605 | Check OpenSSL version"
+  become: true
+  ansible.builtin.command: openssl version
+  register: postgresql_srg_openssl_check
+  changed_when: false
+
+- name: "V-206605 | Display OpenSSL version"
+  ansible.builtin.debug:
+    msg: "OpenSSL Version: {{ postgresql_srg_openssl_check.stdout }}"

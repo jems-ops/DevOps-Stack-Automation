@@ -34,7 +34,7 @@
 - name: V-206521 | Revoke PUBLIC access to database
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -c \
     "REVOKE ALL ON DATABASE {{ postgresql_srg_target_database }} FROM PUBLIC;"
   when:
@@ -48,7 +48,7 @@
 - name: V-206521 | Revoke PUBLIC access on schemas
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -c \
     "REVOKE ALL ON SCHEMA {{ item }} FROM PUBLIC;"
   loop: "{{ postgresql_srg_application_schemas }}"
@@ -63,7 +63,7 @@
 - name: V-206521 | Remove default PUBLIC table privileges
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -c \
     "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
      REVOKE ALL ON TABLES FROM PUBLIC;"
@@ -79,7 +79,7 @@
 - name: V-206521 | Ensure readonly role exists
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -tc \
     "SELECT 1 FROM pg_roles WHERE rolname='{{ postgresql_srg_readonly_role }}';" | \
     grep -q 1 || \
@@ -90,7 +90,7 @@
 - name: V-206521 | Grant SELECT privileges to readonly role
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -c \
     "GRANT USAGE ON SCHEMA {{ item }} TO {{ postgresql_srg_readonly_role }};
      GRANT SELECT ON ALL TABLES IN SCHEMA {{ item }} TO {{ postgresql_srg_readonly_role }};"
@@ -104,7 +104,7 @@
 - name: V-206521 | Check for unauthorized SUPERUSER roles
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -t -c \
     "SELECT rolname
      FROM pg_roles
@@ -115,7 +115,7 @@
   when: postgresql_srg_access_control_enabled
 
 - name: V-206521 | Fail if extra superusers detected
-  fail:
+  ansible.builtin.fail:
     msg: "Unauthorized SUPERUSER roles detected: {{ postgresql_srg_extra_superusers.stdout_lines }}"
   when:
     - postgresql_srg_access_control_enabled

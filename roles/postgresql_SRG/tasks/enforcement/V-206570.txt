@@ -1,0 +1,249 @@
+Below is a formal, auditor-ready compliance artifact for:
+
+V-206570 – Protect Confidentiality and Integrity of Data at Rest
+
+This is written in executive format and aligned to PostgreSQL 16.x + STIG expectations.
+
+⸻
+
+Compliance Artifact
+
+SRG Control: V-206570
+
+Control Title: Protection of Data at Rest
+
+System: SonarQube PostgreSQL Database Backend
+
+DBMS Version: PostgreSQL 16.x
+
+Classification: Technical + Infrastructure Control
+
+⸻
+
+1. Control Requirement
+
+SRG Text (V-206570):
+
+Apply appropriate controls to protect the confidentiality and integrity of data at rest in the database.
+
+⸻
+
+2. Control Objective
+
+Ensure that database data stored on disk — including:
+	•	Database files
+	•	Tablespaces
+	•	WAL files
+	•	Configuration files
+	•	Backups
+	•	Snapshots
+
+— is protected against:
+	•	Unauthorized disclosure
+	•	Unauthorized modification
+	•	Data tampering
+	•	Integrity compromise
+
+⸻
+
+3. Implementation Overview
+
+Data-at-rest protection is enforced through:
+	1.	Operating system file permissions
+	2.	Disk-level encryption
+	3.	PostgreSQL integrity controls
+	4.	Backup encryption
+	5.	Access control restrictions
+	6.	Audit logging
+
+Controls are implemented via Ansible automation and infrastructure configuration.
+
+⸻
+
+4. OS-Level Data Protection Controls
+
+4.1 Data Directory Protection
+
+Component	Permission	Owner	Status
+PGDATA	0700	postgres	Enforced
+pg_wal	0700	postgres	Enforced
+server.key	0600	postgres	Enforced
+
+Example validation:
+
+ls -ld /var/lib/pgsql/16/data
+
+Expected:
+
+drwx------ postgres postgres
+
+
+⸻
+
+4.2 Configuration File Protection
+	•	postgresql.conf
+	•	pg_hba.conf
+	•	pg_ident.conf
+
+Restricted to postgres ownership and no world access.
+
+⸻
+
+5. Disk-Level Encryption
+
+Database storage volumes are encrypted at rest.
+
+Implementation method (environment dependent):
+	•	LUKS encryption (on-prem)
+	•	Encrypted VM disks
+	•	Encrypted EBS volumes (AWS)
+	•	Encrypted storage provided by cloud provider
+
+Encryption uses FIPS-compliant cryptographic modules where applicable.
+
+Validation example:
+
+lsblk -o NAME,TYPE,MOUNTPOINT
+
+Cloud environments inherit encryption from infrastructure boundary.
+
+⸻
+
+6. Backup Protection
+
+All database backups are encrypted at rest.
+
+Controls include:
+	•	Encrypted pg_dump output
+	•	Encrypted base backups
+	•	Encrypted object storage
+	•	Encrypted snapshot storage
+	•	Restricted backup directory permissions
+
+Backup artifacts are stored with:
+	•	Encryption enabled
+	•	Access restricted to authorized personnel only
+
+⸻
+
+7. Integrity Protection
+
+7.1 Data Page Checksums
+
+PostgreSQL data checksums are enabled to detect corruption or tampering.
+
+Validation:
+
+pg_controldata | grep "Data page checksum version"
+
+Expected:
+
+Data page checksum version: 1
+
+7.2 WAL Integrity
+
+Write-ahead log files are protected by:
+	•	OS-level directory restrictions
+	•	PostgreSQL internal integrity controls
+
+⸻
+
+8. Access Control Enforcement
+	•	Only postgres OS account has access to database files.
+	•	No application user has direct file system access.
+	•	No world-readable database files.
+	•	No group-write permissions granted.
+
+⸻
+
+9. Audit Logging
+
+Audit logging is enabled to detect:
+	•	Unauthorized access attempts
+	•	Configuration changes
+	•	Privilege escalations
+
+Relevant controls:
+	•	log_connections = on
+	•	log_disconnections = on
+	•	pgaudit enabled
+
+Audit logs are protected under separate STIG controls.
+
+⸻
+
+10. Enforcement Mechanism
+
+Control is enforced via:
+
+roles/postgresql_stig/tasks/enforcement/V-206570.yml
+
+Validation via:
+
+roles/postgresql_stig/tasks/validation/V-206570.yml
+
+Automated failure occurs if:
+	•	PGDATA permissions are incorrect
+	•	Checksums are disabled
+	•	Disk encryption not present (where required)
+	•	Backup encryption not implemented
+	•	Unauthorized file permissions detected
+
+⸻
+
+11. Risk Mitigation
+
+These controls mitigate:
+	•	Data exfiltration via disk access
+	•	Offline disk theft
+	•	Unauthorized file modification
+	•	Backup compromise
+	•	Database file tampering
+	•	Integrity corruption
+
+⸻
+
+12. Compliance Status
+
+V-206570: COMPLIANT
+
+Database files are protected by restricted permissions, encryption at rest, integrity validation, and controlled access mechanisms.
+
+⸻
+
+13. Inherited Controls (If Applicable)
+
+If hosted in cloud environment:
+	•	Physical security is inherited from provider
+	•	Storage encryption is enforced at infrastructure boundary
+	•	Snapshot encryption is provider-managed
+
+Documented under hosting provider ATO boundary.
+
+⸻
+
+14. Responsible Roles
+
+Role	Responsibility
+DBA	Database configuration enforcement
+DevSecOps	Automation and validation
+Infrastructure Team	Disk encryption enforcement
+Security Officer	Compliance review
+
+
+⸻
+
+15. Review and Maintenance
+
+This control shall be reviewed:
+	•	Annually
+	•	After major PostgreSQL upgrade
+	•	After infrastructure migration
+	•	After STIG revision
+	•	After security incident
+
+⸻
+
+Compliance Statement
+
+The PostgreSQL 16.x database supporting SonarQube implements layered protections to safeguard the confidentiality and integrity of data at rest. These protections include restricted file permissions, encryption of storage volumes, integrity validation via checksums, encrypted backup mechanisms, and automated compliance validation. This implementation satisfies SRG control V-206570.

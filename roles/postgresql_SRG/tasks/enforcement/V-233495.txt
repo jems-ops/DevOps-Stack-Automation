@@ -1,0 +1,32 @@
+Short SRG Artifact (Compliant Version)
+
+⸻
+
+Control ID: V-233495
+
+Title: Deploy DBMS Compatible with NSA-Approved Cryptography
+
+System: PostgreSQL 16 supporting SonarQube
+
+Status: ☑ NOT A FINDING
+
+⸻
+
+Implementation Summary
+
+The PostgreSQL instance:
+	•	Runs on RHEL 8.x with FIPS mode enabled
+	•	Uses FIPS 140-validated cryptographic modules
+	•	Enforces system crypto policy set to FIPS
+	•	Does not utilize weak cryptographic algorithms
+	•	Uses vendor-supported PostgreSQL build linked to system OpenSSL
+
+The DBMS is compatible with NSA-approved cryptography and operates in FIPS-approved mode.
+
+⸻
+
+Conclusion
+
+V-233495 is Not a Finding.
+
+The PostgreSQL deployment is compatible with and utilizes NSA-approved cryptographic modules consistent with DoD requirements.

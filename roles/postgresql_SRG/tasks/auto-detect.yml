@@ -1,0 +1,40 @@
+---
+############################################################
+# Auto-detect active PostgreSQL service and data directory
+############################################################
+
+- name: "Auto-detect | Check candidate service status"
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+  register: postgresql_srg_service_check
+  loop: "{{ postgresql_srg_candidate_services }}"
+  ignore_errors: true
+
+- name: "Auto-detect | Find active service"
+  ansible.builtin.set_fact:
+    postgresql_srg_service_name: "{{ item.item }}"
+  loop: "{{ postgresql_srg_service_check.results }}"
+  when:
+    - item is not failed
+    - item.status.ActiveState | default('') == 'active'
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: "Auto-detect | Set data directory from map"
+  ansible.builtin.set_fact:
+    postgresql_srg_data_dir: "{{ postgresql_srg_data_dir_map[postgresql_srg_service_name] }}"
+  when: postgresql_srg_service_name in postgresql_srg_data_dir_map
+
+- name: "Auto-detect | Update derived paths"
+  ansible.builtin.set_fact:
+    postgresql_srg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
+    postgresql_srg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
+    pg_service_name: "{{ postgresql_srg_service_name }}"
+    pg_data_dir: "{{ postgresql_srg_data_dir }}"
+    pg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
+    pg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
+
+- name: "Auto-detect | Display detected service"
+  ansible.builtin.debug:
+    msg: "Using PostgreSQL service={{ postgresql_srg_service_name }} data_dir={{ postgresql_srg_data_dir }}"

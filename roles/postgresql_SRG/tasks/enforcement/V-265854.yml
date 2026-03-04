@@ -1,160 +1,34 @@
 ---
 ############################################################
-# PostgreSQL STIG | V-265854 (CAT I)
-#
-# Upgrade unsupported DBMS or unsupported components
-# to a supported version of the product.
-#
-# MODE:
-#   - Validation only (default)
-#   - Enforcement upgrade (if stig_enforce_upgrade=true)
-#
+# STIG V-265854 Enforcement
+# Ensure Supported DBMS Version
 ############################################################
 
-###############################
-# VARIABLES (override if needed)
-###############################
-
-- set_fact:
-    supported_pg_major: "16"
-    minimum_pg_minor: 1
-  when: supported_pg_major is not defined
-
-
-###############################
-# 1️⃣ Get PostgreSQL Server Version
-###############################
-
-- name: Get PostgreSQL server version
+- name: "V-265854 | Gather PostgreSQL version"
   become: true
-  become_user: postgres
-  command: psql -tAc "SHOW server_version;"
-  register: pg_server_version
+  ansible.builtin.command: "{{ postgresql_srg_pg_bin_path }}/psql --version"
+  register: postgresql_srg_version
   changed_when: false
 
-- name: Parse PostgreSQL version
-  set_fact:
-    pg_major_version: "{{ pg_server_version.stdout.split('.')[0] }}"
-    pg_minor_version: "{{ pg_server_version.stdout.split('.')[1] | default('0') | int }}"
-
-
-###############################
-# 2️⃣ Detect Unsupported Version
-###############################
-
-- name: Determine unsupported status
-  set_fact:
-    pg_unsupported: >-
-      {{
-        (pg_major_version != supported_pg_major)
-        or (pg_minor_version < minimum_pg_minor)
-      }}
-
-- name: Debug version status
-  debug:
-    msg: >
-      PostgreSQL Version: {{ pg_server_version.stdout }}
-      Supported Major: {{ supported_pg_major }}
-      Minimum Minor: {{ minimum_pg_minor }}
-      Unsupported: {{ pg_unsupported }}
-
-
-###############################
-# 3️⃣ Enforcement Upgrade (Optional)
-###############################
-
-- name: Upgrade PostgreSQL to supported version
-  dnf:
-    name: "postgresql{{ supported_pg_major }}-server"
-    state: latest
-  when:
-    - pg_unsupported
-    - stig_enforce_upgrade | default(false)
-  notify: Restart PostgreSQL
-
-
-###############################
-# 4️⃣ Hard Fail if Unsupported (CAT I)
-###############################
-
-- name: Fail if PostgreSQL unsupported (CAT I)
-  fail:
-    msg: >
-      CAT I FINDING:
-      PostgreSQL version {{ pg_server_version.stdout }} is unsupported.
-      Upgrade required immediately.
-  when:
-    - pg_unsupported
-    - not (stig_enforce_upgrade | default(false))
-
-
-###############################
-# 5️⃣ Validate psql Client Version
-###############################
-
-- name: Check for PGDG psql binary
-  stat:
-    path: "/usr/pgsql-{{ pg_major_version }}/bin/psql"
-  register: pgdg_psql
-
-- name: Get psql client version
-  become: true
-  become_user: postgres
-  command: "{{ pgdg_psql.stat.path if pgdg_psql.stat.exists else 'psql' }} --version"
-  register: psql_version_output
-  changed_when: false
-
-- name: Parse psql major version
-  set_fact:
-    psql_major_version: "{{ psql_version_output.stdout.split()[2].split('.')[0] }}"
-
-- name: Fail if psql major mismatch
-  fail:
-    msg: >
-      psql client major {{ psql_major_version }}
-      does not match server major {{ pg_major_version }}.
-      Install postgresql{{ pg_major_version }} or update PATH to include /usr/pgsql-{{ pg_major_version }}/bin.
-  when: psql_major_version != pg_major_version
-
-
-###############################
-# 6️⃣ Validate pgaudit Compatibility
-###############################
-
-- name: Validate pgaudit is loaded
-  become: true
-  become_user: postgres
-  command: psql -tAc "SHOW shared_preload_libraries;"
-  register: pgaudit_check
-  changed_when: false
-  failed_when: "'pgaudit' not in pgaudit_check.stdout"
-
-
-###############################
-# 7️⃣ Validate OS Compatibility
-###############################
-
-- name: Gather OS facts
-  setup:
-
-- name: Fail if unsupported OS
-  fail:
-    msg: >
-      Unsupported OS {{ ansible_distribution }}
-      {{ ansible_distribution_major_version }}.
-      PostgreSQL {{ supported_pg_major }} requires RHEL/Rocky 8 or 9.
-  when:
-    - ansible_distribution not in ["RedHat", "Rocky"]
-      or ansible_distribution_major_version | int < 8
-
+- name: "V-265854 | Extract major version"
+  ansible.builtin.set_fact:
+    postgresql_srg_major_version: "{{ (postgresql_srg_version.stdout | regex_search('([0-9]+)\\.', '\\1'))[0] }}"
 
 ############################################################
-# FINAL STATUS OUTPUT
+# Define Supported Versions
 ############################################################
 
-- name: Compliance Summary
-  debug:
-    msg: >
-      V-265854 Compliance Status: COMPLIANT
-      PostgreSQL {{ pg_server_version.stdout }}
-      OS {{ ansible_distribution }} {{ ansible_distribution_major_version }}
+- name: "V-265854 | Define supported PostgreSQL major versions"
+  ansible.builtin.set_fact:
+    postgresql_srg_supported_versions:
+      - "16"
+      - "15"   # Include if still supported in your org
+
+############################################################
+# Fail if Unsupported Version
+############################################################
+
+- name: "V-265854 | Fail if PostgreSQL version unsupported"
+  ansible.builtin.fail:
+    msg: "Unsupported PostgreSQL major version detected: {{ postgresql_srg_major_version }}"
+  when: postgresql_srg_major_version not in postgresql_srg_supported_versions

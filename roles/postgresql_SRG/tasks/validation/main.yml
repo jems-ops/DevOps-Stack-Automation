@@ -1,52 +1,97 @@
 ---
 # NOTE: Validation tasks can be intrusive. Run on non-prod or in check/audit mode.
-# pgaudit-dependent validations (skip when pgaudit is unavailable)
-- ansible.builtin.import_tasks: V-206519_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
 
-- ansible.builtin.import_tasks: V-206522_validate.yml
+############################################################
+# CAT I Validations (run first)
+############################################################
+- name: Validate V-265854
+  ansible.builtin.import_tasks: V-265854_validate.yml
+  when: postgresql_srg_v265854_enabled | bool
+- name: Validate V-233495
+  ansible.builtin.import_tasks: V-233495_validate.yml
+  when: postgresql_srg_v233495_enabled | bool
+- name: Validate V-206520
+  ansible.builtin.import_tasks: V-206520_validate.yml
+  when: postgresql_srg_v206520_enabled | bool
+- name: Validate V-206521
+  ansible.builtin.import_tasks: V-206521_validate.yml
+  when: postgresql_srg_v206521_enabled | bool
+- name: Validate V-206545
+  ansible.builtin.import_tasks: V-206545_validate.yml
+  when: postgresql_srg_v206545_enabled | bool
+- name: Validate V-206555
+  ansible.builtin.import_tasks: V-206555_validate.yml
+  when: postgresql_srg_v206555_enabled | bool
+- name: Validate V-206556
+  ansible.builtin.import_tasks: V-206556_validate.yml
+  when: postgresql_srg_v206556_enabled | bool
+- name: Validate V-206557
+  ansible.builtin.import_tasks: V-206557_validate.yml
+  when: postgresql_srg_v206557_enabled | bool
+- name: Validate V-206559
+  ansible.builtin.import_tasks: V-206559_validate.yml
+  when: postgresql_srg_v206559_enabled | bool
+- name: Validate V-206561
+  ansible.builtin.import_tasks: V-206561_validate.yml
+  when: postgresql_srg_v206561_enabled | bool
+- name: Validate V-206562
+  ansible.builtin.import_tasks: V-206562_validate.yml
+  when: postgresql_srg_v206562_enabled | bool
+- name: Validate V-206570
+  ansible.builtin.import_tasks: V-206570_validate.yml
+  when: postgresql_srg_v206570_enabled | bool
+- name: Validate V-206604
+  ansible.builtin.import_tasks: V-206604_validate.yml
+  when: postgresql_srg_v206604_enabled | bool
+- name: Validate V-206605
+  ansible.builtin.import_tasks: V-206605_validate.yml
+  when: postgresql_srg_v206605_enabled | bool
 
-# pgaudit-dependent validations (skip when pgaudit is unavailable)
-- ansible.builtin.import_tasks: V-206523_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
-- ansible.builtin.import_tasks: V-206524_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
-- ansible.builtin.import_tasks: V-206525_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
-- ansible.builtin.import_tasks: V-206526_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
-- ansible.builtin.import_tasks: V-206528_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
-- ansible.builtin.import_tasks: V-206534_validate.yml
-  when: postgresql_srg_pgaudit_enabled | bool
-
-- ansible.builtin.import_tasks: V-206527_validate.yml
-- ansible.builtin.import_tasks: V-206529_validate.yml
-- ansible.builtin.import_tasks: V-206530_validate.yml
-- ansible.builtin.import_tasks: V-206531_validate.yml
-- ansible.builtin.import_tasks: V-206532_validate.yml
-- ansible.builtin.import_tasks: V-206533_validate.yml
-- ansible.builtin.import_tasks: V-206538_validate.yml
-
-# CAT 1's should be remediated first, then move on to lower priority controls
-- ansible.builtin.import_tasks: V-206521_validate.yml
-- ansible.builtin.import_tasks: V-206545_validate.yml
-
-# CAT 1 upgrade unsupported DBMS or unsupported componnets to supported version of product 
-- ansible.builtin.import_tasks: V-265854_validate.yml
-
-# CAT 1 Deploy database compatible to NSA-approved cryptography
-# If the DBMS is deployed in an unclassified environment, this is not applicable (NA).
-- ansible.builtin.import_tasks: V-233495_validate.yml
-
-# New batch controls
-- ansible.builtin.import_tasks: V-206520_validate.yml
-- ansible.builtin.import_tasks: V-206555_validate.yml
-  when: postgresql_srg_password_policy_enabled | bool
-- ansible.builtin.import_tasks: V-206556_validate.yml
-- ansible.builtin.import_tasks: V-206557_validate.yml
-- ansible.builtin.import_tasks: V-206559_validate.yml
-- ansible.builtin.import_tasks: V-206561_validate.yml
-- ansible.builtin.import_tasks: V-206562_validate.yml
-- ansible.builtin.import_tasks: V-206570_validate.yml
-- ansible.builtin.import_tasks: V-206604_validate.yml
+############################################################
+# CAT II Validations
+############################################################
+- name: Validate V-206519
+  ansible.builtin.import_tasks: V-206519_validate.yml
+  when: postgresql_srg_v206519_enabled | bool
+- name: Validate V-206522
+  ansible.builtin.import_tasks: V-206522_validate.yml
+  when: postgresql_srg_v206522_enabled | bool
+- name: Validate V-206523
+  ansible.builtin.import_tasks: V-206523_validate.yml
+  when: postgresql_srg_v206523_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Validate V-206524
+  ansible.builtin.import_tasks: V-206524_validate.yml
+  when: postgresql_srg_v206524_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Validate V-206525
+  ansible.builtin.import_tasks: V-206525_validate.yml
+  when: postgresql_srg_v206525_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Validate V-206526
+  ansible.builtin.import_tasks: V-206526_validate.yml
+  when: postgresql_srg_v206526_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Validate V-206527
+  ansible.builtin.import_tasks: V-206527_validate.yml
+  when: postgresql_srg_v206527_enabled | bool
+- name: Validate V-206528
+  ansible.builtin.import_tasks: V-206528_validate.yml
+  when: postgresql_srg_v206528_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Validate V-206529
+  ansible.builtin.import_tasks: V-206529_validate.yml
+  when: postgresql_srg_v206529_enabled | bool
+- name: Validate V-206530
+  ansible.builtin.import_tasks: V-206530_validate.yml
+  when: postgresql_srg_v206530_enabled | bool
+- name: Validate V-206531
+  ansible.builtin.import_tasks: V-206531_validate.yml
+  when: postgresql_srg_v206531_enabled | bool
+- name: Validate V-206532
+  ansible.builtin.import_tasks: V-206532_validate.yml
+  when: postgresql_srg_v206532_enabled | bool
+- name: Validate V-206533
+  ansible.builtin.import_tasks: V-206533_validate.yml
+  when: postgresql_srg_v206533_enabled | bool
+- name: Validate V-206534
+  ansible.builtin.import_tasks: V-206534_validate.yml
+  when: postgresql_srg_v206534_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Validate V-206538
+  ansible.builtin.import_tasks: V-206538_validate.yml
+  when: postgresql_srg_v206538_enabled | bool

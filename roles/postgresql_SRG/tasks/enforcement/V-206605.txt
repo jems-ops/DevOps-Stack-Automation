@@ -1,0 +1,31 @@
+Control ID: V-206605
+
+Title: Configure Required Cryptographic Protection
+
+Severity: CAT I
+
+System: PostgreSQL 16 supporting SonarQube
+
+Status: ☑ NOT A FINDING
+
+⸻
+
+Implementation Summary
+
+The PostgreSQL database supporting SonarQube operates on RHEL 8.x with:
+	•	FIPS mode enabled (/proc/sys/crypto/fips_enabled = 1)
+	•	System crypto policy set to FIPS
+	•	FIPS 140-validated cryptographic modules in use
+	•	No weak cryptographic algorithms permitted
+	•	Localhost-only deployment with no network exposure
+	•	SELinux enforcing and strict filesystem permissions
+
+Cryptographic controls are implemented at the operating system level and inherited by PostgreSQL.
+
+⸻
+
+Conclusion
+
+The DBMS and operating system provide the required level of cryptographic protection appropriate for the system’s operational classification.
+
+V-206605 is Not a Finding.

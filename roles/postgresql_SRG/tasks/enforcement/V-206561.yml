@@ -1,94 +1,63 @@
 ---
 ############################################################
-# PostgreSQL STIG | V-206561
-#
-# Protect database passwords and authentication secrets
-# from exposure in files, services, and logs.
+# STIG V-206561 Enforcement
+# Prevent Display of Authentication Secrets
 ############################################################
 
-############################
-# 1️ Secure .pgpass Files
-############################
+############################################################
+# Remove .pgpass Files
+############################################################
 
-- name: V-206561 | Find .pgpass files
+- name: "V-206561 | Find .pgpass files"
   become: true
-  find:
-    paths: "{{ pgpass_search_path }}"
+  ansible.builtin.find:
+    paths:
+      - /var/lib/pgsql
+      - /home
+      - /root
+      - /opt
+      - /etc
     patterns: ".pgpass"
-    file_type: file
-    recurse: yes
-  register: pgpass_files
+    recurse: true
+  register: postgresql_srg_pgpass_files
 
-- name: V-206561 | Enforce 0600 permissions on .pgpass
+- name: "V-206561 | Remove discovered .pgpass files"
   become: true
-  file:
+  ansible.builtin.file:
     path: "{{ item.path }}"
-    mode: '0600'
-  loop: "{{ pgpass_files.files }}"
-  when: pgpass_files.matched > 0
+    state: absent
+  loop: "{{ postgresql_srg_pgpass_files.files }}"
+  when: postgresql_srg_pgpass_files.matched > 0
 
-
-############################
-# 2️ Detect Passwords in Systemd Service Files
-############################
-
-- name: V-206561 | Scan systemd service files for inline passwords
-  become: true
-  shell: >
-    grep -Ril --exclude-dir=*.wants "password=" 
-    /etc/systemd/system /usr/lib/systemd/system 2>/dev/null || true
-  register: systemd_password_files
-  changed_when: false
-
-- name: V-206561 | Fail if passwords embedded in service files
-  fail:
-    msg: >
-      V-206561 FAILED:
-      Password detected in systemd service file: {{ item }}
-      Remove inline credentials immediately.
-  loop: "{{ systemd_password_files.stdout_lines }}"
-  when: systemd_password_files.stdout != ""
-
-
-############################
-# 3️ Ensure SCRAM Password Encryption
-############################
-
-- name: V-206561 | Enforce SCRAM password encryption
-  become: true
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?\s*password_encryption'
-    line: "password_encryption = scram-sha-256"
-  notify: Restart PostgreSQL
-
-
-############################
-# 4️ Ensure pg_hba Does Not Use Trust for Host Connections
-############################
-
-- name: V-206561 | Detect insecure host authentication
-  become: true
-  shell: >
-    grep -v '^#' {{ pg_hba_file }} | grep -E "host.*trust" || true
-  register: trust_check
-  changed_when: false
-
-- name: V-206561 | Fail if trust authentication found
-  fail:
-    msg: "V-206561 FAILED: 'trust' authentication detected in pg_hba.conf."
-  when: trust_check.stdout | trim != ""
-
-
-############################
-# 5️ Reminder for Ansible Secret Handling
-############################
-
-- name: V-206561 | Ensure secret-handling tasks use no_log
-  debug:
-    msg: >
-      All tasks creating or modifying DB users must use:
-      no_log: true
-      This prevents sensitive information from being logged.
-  tags: V-206561
 ############################################################
+# Remove Password-Based Authentication Methods
+############################################################
+
+- name: "V-206561 | Remove password-based auth from pg_hba.conf"
+  become: true
+  ansible.builtin.replace:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^\s*(host|local).*(md5|scram-sha-256|password)\s*$'
+    replace: ''
+  notify: Reload PostgreSQL
+
+############################################################
+# Remove Stored Role Passwords
+############################################################
+
+- name: "V-206561 | Identify roles with stored passwords"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
+  register: postgresql_srg_roles_with_passwords
+  changed_when: false
+
+- name: "V-206561 | Remove stored role passwords"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "ALTER ROLE {{ item }} PASSWORD NULL;"
+  loop: "{{ postgresql_srg_roles_with_passwords.stdout_lines }}"
+  when: postgresql_srg_roles_with_passwords.stdout_lines | length > 0
+  notify: Reload PostgreSQL

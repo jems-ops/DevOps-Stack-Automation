@@ -5,12 +5,12 @@
 
 - name: V-206545 | Verify postgres OS account shell
   become: true
-  shell: "getent passwd {{ postgresql_srg_install_os_account }}"
+  ansible.builtin.command: "getent passwd {{ postgresql_srg_install_os_account }}"
   register: postgresql_srg_install_shell
   changed_when: false
 
 - name: Assert interactive login is disabled
-  assert:
+  ansible.builtin.assert:
     that:
       - "'{{ postgresql_srg_install_account_shell }}' in postgresql_srg_install_shell.stdout"
     fail_msg: "Installation account shell not restricted"
@@ -23,7 +23,7 @@
 - name: V-206545 | Check for unauthorized superusers
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d postgres -t -c "
     SELECT rolname
     FROM pg_roles
@@ -33,7 +33,7 @@
   changed_when: false
 
 - name: Assert no extra superusers exist
-  assert:
+  ansible.builtin.assert:
     that:
       - postgresql_srg_superuser_validation.stdout | trim == ""
     fail_msg: "Unauthorized SUPERUSER roles detected"
@@ -46,12 +46,12 @@
 - name: V-206545 | Check shared_preload_libraries
   become: true
   become_user: postgres
-  shell: psql -t -c "SHOW shared_preload_libraries;"
+  ansible.builtin.shell: psql -t -c "SHOW shared_preload_libraries;"
   register: postgresql_srg_spl_validation
   changed_when: false
 
 - name: Assert pgaudit loaded
-  assert:
+  ansible.builtin.assert:
     that:
       - "'pgaudit' in postgresql_srg_spl_validation.stdout"
     fail_msg: "pgaudit not enabled"
@@ -63,12 +63,12 @@
 
 - name: V-206545 | Verify audit rule file
   become: true
-  stat:
+  ansible.builtin.stat:
     path: /etc/audit/rules.d/postgres.rules
   register: postgresql_srg_audit_rule
 
 - name: Assert audit rule file exists
-  assert:
+  ansible.builtin.assert:
     that:
       - postgresql_srg_audit_rule.stat.exists
     fail_msg: "auditd rules for postgres not configured"

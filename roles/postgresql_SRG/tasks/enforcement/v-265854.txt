@@ -1,0 +1,31 @@
+Short SRG Artifact (Compliant Version)
+
+⸻
+
+Control ID: V-265854
+
+Title: Upgrade Unsupported DBMS or Components
+
+System: PostgreSQL 16 supporting SonarQube
+
+Status: ☑ NOT A FINDING
+
+⸻
+
+Implementation Summary
+
+The PostgreSQL instance:
+	•	Runs PostgreSQL version 16.x
+	•	Uses vendor-supported distribution packages
+	•	Is deployed on supported RHEL 8.x
+	•	Receives regular security updates and patches
+	•	Does not use unsupported DBMS components or extensions
+
+The DBMS and associated components remain within the vendor support lifecycle.
+
+⸻
+
+Conclusion
+
+V-265854 is Not a Finding.
+The PostgreSQL DBMS and all associated components are currently supported and maintained.

@@ -30,7 +30,7 @@
 
 - name: V-206545 | Restrict postgres OS account interactive login
   become: true
-  user:
+  ansible.builtin.user:
     name: "{{ postgresql_srg_install_os_account }}"
     shell: "{{ postgresql_srg_install_account_shell }}"
   when: postgresql_srg_install_account_control_enabled
@@ -41,14 +41,14 @@
 
 - name: V-206545 | Ensure DBA group exists
   become: true
-  group:
+  ansible.builtin.group:
     name: "{{ postgresql_srg_dba_group }}"
     state: present
   when: postgresql_srg_install_account_control_enabled
 
 - name: V-206545 | Configure sudo access for DBA group
   become: true
-  copy:
+  ansible.builtin.copy:
     dest: "/etc/sudoers.d/postgres_admins"
     content: |
       %{{ postgresql_srg_dba_group }} ALL=(postgres) ALL
@@ -64,7 +64,7 @@
 - name: V-206545 | Ensure only postgres is SUPERUSER
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d postgres -t -c "
     SELECT rolname
     FROM pg_roles
@@ -75,7 +75,7 @@
   when: postgresql_srg_install_account_control_enabled
 
 - name: V-206545 | Fail if unauthorized superusers exist
-  fail:
+  ansible.builtin.fail:
     msg: "Unauthorized SUPERUSER roles detected: {{ postgresql_srg_extra_superusers.stdout_lines }}"
   when:
     - postgresql_srg_install_account_control_enabled
@@ -87,7 +87,7 @@
 
 - name: V-206545 | Ensure pgaudit is loaded
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^shared_preload_libraries'
     line: "shared_preload_libraries = 'pgaudit'"
@@ -96,7 +96,7 @@
 
 - name: V-206545 | Configure pgaudit logging
   become: true
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "{{ pg_conf_file }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - V-206545"
     block: |
@@ -112,13 +112,14 @@
 
 - name: V-206545 | Configure auditd rules for PostgreSQL binaries
   become: true
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/postgres.rules
-    create: yes
+    create: true
+    mode: "0640"
     block: |
       -w {{ postgresql_srg_pg_bin_path }}/psql -p x -k postgres_install_usage
       -w {{ postgresql_srg_pg_bin_path }}/postgres -p x -k postgres_install_usage
-  notify: restart auditd
+  notify: Restart auditd
   when:
     - postgresql_srg_install_account_control_enabled
     - postgresql_srg_audit_postgres_binaries

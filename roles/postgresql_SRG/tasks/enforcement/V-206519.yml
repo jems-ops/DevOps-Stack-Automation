@@ -5,7 +5,7 @@
 
 - name: V-206519 | Ensure logging_collector is enabled
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*logging_collector\s*='
     line: "logging_collector = on"
@@ -18,7 +18,7 @@
 
 - name: V-206519 | Ensure log_destination is stderr
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_destination\s*='
     line: "log_destination = 'stderr'"
@@ -30,7 +30,7 @@
 
 - name: V-206519 | Ensure log_min_messages is error
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_min_messages\s*='
     line: "log_min_messages = error"
@@ -42,7 +42,7 @@
 
 - name: V-206519 | Ensure log_min_error_statement is error
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_min_error_statement\s*='
     line: "log_min_error_statement = error"

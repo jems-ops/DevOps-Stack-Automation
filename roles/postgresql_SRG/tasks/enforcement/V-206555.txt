@@ -1,0 +1,54 @@
+SRG Compliance Artifact
+
+Control ID: V-206555
+Title: DBMS Enforces Password Complexity, Lifetime, and Reuse Restrictions
+System: PostgreSQL 16 on RHEL 8.x
+Environment: Production / Staging (Isolated Localhost Deployment)
+Status: ☑ NOT A FINDING
+
+⸻
+
+1️⃣ Control Requirement
+
+The DBMS must enforce password complexity, password lifetime, and password reuse restrictions for database-managed accounts.
+
+⸻
+
+2️⃣ Implementation Determination
+
+This PostgreSQL deployment:
+	•	Operates as a localhost-only instance
+	•	Does not allow remote connections
+	•	Does not support interactive DB user logins
+	•	Uses peer (OS-based) authentication only
+	•	Does not use md5, password, or scram-sha-256 authentication
+	•	Does not store database-managed passwords
+
+Authentication is performed at the operating system level, not by PostgreSQL.
+
+⸻
+
+3️⃣ Technical Evidence
+	•	pg_hba.conf contains only peer authentication entries.
+	•	No password-based authentication methods are configured.
+	•	Query of pg_authid confirms no stored role passwords.
+
+Example verification:
+
+SELECT rolname, rolpassword IS NOT NULL FROM pg_authid;
+
+Result: No roles contain stored passwords.
+
+⸻
+
+4️⃣ Justification
+
+Because PostgreSQL is not functioning as a password management system, password complexity, lifetime, and reuse enforcement are not applicable to this deployment.
+
+Password policy enforcement is governed by the enterprise Linux operating system controls.
+
+⸻
+
+5️⃣ Conclusion
+
+V-206555 is Not a Finding for this isolated PostgreSQL deployment, as the DBMS does not manage or authenticate passwords.

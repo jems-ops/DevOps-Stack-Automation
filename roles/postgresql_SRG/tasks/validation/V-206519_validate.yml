@@ -5,19 +5,19 @@
 - name: Create test role
   become: true
   become_user: postgres
-  command: psql -tAc "CREATE ROLE stig_validate_role;"
-  ignore_errors: true
+  ansible.builtin.command: psql -tAc "CREATE ROLE stig_validate_role;"
+  failed_when: false
 
 - name: Attempt unauthorized parameter change
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -c "SET ROLE stig_validate_role; SET pgaudit.role='invalid';"
-  ignore_errors: true
+  failed_when: false
 
 - name: Check denial logged
   become: true
-  shell: |
+  ansible.builtin.shell: |
     grep -i 'permission denied to set parameter "pgaudit.role"' {{ pg_data_dir }}/log/* | tail -1
   register: validation_check
   changed_when: false

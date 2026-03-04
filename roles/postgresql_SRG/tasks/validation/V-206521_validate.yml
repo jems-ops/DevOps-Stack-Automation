@@ -10,7 +10,7 @@
 - name: V-206521 | Check database ACL
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -t -c \
     "SELECT datacl
      FROM pg_database
@@ -19,7 +19,7 @@
   changed_when: false
 
 - name: Assert PUBLIC does not have database privileges
-  assert:
+  ansible.builtin.assert:
     that:
       - "'=Tc/' not in postgresql_srg_db_acl.stdout"
     fail_msg: "PUBLIC still has database privileges"
@@ -32,7 +32,7 @@
 - name: V-206521 | Check schema ACL
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -t -c \
     "SELECT nspname, nspacl
      FROM pg_namespace
@@ -41,7 +41,7 @@
   changed_when: false
 
 - name: Display schema ACL
-  debug:
+  ansible.builtin.debug:
     var: postgresql_srg_schema_acl.stdout_lines
 
 ############################################################
@@ -51,7 +51,7 @@
 - name: V-206521 | Validate SUPERUSER roles
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -t -c \
     "SELECT rolname
      FROM pg_roles
@@ -60,7 +60,7 @@
   changed_when: false
 
 - name: Assert only postgres is SUPERUSER
-  assert:
+  ansible.builtin.assert:
     that:
       - postgresql_srg_superuser_validation.stdout_lines | length == 1
       - "'postgres' in postgresql_srg_superuser_validation.stdout"
@@ -74,7 +74,7 @@
 - name: V-206521 | List role table grants
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -c \
     "SELECT grantee, table_schema, privilege_type
      FROM information_schema.role_table_grants
@@ -83,5 +83,5 @@
   changed_when: false
 
 - name: Display role grants
-  debug:
+  ansible.builtin.debug:
     var: postgresql_srg_role_grants.stdout_lines

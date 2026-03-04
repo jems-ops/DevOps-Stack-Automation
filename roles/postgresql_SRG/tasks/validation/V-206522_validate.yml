@@ -5,7 +5,7 @@
 - name: Simulate application setting individual identity
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -c "SET application_name = 'john.doe'; SELECT 1;"
   tags:
     - audit
@@ -13,7 +13,7 @@
 
 - name: Check log for captured individual identity
   become: true
-  shell: |
+  ansible.builtin.shell: |
     grep -i "john.doe" {{ pg_data_dir }}/log/* | tail -1
   register: identity_check
   changed_when: false

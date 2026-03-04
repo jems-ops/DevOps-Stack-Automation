@@ -1,80 +1,58 @@
 ---
 ############################################################
-# STIG V-206557 Validation
-# Verify encrypted password transmission
+# STIG V-206557 Validation (Audit Only)
 ############################################################
 
 ############################################################
-# Check SSL Setting (only when SSL is enabled)
+# Validate listen_addresses
 ############################################################
 
-- name: "V-206557 | Check PostgreSQL SSL setting"
+- name: "V-206557 | Check listen_addresses"
   become: true
-  become_user: postgres
-  command: psql -t -c "SHOW ssl;"
-  register: ssl_status
-  changed_when: false
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: "V-206557 | Fail if SSL is not enabled"
-  fail:
-    msg: "STIG V-206557 FAILED - SSL is not enabled."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - "'on' not in ssl_status.stdout"
-
-############################################################
-# Check Password Encryption Method
-############################################################
-
-- name: "V-206557 | Check password_encryption setting"
-  become: true
-  become_user: postgres
-  command: psql -t -c "SHOW password_encryption;"
-  register: encryption_status
+  ansible.builtin.shell: |
+    grep -E "^listen_addresses" {{ postgresql_srg_conf_file }}
+  register: postgresql_srg_listen_check
   changed_when: false
 
-- name: "V-206557 | Fail if password_encryption is not SCRAM"
-  fail:
-    msg: "STIG V-206557 FAILED - password_encryption is not scram-sha-256."
-  when: "'scram-sha-256' not in encryption_status.stdout"
+- name: "V-206557 | Assert localhost-only binding"
+  ansible.builtin.assert:
+    that:
+      - "'localhost' in postgresql_srg_listen_check.stdout"
+    fail_msg: "PostgreSQL listening on non-local interfaces"
+    success_msg: "PostgreSQL restricted to localhost"
 
 ############################################################
-# Verify pg_hba.conf uses hostssl only (when SSL enabled)
+# Validate No Password Authentication Methods
 ############################################################
 
-- name: "V-206557 | Check for non-SSL host entries"
+- name: "V-206557 | Check for password authentication methods"
   become: true
-  shell: grep -E '^[^#]*\bhost\b' {{ pg_hba_file }}
-  register: non_ssl_entries
-  ignore_errors: true
+  ansible.builtin.shell: |
+    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '(md5|scram-sha-256|password)' || true
+  register: postgresql_srg_password_check
   changed_when: false
-  when: postgresql_srg_ssl_enabled | bool
 
-- name: "V-206557 | Fail if non-SSL host entries are present"
-  fail:
-    msg: "STIG V-206557 FAILED - Non-SSL host entries detected in pg_hba.conf."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - non_ssl_entries.stdout | default('') != ""
+- name: "V-206557 | Assert no password authentication configured"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_password_check.stdout == ""
+    fail_msg: "Password-based authentication detected"
+    success_msg: "No password authentication configured"
 
 ############################################################
-# Verify active sessions are encrypted (when SSL enabled)
+# Validate Port Exposure
 ############################################################
 
-- name: "V-206557 | Check active SSL sessions"
+- name: "V-206557 | Check listening ports"
   become: true
-  become_user: postgres
-  command: >
-    psql -t -c
-    "SELECT count(*) FROM pg_stat_ssl WHERE ssl = false;"
-  register: ssl_sessions
+  ansible.builtin.shell: |
+    ss -tulnp | grep 5432 || true
+  register: postgresql_srg_port_check
   changed_when: false
-  when: postgresql_srg_ssl_enabled | bool
 
-- name: "V-206557 | Fail if unencrypted sessions detected"
-  fail:
-    msg: "STIG V-206557 FAILED - Unencrypted client sessions detected."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - ssl_sessions.stdout | default('0') | int > 0
+- name: "V-206557 | Assert PostgreSQL not exposed externally"
+  ansible.builtin.assert:
+    that:
+      - "'127.0.0.1:5432' in postgresql_srg_port_check.stdout"
+    fail_msg: "PostgreSQL port exposed beyond localhost"
+    success_msg: "PostgreSQL not externally exposed"

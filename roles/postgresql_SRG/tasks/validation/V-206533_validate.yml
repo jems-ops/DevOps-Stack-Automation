@@ -5,14 +5,14 @@
 - name: Generate test log entry
   become: true
   become_user: postgres
-  command: psql -c "SELECT 1;"
+  ansible.builtin.command: psql -c "SELECT 1;"
   tags:
     - audit
     - V-206533
 
 - name: Check log contains user name
   become: true
-  shell: |
+  ansible.builtin.shell: |
     tail -n 5 {{ pg_data_dir }}/log/*
   register: log_sample
   changed_when: false
@@ -21,7 +21,7 @@
     - V-206533
 
 - name: Fail if user name is not present in logs
-  fail:
+  ansible.builtin.fail:
     msg: "User name is not present in PostgreSQL logs."
   when: "'postgres' not in log_sample.stdout"
   tags:

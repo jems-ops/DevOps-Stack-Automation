@@ -1,58 +1,42 @@
 ---
 ############################################################
 # STIG V-206557 Enforcement
-# Encrypt transmission of passwords across the network
+# Encrypt Passwords in Transit
+# Status: NOT A FINDING (No Password Transmission)
 ############################################################
 
-- name: "V-206557 | Ensure PostgreSQL SSL is enabled"
-  become: true
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?ssl\s*='
-    line: "ssl = on"
-    create: no
-  notify: Restart PostgreSQL
-  when: postgresql_srg_ssl_enabled | bool
+############################################################
+# Restrict PostgreSQL to Localhost Only
+############################################################
 
-- name: "V-206557 | Ensure password_encryption is SCRAM-SHA-256"
+- name: "V-206557 | Restrict listen_addresses to localhost"
   become: true
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?password_encryption\s*='
-    line: "password_encryption = 'scram-sha-256'"
-    create: no
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?listen_addresses'
+    line: "listen_addresses = 'localhost'"
   notify: Restart PostgreSQL
 
 ############################################################
-# Enforce hostssl in pg_hba.conf
+# Remove All Password-Based Authentication Methods
 ############################################################
 
-- name: "V-206557 | Replace non-SSL host entries with hostssl"
+- name: "V-206557 | Remove md5/scram/password entries"
   become: true
-  replace:
-    path: "{{ pg_hba_file }}"
-    regexp: '^host\s+'
-    replace: 'hostssl '
-  notify: Restart PostgreSQL
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: "V-206557 | Remove insecure trust authentication"
-  become: true
-  lineinfile:
-    path: "{{ pg_hba_file }}"
-    regexp: '\strust\s*$'
-    state: absent
-  notify: Restart PostgreSQL
+  ansible.builtin.replace:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^\s*(host|local).*(md5|scram-sha-256|password)\s*$'
+    replace: ''
+  notify: Reload PostgreSQL
 
 ############################################################
-# Ensure server key permissions are secure
+# Enforce Peer Authentication Only
 ############################################################
 
-- name: "V-206557 | Ensure server.key has secure permissions"
+- name: "V-206557 | Ensure peer authentication for local access"
   become: true
-  file:
-    path: "{{ pg_data_dir }}/server.key"
-    owner: postgres
-    group: postgres
-    mode: '0600'
-  when: postgresql_srg_ssl_enabled | bool
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_hba_file }}"
+    line: "local   all     all     peer"
+    create: false
+  notify: Reload PostgreSQL

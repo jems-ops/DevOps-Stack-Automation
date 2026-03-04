@@ -1,82 +1,60 @@
 ---
-  #################################################################
-  # 1️⃣ Collect Existing Login Roles
-  #################################################################
+############################################################
+# STIG V-206520 Enforcement
+# Control: Enterprise Authentication Integration
+# Status: NOT A FINDING (Isolated Architecture Model)
+############################################################
 
-  - name: Collect PostgreSQL login roles
-    become: true
-    become_user: postgres
-    shell: psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin;"
-    register: postgresql_srg_roles_raw
-    changed_when: false
+- name: "V-206520 | Ensure PostgreSQL is not listening on all interfaces"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?listen_addresses'
+    line: "listen_addresses = 'localhost'"
+  notify: Restart PostgreSQL
 
-  - name: Normalize roles
-    set_fact:
-      postgresql_srg_login_roles: "{{ postgresql_srg_roles_raw.stdout_lines | map('trim') | list }}"
+############################################################
+# Remove Trust Authentication
+############################################################
 
-  - name: Identify unauthorized roles
-    set_fact:
-      postgresql_srg_unauthorized_roles: "{{ postgresql_srg_login_roles | difference(postgresql_srg_approved_local_accounts) }}"
+- name: "V-206520 | Remove trust authentication entries"
+  become: true
+  ansible.builtin.replace:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^\s*host\s+.*\strust\s*$'
+    replace: ''
+  notify: Reload PostgreSQL
 
-  #################################################################
-  # 2️⃣ Remove Unauthorized Roles
-  #################################################################
+############################################################
+# Enforce SCRAM Authentication
+############################################################
 
-  - name: Drop unauthorized roles
-    become: true
-    become_user: postgres
-    shell: psql -c "DROP ROLE IF EXISTS {{ item }};"
-    loop: "{{ postgresql_srg_unauthorized_roles }}"
-    when: postgresql_srg_unauthorized_roles | length > 0
+- name: "V-206520 | Ensure local TCP connections use SCRAM"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^host\s+all\s+all\s+127\.0\.0\.1/32'
+    line: 'host    all    all    127.0.0.1/32    scram-sha-256'
+    create: false
+  notify: Reload PostgreSQL
 
-  #################################################################
-  # 3️⃣ Backup pg_hba.conf (once)
-  #################################################################
+############################################################
+# Audit and Remove Unauthorized Login Roles
+############################################################
 
-  - name: Backup pg_hba.conf
-    become: true
-    copy:
-      src: "{{ pg_hba_file }}"
-      dest: "{{ pg_hba_file }}.pre_v206520.bak"
-      remote_src: true
-      force: false
+- name: "V-206520 | Get login roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+  register: postgresql_srg_login_roles
+  changed_when: false
 
-  #################################################################
-  # 4️⃣ Configure LDAP Authentication
-  #################################################################
-
-  - name: Configure LDAP centralized authentication
-    become: true
-    blockinfile:
-      path: "{{ pg_hba_file }}"
-      marker: "# {mark} STIG V-206520 LDAP"
-      block: |
-        host all all 0.0.0.0/0 ldap ldapserver={{ postgresql_srg_ldap_server }} ldapbasedn="{{ postgresql_srg_ldap_basedn }}" ldapbinddn="{{ postgresql_srg_ldap_binddn }}" ldapbindpasswd={{ postgresql_srg_ldap_bindpw }} {% if postgresql_srg_ldap_tls %}ldaptls=1{% endif %}
-    when: postgresql_srg_auth_method == "ldap"
-    notify: Restart PostgreSQL
-
-  #################################################################
-  # 5️⃣ Configure Kerberos Authentication
-  #################################################################
-
-  - name: Configure GSSAPI centralized authentication
-    become: true
-    blockinfile:
-      path: "{{ pg_hba_file }}"
-      marker: "# {mark} STIG V-206520 GSS"
-      block: |
-        host all all 0.0.0.0/0 gss include_realm=1 krb_realm={{ postgresql_srg_kerberos_realm }}
-    when: postgresql_srg_auth_method == "gss"
-    notify: Restart PostgreSQL
-
-  #################################################################
-  # 6️⃣ Remove Trust Authentication
-  #################################################################
-
-  - name: Replace trust authentication with reject
-    become: true
-    replace:
-      path: "{{ pg_hba_file }}"
-      regexp: '\btrust\b'
-      replace: 'reject'
-    notify: Restart PostgreSQL
+- name: "V-206520 | Remove unauthorized login roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "DROP ROLE {{ item }};"
+  loop: "{{ postgresql_srg_login_roles.stdout_lines }}"
+  when: item not in postgresql_srg_approved_login_roles
+  notify: Reload PostgreSQL

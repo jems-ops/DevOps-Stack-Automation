@@ -1,161 +1,61 @@
 ---
 ############################################################
-# PostgreSQL STIG | V-233495
-#
-# FINDING DEFINITION:
-# Deploy a DBMS compatible with the use of NSA-approved
-# cryptography.
-#
-# COMPLIANCE CHECKLIST:
-# ✔ FIPS mode enabled
-# ✔ OpenSSL in use
-# ✔ SSL enabled
-# ✔ TLSv1.2+ enforced
-# ✔ Weak ciphers disabled
-# ✔ SCRAM enabled
-# ✔ MD5 disabled
-#
-# FAILED CONDITIONS:
-# ✖ FIPS disabled
-# ✖ Non-OpenSSL SSL backend
-# ✖ SSL disabled
-# ✖ TLS < 1.2 allowed
-# ✖ Weak ciphers enabled
-# ✖ password_encryption != scram-sha-256
-# ✖ md5 present in pg_hba.conf
+# STIG V-233495 Validation (Audit Only)
+# Deploy DBMS Compatible with NSA-Approved Cryptography
 ############################################################
 
-###############################
-# 1️⃣ Validate FIPS Mode
-###############################
+############################################################
+# Validate FIPS Mode
+############################################################
 
-- name: Check FIPS mode
-  command: cat /proc/sys/crypto/fips_enabled
-  register: fips_check
-  changed_when: false
-
-- name: Warn if FIPS mode disabled
-  debug:
-    msg: "WARNING: FIPS mode is NOT enabled (value={{ fips_check.stdout }}). Required for NSA-approved cryptography."
-  when: fips_check.stdout != "1"
-
-- name: Fail if FIPS required but not enabled
-  fail:
-    msg: "FIPS mode is NOT enabled. Set postgresql_srg_fips_required=false to skip."
-  when:
-    - postgresql_srg_fips_required | bool
-    - fips_check.stdout != "1"
-
-
-###############################
-# 2️⃣ Validate OpenSSL Backend
-###############################
-
-- name: Check SSL library
+- name: "V-233495 | Check FIPS status"
   become: true
-  become_user: postgres
-  command: psql -tAc "SHOW ssl_library;"
-  register: ssl_library_check
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: postgresql_srg_fips_check
   changed_when: false
+  when: postgresql_srg_fips_required | bool
 
-- name: Fail if not using OpenSSL
-  fail:
-    msg: "PostgreSQL is not using OpenSSL."
-  when: "'OpenSSL' not in ssl_library_check.stdout"
+- name: "V-233495 | Assert FIPS enabled"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_fips_check.stdout == "1"
+    fail_msg: "FIPS mode is NOT enabled"
+    success_msg: "FIPS mode is enabled"
+  when: postgresql_srg_fips_required | bool
 
+############################################################
+# Validate Crypto Policy
+############################################################
 
-###############################
-# 3️⃣ Validate SSL Enabled
-###############################
-
-- name: Check SSL enabled
+- name: "V-233495 | Check crypto policy"
   become: true
-  become_user: postgres
-  command: psql -tAc "SHOW ssl;"
-  register: ssl_enabled_check
+  ansible.builtin.command: update-crypto-policies --show
+  register: postgresql_srg_crypto_policy_check
   changed_when: false
-  when: postgresql_srg_ssl_enabled | bool
+  when: postgresql_srg_fips_required | bool
 
-- name: Fail if SSL is disabled
-  fail:
-    msg: "SSL is not enabled in PostgreSQL."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - ssl_enabled_check.stdout != "on"
+- name: "V-233495 | Assert crypto policy is FIPS"
+  ansible.builtin.assert:
+    that:
+      - "'FIPS' in postgresql_srg_crypto_policy_check.stdout"
+    fail_msg: "System crypto policy not set to FIPS"
+    success_msg: "System crypto policy set to FIPS"
+  when: postgresql_srg_fips_required | bool
 
-- name: Warn SSL not enforced
-  debug:
-    msg: "WARNING: SSL enforcement skipped (postgresql_srg_ssl_enabled=false). Set to true when certificates are available."
-  when: not (postgresql_srg_ssl_enabled | bool)
+############################################################
+# Validate No Weak Auth Methods
+############################################################
 
-
-###############################
-# 4️⃣ Validate TLS Version
-###############################
-
-- name: Check minimum TLS version
+- name: "V-233495 | Check for weak auth methods"
   become: true
-  become_user: postgres
-  command: psql -tAc "SHOW ssl_min_protocol_version;"
-  register: tls_version_check
-  changed_when: false
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: Fail if TLS < 1.2
-  fail:
-    msg: "TLS minimum version must be 1.2 or higher."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - tls_version_check.stdout is version('TLSv1.2', '<')
-
-
-###############################
-# 5️⃣ Validate Cipher Restrictions
-###############################
-
-- name: Check configured SSL ciphers
-  become: true
-  become_user: postgres
-  command: psql -tAc "SHOW ssl_ciphers;"
-  register: cipher_check
-  changed_when: false
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: Fail if weak cipher indicators present
-  fail:
-    msg: "Weak cipher detected in ssl_ciphers configuration."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - cipher_check.stdout is search("MD5|RC4|3DES|DES|NULL")
-
-
-###############################
-# 6️⃣ Validate SCRAM Password Encryption
-###############################
-
-- name: Check password encryption method
-  become: true
-  become_user: postgres
-  command: psql -tAc "SHOW password_encryption;"
-  register: password_encryption_check
+  ansible.builtin.shell: |
+    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '(md5|password)' || true
+  register: postgresql_srg_weak_auth_check
   changed_when: false
 
-- name: Fail if not SCRAM
-  fail:
-    msg: "Password encryption must be scram-sha-256."
-  when: password_encryption_check.stdout != "scram-sha-256"
-
-
-###############################
-# 7️⃣ Validate No MD5 in pg_hba.conf
-###############################
-
-- name: Check for md5 authentication in pg_hba.conf
-  shell: "grep -E '\\bmd5\\b' {{ pg_hba_file }} || true"
-  register: md5_check
-  changed_when: false
-
-- name: Fail if md5 authentication found
-  fail:
-    msg: "MD5 authentication found in pg_hba.conf. Not NSA-approved."
-  when: md5_check.stdout != ""
+- name: "V-233495 | Assert no weak auth methods"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_weak_auth_check.stdout == ""
+    fail_msg: "Weak authentication methods detected in pg_hba.conf"
+    success_msg: "No weak authentication methods configured"

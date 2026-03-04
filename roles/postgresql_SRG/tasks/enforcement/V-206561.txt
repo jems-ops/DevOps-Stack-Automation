@@ -1,0 +1,46 @@
+SRG Compliance Artifact
+
+Control ID: V-206561
+Title: Prevent Display of Authentication Secrets
+System: PostgreSQL 16 on RHEL 8.x
+Environment: Isolated Localhost Deployment
+Severity: CAT I
+Status: ☑ NOT A FINDING
+
+⸻
+
+1️⃣ Control Requirement
+
+The DBMS and associated application tools must be configured so that authentication secrets are not displayed. Authentication secrets include passwords, connection strings containing credentials, environment variables, private keys, or any other sensitive authentication data.
+
+⸻
+
+2️⃣ Implementation Determination
+
+This PostgreSQL deployment:
+	•	Uses peer (OS-based) authentication only
+	•	Does not use password-based authentication
+	•	Does not store database passwords
+	•	Does not utilize .pgpass files
+	•	Does not use PGPASSWORD environment variables
+	•	Does not use SSL/TLS private keys
+	•	Does not expose authentication data in configuration files or logs
+
+Because no DBMS authentication secrets exist in this environment, there are no secrets that could be displayed by PostgreSQL or associated tools.
+
+⸻
+
+3️⃣ Technical Evidence
+	•	pg_hba.conf contains peer authentication only.
+	•	No stored passwords exist in pg_authid.
+	•	No .pgpass files are present.
+	•	No password-based connection strings are configured.
+	•	No secrets appear in application logs or configuration files.
+
+⸻
+
+4️⃣ Conclusion
+
+V-206561 is Not a Finding.
+
+The PostgreSQL instance does not manage or store authentication secrets; therefore, there are no secrets that could be displayed or exposed.

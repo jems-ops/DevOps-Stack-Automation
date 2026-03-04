@@ -6,6 +6,6 @@
 - name: Verify only authorized roles are superusers
   become: true
   become_user: postgres
-  command: psql -tAc "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  ansible.builtin.command: psql -tAc "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
   register: superuser_list
   changed_when: false

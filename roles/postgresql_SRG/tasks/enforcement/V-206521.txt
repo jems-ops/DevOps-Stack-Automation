@@ -1,0 +1,304 @@
+PostgreSQL STIG V-206521
+Configure the DBMS settings and access controls to permit user access only to objects and data that the user is authorized to view or interact with, and prevent access to all other objects and data.
+
+This is structured for RMF submission, ISSO review, and audit evidence.
+
+⸻
+
+🛡 SRG Compliance Artifact
+
+Control ID: V-206521
+
+Title: Enforce Least Privilege Access to Database Objects
+
+Severity: CAT I
+
+System: PostgreSQL 15/16 on Red Hat Enterprise Linux 8
+
+⸻
+
+1️⃣ Control Requirement
+
+The DBMS must be configured so that:
+
+Users are permitted access only to objects and data they are authorized to view or interact with, and are prevented from accessing all other objects and data.
+
+This enforces least privilege and prevents unauthorized data exposure or modification.
+
+⸻
+
+2️⃣ Control Objective
+
+Ensure that:
+	•	Users are granted only required privileges
+	•	Public schema access is restricted
+	•	Default privileges are hardened
+	•	Object-level permissions are explicitly defined
+	•	Superuser privileges are limited
+	•	Unauthorized data access is prevented
+
+⸻
+
+3️⃣ Implementation Summary
+
+Requirement	Implementation
+Restrict PUBLIC privileges	REVOKE ALL FROM PUBLIC
+Enforce schema ownership controls	Explicit schema ownership
+Default privilege control	ALTER DEFAULT PRIVILEGES
+Role-based access model	Application roles defined
+Limit superuser usage	Only postgres is SUPERUSER
+Prevent cross-schema access	Explicit GRANT model
+Audit privilege changes	pgaudit enabled
+
+
+⸻
+
+4️⃣ Technical Implementation Details
+
+⸻
+
+4.1 Revoke Default PUBLIC Privileges
+
+By default, PostgreSQL grants some access to PUBLIC. These are removed:
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON DATABASE <dbname> FROM PUBLIC;
+
+Verification:
+
+SELECT nspname, nspacl FROM pg_namespace WHERE nspname = 'public';
+
+Expected: No permissive PUBLIC privileges.
+
+⸻
+
+4.2 Implement Role-Based Access Control (RBAC)
+
+Roles are defined by function:
+	•	app_readonly
+	•	app_readwrite
+	•	dba_role
+
+Example:
+
+CREATE ROLE app_readonly;
+GRANT CONNECT ON DATABASE mydb TO app_readonly;
+GRANT USAGE ON SCHEMA app TO app_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA app TO app_readonly;
+
+Users are assigned to roles:
+
+GRANT app_readonly TO user1;
+
+
+⸻
+
+4.3 Control Default Privileges
+
+Ensure new objects do not inherit open access:
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA app
+REVOKE ALL ON TABLES FROM PUBLIC;
+
+Ensure controlled grants:
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA app
+GRANT SELECT ON TABLES TO app_readonly;
+
+
+⸻
+
+4.4 Restrict Superuser Privileges
+
+Verification:
+
+SELECT rolname FROM pg_roles WHERE rolsuper = true;
+
+Expected:
+
+postgres
+
+No application accounts have SUPERUSER privilege.
+
+⸻
+
+4.5 Restrict Cross-Schema Access
+
+Users only have:
+	•	USAGE on required schemas
+	•	Object-level grants for required tables
+	•	No blanket database-wide permissions
+
+Verification:
+
+SELECT grantee, privilege_type
+FROM information_schema.role_table_grants
+WHERE grantee = '<username>';
+
+
+⸻
+
+4.6 Enable Audit Logging of Privilege Changes
+
+PostgreSQL configured with:
+
+shared_preload_libraries = 'pgaudit'
+pgaudit.log = 'role, ddl'
+
+This logs:
+	•	GRANT
+	•	REVOKE
+	•	Role changes
+	•	Schema changes
+
+⸻
+
+5️⃣ Administrative Procedures
+
+The organization maintains a documented procedure titled:
+
+PostgreSQL Role and Privilege Management Policy
+
+The procedure includes:
+	1.	All access must be role-based
+	2.	Direct object grants to users are prohibited
+	3.	PUBLIC privileges are revoked
+	4.	Superuser access restricted to DBA team
+	5.	Privilege changes require change management approval
+	6.	Quarterly privilege review required
+	7.	Application roles reviewed during release cycles
+
+Document Location:
+
+/security/sops/postgresql_access_control_policy.docx
+
+
+⸻
+
+6️⃣ Validation Procedures
+
+⸻
+
+6.1 Verify PUBLIC Privileges Removed
+
+SELECT datname, datacl
+FROM pg_database
+WHERE datname = current_database();
+
+
+⸻
+
+6.2 Verify Role Grants
+
+\du
+
+or
+
+SELECT rolname, rolsuper, rolcreaterole
+FROM pg_roles;
+
+
+⸻
+
+6.3 Verify Object-Level Grants
+
+SELECT grantee, privilege_type
+FROM information_schema.role_table_grants;
+
+
+⸻
+
+6.4 Verify Default Privileges
+
+SELECT *
+FROM pg_default_acl;
+
+
+⸻
+
+6.5 Verify Audit Logging
+
+SHOW shared_preload_libraries;
+SHOW pgaudit.log;
+
+
+⸻
+
+7️⃣ Evidence Collection
+
+The following artifacts are retained:
+	•	Output of role listing
+	•	Output of schema privilege queries
+	•	PostgreSQL configuration file snapshot
+	•	Audit configuration verification
+	•	Default privilege configuration
+	•	Change management records for role modifications
+	•	Quarterly access review documentation
+
+Evidence stored in:
+
+/rmf/evidence/V-206521/
+
+
+⸻
+
+8️⃣ Risk Analysis
+
+Without proper object-level controls:
+	•	Unauthorized data exposure possible
+	•	Lateral privilege escalation risk
+	•	Data integrity compromise
+	•	Regulatory violations
+
+Mitigations implemented:
+	•	Least privilege enforced
+	•	PUBLIC access removed
+	•	Explicit GRANT model
+	•	Audit logging enabled
+	•	Regular access review
+
+Residual Risk: Low
+
+⸻
+
+9️⃣ Control Mapping (NIST 800-53)
+
+This control supports:
+	•	AC-2 – Account Management
+	•	AC-3 – Access Enforcement
+	•	AC-6 – Least Privilege
+	•	AU-2 – Audit Events
+	•	AU-12 – Audit Generation
+	•	CM-6 – Configuration Settings
+
+⸻
+
+🔟 Compliance Determination
+
+Requirement	Status
+PUBLIC privileges restricted	Implemented
+Role-based access model	Implemented
+Superuser restriction	Implemented
+Default privileges hardened	Implemented
+Privilege changes logged	Implemented
+Access review process	Implemented
+
+Overall Status:
+
+COMPLIANT
+
+⸻
+
+1️⃣1️⃣ Control Owner
+
+System Owner: ___________________
+ISSO: ___________________
+Date Reviewed: ___________________
+
+⸻
+
+🏁 Final Statement
+
+PostgreSQL is configured using a role-based access control model that restricts users to authorized objects and prevents access to all other database objects and data. Default PUBLIC privileges are revoked, superuser access is restricted, and privilege changes are audited.
+
+The system satisfies the requirements of STIG V-206521.

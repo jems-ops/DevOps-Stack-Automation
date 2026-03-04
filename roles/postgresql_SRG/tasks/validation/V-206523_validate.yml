@@ -6,7 +6,7 @@
 - name: V-206523 | Check pgaudit is loaded
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW shared_preload_libraries;"
+  ansible.builtin.command: psql -tAc "SHOW shared_preload_libraries;"
   register: preload_libs
   changed_when: false
   failed_when: "'pgaudit' not in preload_libs.stdout"
@@ -17,7 +17,7 @@
 - name: V-206523 | Check pgaudit log classes
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW pgaudit.log;"
+  ansible.builtin.command: psql -tAc "SHOW pgaudit.log;"
   register: pgaudit_log
   changed_when: false
   failed_when: pgaudit_log.stdout == ""
@@ -28,7 +28,7 @@
 - name: V-206523 | Check log_connections enabled
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW log_connections;"
+  ansible.builtin.command: psql -tAc "SHOW log_connections;"
   register: log_conn
   changed_when: false
   failed_when: log_conn.stdout.strip() != "on"
@@ -39,7 +39,7 @@
 - name: V-206523 | Check log_disconnections enabled
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW log_disconnections;"
+  ansible.builtin.command: psql -tAc "SHOW log_disconnections;"
   register: log_disconn
   changed_when: false
   failed_when: log_disconn.stdout.strip() != "on"
@@ -50,7 +50,7 @@
 - name: V-206523 | Check log_min_error_statement is error
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW log_min_error_statement;"
+  ansible.builtin.command: psql -tAc "SHOW log_min_error_statement;"
   register: log_min_err
   changed_when: false
   failed_when: log_min_err.stdout.strip() != "error"
@@ -61,7 +61,7 @@
 - name: V-206523 | Check log_line_prefix includes required fields
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW log_line_prefix;"
+  ansible.builtin.command: psql -tAc "SHOW log_line_prefix;"
   register: log_prefix
   changed_when: false
   failed_when: >
@@ -71,8 +71,6 @@
   tags:
     - audit
     - V-206523
-
-
 ############################################################
 # Functional Validation – Trigger Audit Events
 ############################################################
@@ -80,25 +78,25 @@
 - name: V-206523 | Generate DDL event
   become: true
   become_user: postgres
-  shell: |
+  ansible.builtin.shell: |
     psql -tAc "CREATE TABLE stig_test(id int);"
     psql -tAc "DROP TABLE stig_test;"
-  ignore_errors: true
+  failed_when: false
   tags:
     - audit
     - V-206523
 
 - name: V-206523 | Generate failed login attempt
-  shell: |
+  ansible.builtin.shell: |
     psql -U invalid_user -d postgres -c '\q'
-  ignore_errors: true
+  failed_when: false
   tags:
     - audit
     - V-206523
 
 - name: V-206523 | Verify audit log contains DDL entry
   become: true
-  shell: |
+  ansible.builtin.shell: |
     grep -i "AUDIT" {{ pg_data_dir }}/log/* | tail -1
   register: audit_entry
   changed_when: false
@@ -109,7 +107,7 @@
 
 - name: V-206523 | Verify failed authentication logged
   become: true
-  shell: |
+  ansible.builtin.shell: |
     grep -i "authentication failed" {{ pg_data_dir }}/log/* | tail -1
   register: auth_fail_entry
   changed_when: false

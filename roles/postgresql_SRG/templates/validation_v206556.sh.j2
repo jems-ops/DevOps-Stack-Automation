@@ -1,0 +1,27 @@
+#!/bin/bash
+
+echo "=============================="
+echo "STIG V-206556 Validation"
+echo "=============================="
+
+echo ""
+echo "[1] Checking password_encryption"
+sudo -u postgres psql -t -c "SHOW password_encryption;"
+
+echo ""
+echo "[2] Checking for MD5 hashes"
+sudo -u postgres psql -t -c \
+"SELECT rolname FROM pg_authid WHERE rolpassword LIKE 'md5%';"
+
+echo ""
+echo "[3] Searching for plaintext password= in filesystem"
+grep -Ril "password=" /var/lib/pgsql /opt /etc 2>/dev/null
+
+echo ""
+echo "[4] Checking .pgpass permissions"
+find /var/lib/pgsql /home -name ".pgpass" -exec ls -l {} \;
+
+echo ""
+echo "=============================="
+echo "Validation Complete"
+echo "=============================="

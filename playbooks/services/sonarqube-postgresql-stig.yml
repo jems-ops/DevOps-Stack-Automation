@@ -1,0 +1,18 @@
+---
+# Apply PostgreSQL STIG controls on SonarQube servers (PostgreSQL lives on the same hosts)
+#
+# Usage:
+#   ansible-playbook -i inventory playbooks/services/sonarqube-postgresql-stig.yml -kK
+#   ansible-playbook -i inventory playbooks/services/sonarqube-postgresql-stig.yml -kK -e target_hosts=sonar.local
+#   ansible-playbook -i inventory playbooks/services/sonarqube-postgresql-stig.yml -kK -e pgver=15
+
+- name: Apply PostgreSQL STIG controls and verify SonarQube
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: yes
+  become: true
+
+  roles:
+    - role: postgresql_stig
+
+    # Verify SonarQube is still healthy after PostgreSQL changes/restarts
+    - role: ensure-sonarqube

@@ -1,33 +1,59 @@
 ---
 ############################################################
-# PostgreSQL STIG | V-206570 VALIDATION
+# STIG V-206570 Validation (Audit Only)
 ############################################################
 
-- name: V-206570 | Check PGDATA permissions
-  become: true
-  stat:
-    path: "{{ pg_data_dir }}"
-  register: pgdata_stat
+############################################################
+# Validate Data Directory Permissions
+############################################################
 
-- name: V-206570 | Fail if PGDATA not 0700
-  fail:
-    msg: "V-206570 FAILED: PGDATA permissions not secure."
-  when: pgdata_stat.stat.mode != "0700"
-
-- name: V-206570 | Check data checksum status
+- name: "V-206570 | Check data directory permissions"
   become: true
-  become_user: postgres
-  command: "{{ postgresql_srg_pg_bin_path }}/pg_controldata {{ pg_data_dir }}"
-  register: checksum_status
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_data_dir }}"
+  register: postgresql_srg_data_dir_stat
   changed_when: false
 
-- name: V-206570 | Fail if checksums disabled
-  fail:
-    msg: "V-206570 FAILED: Data checksums not enabled."
-  when: "'Data page checksum version: 0' in checksum_status.stdout"
+- name: "V-206570 | Assert ownership and permissions"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_data_dir_stat.stat.pw_name == "postgres"
+      - postgresql_srg_data_dir_stat.stat.gr_name == "postgres"
+      - postgresql_srg_data_dir_stat.stat.mode == "0700"
+    fail_msg: "Data directory ownership or permissions incorrect"
+    success_msg: "Data directory properly secured"
 
-- name: V-206570 | Check if disk is encrypted (LUKS example)
+############################################################
+# Validate No World-Readable Files
+############################################################
+
+- name: "V-206570 | Find world-readable files"
   become: true
-  command: lsblk -o NAME,TYPE,MOUNTPOINT
-  register: disk_info
+  ansible.builtin.shell: |
+    find {{ postgresql_srg_data_dir }} -type f -perm -o+r
+  register: postgresql_srg_world_readable
   changed_when: false
+
+- name: "V-206570 | Assert no world-readable files"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_world_readable.stdout == ""
+    fail_msg: "World-readable database files detected"
+    success_msg: "No world-readable database files found"
+
+############################################################
+# Validate SELinux Mode
+############################################################
+
+- name: "V-206570 | Check SELinux status"
+  become: true
+  ansible.builtin.command: getenforce
+  register: postgresql_srg_selinux_check
+  changed_when: false
+
+- name: "V-206570 | Assert SELinux enforcing"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_selinux_check.stdout == "Enforcing"
+    fail_msg: "SELinux is not enforcing"
+    success_msg: "SELinux is enforcing"

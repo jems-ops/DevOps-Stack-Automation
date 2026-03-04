@@ -1,0 +1,44 @@
+---
+- name: Reboot SonarQube host and verify SonarQube service state
+  hosts: sonarqube
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Reboot host
+      ansible.builtin.reboot:
+        reboot_timeout: 900
+        test_command: whoami
+
+    - name: Ensure SonarQube service is enabled and running after reboot
+      ansible.builtin.systemd:
+        name: sonarqube
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Verify SonarQube listens on port 9000 after reboot
+      ansible.builtin.wait_for:
+        port: 9000
+        delay: 5
+        timeout: 180
+
+    - name: Check SonarQube enabled state
+      ansible.builtin.command: systemctl is-enabled sonarqube
+      register: sonarqube_is_enabled
+      changed_when: false
+
+    - name: Check SonarQube active state
+      ansible.builtin.command: systemctl is-active sonarqube
+      register: sonarqube_is_active
+      changed_when: false
+
+    - name: Assert SonarQube is enabled and active
+      ansible.builtin.assert:
+        that:
+          - sonarqube_is_enabled.stdout is match('enabled')
+          - sonarqube_is_active.stdout is match('active')
+        fail_msg: >-
+          SonarQube service is not healthy after reboot.
+          is-enabled={{ sonarqube_is_enabled.stdout | default('') }},
+          is-active={{ sonarqube_is_active.stdout | default('') }}

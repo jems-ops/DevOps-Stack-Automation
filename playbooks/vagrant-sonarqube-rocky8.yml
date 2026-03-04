@@ -1,0 +1,8 @@
+---
+- name: Vagrant - Ensure SonarQube is installed and running (Rocky Linux 8)
+  hosts: all
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: ensure-sonarqube

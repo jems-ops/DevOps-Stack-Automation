@@ -1,70 +1,33 @@
 ---
 ############################################################
-# PostgreSQL STIG | V-206559
-#
-# Store DBMS PKI private keys in FIPS validated module
-# and restrict access to authorized users only.
+# STIG V-206559 Enforcement
+# No DBMS PKI Private Keys Present
 ############################################################
 
-############################
-# 1️ Validate FIPS Mode
-############################
+############################################################
+# Ensure SSL is Disabled
+############################################################
 
-- name: V-206559 | Check FIPS mode enabled
+- name: "V-206559 | Disable SSL"
   become: true
-  command: cat /proc/sys/crypto/fips_enabled
-  register: fips_status
-  changed_when: false
-  when: postgresql_srg_fips_required | bool
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?ssl\s*='
+    line: "ssl = off"
+  notify: Restart PostgreSQL
 
-- name: V-206559 | Fail if FIPS not enabled
-  fail:
-    msg: "V-206559 FAILED: System not operating in FIPS mode."
-  when:
-    - postgresql_srg_fips_required | bool
-    - fips_status.stdout.strip() != "1"
+############################################################
+# Remove server private key if present
+############################################################
 
-############################
-# 2️ Validate OpenSSL Backend
-############################
-
-- name: V-206559 | Verify PostgreSQL uses OpenSSL
+- name: "V-206559 | Remove server.key if exists"
   become: true
-  become_user: postgres
-  command: psql -tAc "SHOW ssl_library;"
-  register: ssl_library
-  changed_when: false
-  failed_when: "'OpenSSL' not in ssl_library.stdout"
-  when: postgresql_srg_ssl_enabled | bool
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}/server.key"
+    state: absent
 
-############################
-# 3️ Secure Private Key Permissions
-############################
-
-- name: V-206559 | Ensure server.key ownership restricted
+- name: "V-206559 | Remove server.crt if exists"
   become: true
-  file:
-    path: "{{ pg_data_dir }}/server.key"
-    owner: postgres
-    group: postgres
-    mode: '0600'
-  when: postgresql_srg_ssl_enabled | bool
-
-############################
-# 4️ Validate Private Key Not World Accessible
-############################
-
-- name: V-206559 | Check server.key permissions
-  become: true
-  stat:
-    path: "{{ pg_data_dir }}/server.key"
-  register: key_stat
-  when: postgresql_srg_ssl_enabled | bool
-
-- name: V-206559 | Fail if private key permissions insecure
-  fail:
-    msg: "V-206559 FAILED: server.key permissions not restricted to 0600."
-  when:
-    - postgresql_srg_ssl_enabled | bool
-    - key_stat.stat.exists | default(false)
-    - key_stat.stat.mode | default('0600') != "0600"
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}/server.crt"
+    state: absent

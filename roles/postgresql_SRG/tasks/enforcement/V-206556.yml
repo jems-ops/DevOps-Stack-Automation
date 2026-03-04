@@ -1,50 +1,55 @@
 ---
 ############################################################
-# V-206556 - Protect passwords from disclosure
-# Enforcement
+# STIG V-206556 Enforcement
+# Remove DB password artifacts
 ############################################################
 
-- name: "V-206556 | Check password_encryption"
+- name: "V-206556 | Remove .pgpass files"
   become: true
-  become_user: postgres
-  command: psql -tAc "SHOW password_encryption;"
-  register: password_encryption_result
-  changed_when: false
-
-- name: "V-206556 | Enforce SCRAM-SHA-256"
-  become: true
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?\s*password_encryption'
-    line: "password_encryption = scram-sha-256"
-  notify: Restart PostgreSQL
-  when: password_encryption_result.stdout | trim != "scram-sha-256"
-
-- name: "V-206556 | Find .pgpass files"
-  become: true
-  find:
-    paths: /root,/home,/var/lib/pgsql
+  ansible.builtin.find:
+    paths:
+      - /var/lib/pgsql
+      - /home
+      - /root
     patterns: ".pgpass"
-    file_type: file
-    recurse: yes
-  register: pgpass_files
+    recurse: true
+  register: postgresql_srg_pgpass_files
 
-- name: "V-206556 | Enforce secure permissions on .pgpass"
+- name: "V-206556 | Delete discovered .pgpass files"
   become: true
-  file:
+  ansible.builtin.file:
     path: "{{ item.path }}"
-    mode: '0600'
-  loop: "{{ pgpass_files.files }}"
-  when: pgpass_files.matched > 0
+    state: absent
+  loop: "{{ postgresql_srg_pgpass_files.files }}"
 
-- name: "V-206556 | Detect MD5 password hashes"
+############################################################
+# Remove stored passwords from roles
+############################################################
+
+- name: "V-206556 | Identify roles with stored passwords"
   become: true
   become_user: postgres
-  command: psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword LIKE 'md5%';"
-  register: md5_hashes
+  ansible.builtin.shell: |
+    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
+  register: postgresql_srg_roles_with_passwords
   changed_when: false
 
-- name: "V-206556 | Warn if MD5 hashes exist"
-  debug:
-    msg: "WARNING: MD5 password hashes detected for: {{ md5_hashes.stdout_lines }}. Convert to SCRAM."
-  when: md5_hashes.stdout | trim != ""
+- name: "V-206556 | Remove stored role passwords"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "ALTER ROLE {{ item }} PASSWORD NULL;"
+  loop: "{{ postgresql_srg_roles_with_passwords.stdout_lines }}"
+  when: postgresql_srg_roles_with_passwords.stdout_lines | length > 0
+
+############################################################
+# Remove password authentication methods
+############################################################
+
+- name: "V-206556 | Remove password authentication from pg_hba.conf"
+  become: true
+  ansible.builtin.replace:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^\s*(host|local).*(md5|scram-sha-256|password)\s*$'
+    replace: ''
+  notify: Reload PostgreSQL

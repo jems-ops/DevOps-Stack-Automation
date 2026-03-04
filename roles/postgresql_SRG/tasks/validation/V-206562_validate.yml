@@ -1,79 +1,56 @@
 ---
 ############################################################
-# V-206562
-# Validation
+# STIG V-206562 Validation (Audit Only)
 ############################################################
 
-# Validate FIPS mode (gated)
-- name: "V-206562 | Validate FIPS mode enabled"
-  command: cat /proc/sys/crypto/fips_enabled
-  register: v206562_validate_fips
-  changed_when: false
-  failed_when: v206562_validate_fips.stdout != "1"
+############################################################
+# Validate FIPS Mode Enabled
+############################################################
+
+- name: "V-206562 | Check FIPS status"
   become: true
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: postgresql_srg_fips_check
+  changed_when: false
   when: postgresql_srg_fips_required | bool
 
-# Validate OpenSSL package
-- name: "V-206562 | Validate OpenSSL package"
-  command: rpm -q openssl
-  register: v206562_validate_openssl
-  changed_when: false
-  failed_when: v206562_validate_openssl.rc != 0
-  become: true
+- name: "V-206562 | Assert FIPS enabled"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_fips_check.stdout == "1"
+    fail_msg: "FIPS mode is NOT enabled (CAT I Finding)"
+    success_msg: "FIPS mode is enabled"
+  when: postgresql_srg_fips_required | bool
 
-# Validate PostgreSQL linked to system OpenSSL (needs shell for command substitution)
-- name: "V-206562 | Validate PostgreSQL uses system OpenSSL"
-  shell: ldd $(which postgres)
-  register: v206562_validate_pg_ssl_link
-  changed_when: false
-  failed_when: "'libssl.so' not in v206562_validate_pg_ssl_link.stdout"
-  become: true
+############################################################
+# Validate Crypto Policy
+############################################################
 
-# Validate ssl enabled (gated)
-- name: "V-206562 | Validate ssl setting"
+- name: "V-206562 | Check crypto policy"
   become: true
-  become_user: postgres
-  command: psql -t -c "SHOW ssl;"
-  register: v206562_validate_ssl
+  ansible.builtin.command: update-crypto-policies --show
+  register: postgresql_srg_crypto_policy_check
   changed_when: false
-  failed_when: v206562_validate_ssl.stdout | trim != "on"
-  when: postgresql_srg_ssl_enabled | bool
+  when: postgresql_srg_fips_required | bool
 
-# Validate cipher suite (gated)
-- name: "V-206562 | Validate cipher suite"
+- name: "V-206562 | Assert crypto policy is FIPS"
+  ansible.builtin.assert:
+    that:
+      - "'FIPS' in postgresql_srg_crypto_policy_check.stdout"
+    fail_msg: "System crypto policy is not set to FIPS"
+    success_msg: "System crypto policy is set to FIPS"
+  when: postgresql_srg_fips_required | bool
+
+############################################################
+# Validate OpenSSL Version
+############################################################
+
+- name: "V-206562 | Check OpenSSL version"
   become: true
-  become_user: postgres
-  command: psql -t -c "SHOW ssl_ciphers;"
-  register: v206562_validate_ciphers
+  ansible.builtin.command: openssl version
+  register: postgresql_srg_openssl_check
   changed_when: false
-  failed_when: "'MD5' in v206562_validate_ciphers.stdout"
-  when: postgresql_srg_ssl_enabled | bool
 
-# Validate password encryption
-- name: "V-206562 | Validate password encryption"
-  become: true
-  become_user: postgres
-  command: psql -t -c "SHOW password_encryption;"
-  register: v206562_validate_pw
-  changed_when: false
-  failed_when: v206562_validate_pw.stdout | trim != "scram-sha-256"
-
-# Validate TLS minimum protocol (gated)
-- name: "V-206562 | Validate TLS minimum protocol"
-  become: true
-  become_user: postgres
-  command: psql -t -c "SHOW ssl_min_protocol_version;"
-  register: v206562_validate_tls
-  changed_when: false
-  failed_when: "'TLSv1.2' not in v206562_validate_tls.stdout"
-  when: postgresql_srg_ssl_enabled | bool
-
-# Evidence output
-- name: "V-206562 | Display validation summary"
-  debug:
-    msg:
-      - "FIPS Enabled: {{ v206562_validate_fips.stdout | default('skipped') }}"
-      - "OpenSSL: {{ v206562_validate_openssl.stdout }}"
-      - "SSL: {{ v206562_validate_ssl.stdout | default('skipped') | trim }}"
-      - "Password Encryption: {{ v206562_validate_pw.stdout | trim }}"
-      - "TLS Minimum: {{ v206562_validate_tls.stdout | default('skipped') | trim }}"
+- name: "V-206562 | Display OpenSSL version"
+  ansible.builtin.debug:
+    msg: "OpenSSL Version: {{ postgresql_srg_openssl_check.stdout }}"

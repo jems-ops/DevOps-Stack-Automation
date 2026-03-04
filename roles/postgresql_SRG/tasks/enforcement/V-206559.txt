@@ -1,0 +1,51 @@
+Perfect 👍 Since your PostgreSQL deployment:
+	•	✅ Uses peer authentication only
+	•	✅ Does NOT enable SSL/TLS
+	•	✅ Does NOT generate server certificates
+	•	✅ Does NOT store server.key
+	•	✅ Does NOT use certificate authentication
+	•	✅ Operates localhost-only
+
+Then V-206559 is NOT A FINDING because no DBMS PKI private keys exist.
+
+Below is your short SRG artifact and matching Ansible enforcement + validation.
+
+⸻
+
+📄 Short SRG Compliance Artifact
+
+Control ID: V-206559
+
+Title: Store DBMS PKI Private Keys in FIPS-Validated Module
+
+System: PostgreSQL 16 on RHEL 8.x
+
+Environment: Isolated Localhost Deployment
+
+Status: ☑ NOT A FINDING
+
+⸻
+
+1️⃣ Control Requirement
+
+All DBMS PKI private keys must be stored in a FIPS 140-2 or 140-3 validated cryptographic module. Access to DBMS PKI private keys must be restricted to authenticated and authorized users.
+
+⸻
+
+2️⃣ Implementation Determination
+
+This PostgreSQL deployment:
+	•	Does not enable SSL/TLS (ssl = off)
+	•	Does not generate or store DBMS PKI private keys
+	•	Does not use certificate-based authentication
+	•	Uses peer (Unix socket) authentication only
+	•	Does not transmit traffic over network interfaces
+
+Because no DBMS PKI private keys exist in this deployment, FIPS cryptographic module storage requirements are not applicable.
+
+⸻
+
+3️⃣ Conclusion
+
+V-206559 is Not a Finding.
+No DBMS PKI private keys exist in this isolated PostgreSQL configuration.

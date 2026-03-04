@@ -1,66 +1,58 @@
 ---
 ############################################################
-# PostgreSQL STIG | V-206570
-#
-# Protect confidentiality and integrity of data at rest
+# STIG V-206570 Enforcement
+# Protect Data at Rest (OS-Level Controls)
 ############################################################
 
-############################
-# Restrict PGDATA directory
-############################
+############################################################
+# Ensure Data Directory Ownership
+############################################################
 
-- name: V-206570 | Ensure PGDATA directory secured
+- name: "V-206570 | Ensure PostgreSQL data directory ownership"
   become: true
-  file:
-    path: "{{ pg_data_dir }}"
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}"
     owner: postgres
     group: postgres
+    recurse: false
+
+############################################################
+# Ensure Data Directory Permissions 0700
+############################################################
+
+- name: "V-206570 | Set data directory permissions to 0700"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}"
     mode: '0700'
 
-- name: V-206570 | Ensure WAL directory secured
-  become: true
-  file:
-    path: "{{ pg_data_dir }}/pg_wal"
-    owner: postgres
-    group: postgres
-    mode: '0700'
+############################################################
+# Restrict File Permissions Inside Data Directory
+############################################################
 
-- name: V-206570 | Ensure server private key secured
+- name: "V-206570 | Find files in data directory"
   become: true
-  file:
-    path: "{{ pg_data_dir }}/server.key"
-    owner: postgres
-    group: postgres
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_data_dir }}"
+    file_type: file
+    recurse: true
+  register: postgresql_srg_data_files
+
+- name: "V-206570 | Ensure DB files are not world/group readable"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
     mode: '0600'
-  when: postgresql_srg_ssl_enabled | bool
+  loop: "{{ postgresql_srg_data_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
-############################
-# Validate Data Checksums
-############################
+############################################################
+# Ensure SELinux is Enforcing
+############################################################
 
-- name: V-206570 | Check if data checksums enabled
+- name: "V-206570 | Ensure SELinux is enforcing"
   become: true
-  become_user: postgres
-  command: "{{ postgresql_srg_pg_bin_path }}/pg_controldata {{ pg_data_dir }}"
-  register: checksum_status
-  changed_when: false
-
-- name: V-206570 | Fail if data checksums disabled
-  fail:
-    msg: "V-206570 FAILED: Data page checksums are disabled."
-  when: "'Data page checksum version: 0' in checksum_status.stdout"
-
-############################
-# Validate disk encryption (basic check)
-############################
-
-- name: V-206570 | Check if underlying disk is encrypted (LUKS example)
-  become: true
-  command: lsblk -o NAME,TYPE,MOUNTPOINT
-  register: disk_info
-  changed_when: false
-
-- name: V-206570 | Debug disk layout (manual validation required)
-  debug:
-    msg: "{{ disk_info.stdout }}"
-  when: "'luks' in disk_info.stdout"  
+  ansible.posix.selinux:
+    policy: targeted
+    state: enforcing

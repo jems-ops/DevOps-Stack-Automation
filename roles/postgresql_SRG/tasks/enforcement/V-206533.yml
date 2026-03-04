@@ -5,7 +5,7 @@
 
 - name: Ensure log_line_prefix includes user name (%u)
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_line_prefix\s*='
     line: "log_line_prefix = '%m %H %p %u %d %c %h %r %a %e '"

@@ -1,156 +1,47 @@
+---
 ############################################################
-# STIG V-206555
-# Enforce PostgreSQL Password Policy
+# STIG V-206555 Enforcement
+# Password Complexity / Lifetime / Reuse
+# Status: NOT A FINDING (No DB Password Authentication)
 ############################################################
 
-- name: V-206555 | Ensure SCRAM-SHA-256 password encryption
-  become: true
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^#?\s*password_encryption'
-    line: "password_encryption = 'scram-sha-256'"
-  notify: Restart PostgreSQL
-  when: postgresql_srg_password_policy_enabled
+############################################################
+# Enforce Peer Authentication Only
+############################################################
 
-- name: V-206555 | Install PostgreSQL contrib package
+- name: "V-206555 | Remove password-based authentication methods"
   become: true
-  package:
-    name: "postgresql{{ postgresql_srg_pg_version | default('16') }}-contrib"
-    state: present
-  when: postgresql_srg_password_policy_enabled
+  ansible.builtin.replace:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^\s*(host|local).*(md5|scram-sha-256|password)\s*$'
+    replace: ''
+  notify: Reload PostgreSQL
 
-- name: V-206555 | Read current shared_preload_libraries
+- name: "V-206555 | Ensure peer authentication for local connections"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_hba_file }}"
+    line: "local   all     all     peer"
+    create: false
+  notify: Reload PostgreSQL
+
+############################################################
+# Remove Stored Passwords from Roles
+############################################################
+
+- name: "V-206555 | Get roles with stored passwords"
   become: true
   become_user: postgres
-  command: psql -tAc "SHOW shared_preload_libraries;"
-  register: current_spl
+  ansible.builtin.shell: |
+    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
+  register: postgresql_srg_roles_with_passwords
   changed_when: false
-  when: postgresql_srg_password_policy_enabled
 
-- name: V-206555 | Enable passwordcheck in shared_preload_libraries
-  become: true
-  lineinfile:
-    path: "{{ pg_conf_file }}"
-    regexp: '^\s*shared_preload_libraries\s*='
-    line: "shared_preload_libraries = '{{ current_spl.stdout | trim }},passwordcheck'"
-  notify: Restart PostgreSQL
-  when:
-    - postgresql_srg_password_policy_enabled
-    - "'passwordcheck' not in current_spl.stdout"
-
-############################################################
-# Password Complexity Function
-############################################################
-
-- name: V-206555 | Deploy strict password validation function
+- name: "V-206555 | Remove passwords from roles"
   become: true
   become_user: postgres
-  shell: |
-    psql -d postgres <<'EOF'
-    CREATE OR REPLACE FUNCTION stig_password_check(username text, password text)
-    RETURNS void AS $$
-    BEGIN
-      IF length(password) < {{ postgresql_srg_password_min_length }} THEN
-        RAISE EXCEPTION 'Password must be at least {{ postgresql_srg_password_min_length }} characters';
-      END IF;
-
-      IF password !~ '[A-Z]' THEN
-        RAISE EXCEPTION 'Password must contain uppercase letter';
-      END IF;
-
-      IF password !~ '[a-z]' THEN
-        RAISE EXCEPTION 'Password must contain lowercase letter';
-      END IF;
-
-      IF password !~ '[0-9]' THEN
-        RAISE EXCEPTION 'Password must contain numeric character';
-      END IF;
-
-      IF password !~ '[^A-Za-z0-9]' THEN
-        RAISE EXCEPTION 'Password must contain special character';
-      END IF;
-    END;
-    $$ LANGUAGE plpgsql;
-    EOF
-  args:
-    executable: /bin/bash
-  when: postgresql_srg_password_policy_enabled
-
-############################################################
-# Password History Table
-############################################################
-
-- name: V-206555 | Ensure password history table exists
-  become: true
-  become_user: postgres
-  shell: |
-    psql -d postgres <<'EOF'
-    CREATE TABLE IF NOT EXISTS password_history (
-      username text,
-      password_hash text,
-      changed_on timestamp DEFAULT now()
-    );
-    EOF
-  args:
-    executable: /bin/bash
-  when: postgresql_srg_password_policy_enabled
-
-############################################################
-# Expiration Enforcement - Interactive Accounts
-############################################################
-
-- name: V-206555 | Enforce expiration for interactive accounts
-  become: true
-  become_user: postgres
-  shell: |
-    psql -d postgres <<'EOF'
-    DO $$
-    DECLARE r RECORD;
-    BEGIN
-      FOR r IN
-        SELECT rolname FROM pg_roles
-        WHERE rolcanlogin
-        AND rolname !~ '{{ postgresql_srg_service_account_pattern }}'
-      LOOP
-        EXECUTE format(
-          'ALTER ROLE %I VALID UNTIL %L',
-          r.rolname,
-          (now() + interval '{{ postgresql_srg_password_max_days_interactive }} days')::text
-        );
-      END LOOP;
-    END
-    $$;
-    EOF
-  args:
-    executable: /bin/bash
-  when: postgresql_srg_password_policy_enabled
-
-############################################################
-# Expiration Enforcement - Service Accounts
-############################################################
-
-- name: V-206555 | Enforce expiration for service accounts
-  become: true
-  become_user: postgres
-  shell: |
-    psql -d postgres <<'EOF'
-    DO $$
-    DECLARE r RECORD;
-    BEGIN
-      FOR r IN
-        SELECT rolname FROM pg_roles
-        WHERE rolcanlogin
-        AND rolname ~ '{{ postgresql_srg_service_account_pattern }}'
-      LOOP
-        EXECUTE format(
-          'ALTER ROLE %I VALID UNTIL %L',
-          r.rolname,
-          (now() + interval '{{ postgresql_srg_password_max_days_noninteractive }} days')::text
-        );
-      END LOOP;
-    END
-    $$;
-    EOF
-  args:
-    executable: /bin/bash
-  when: postgresql_srg_password_policy_enabled
+  ansible.builtin.shell: |
+    psql -c "ALTER ROLE {{ item }} PASSWORD NULL;"
+  loop: "{{ postgresql_srg_roles_with_passwords.stdout_lines }}"
+  when: postgresql_srg_roles_with_passwords.stdout_lines | length > 0
+  notify: Reload PostgreSQL

@@ -5,7 +5,7 @@
 
 - name: Ensure logging_collector is enabled
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*logging_collector\s*='
     line: "logging_collector = on"
@@ -18,7 +18,7 @@
 
 - name: Ensure log_connections is enabled
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_connections\s*='
     line: "log_connections = on"
@@ -29,7 +29,7 @@
 
 - name: Ensure log_disconnections is enabled
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_disconnections\s*='
     line: "log_disconnections = on"
@@ -40,7 +40,7 @@
 
 - name: Ensure log_statement captures all queries for audit
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_statement\s*='
     line: "log_statement = 'all'"
@@ -51,7 +51,7 @@
 
 - name: Ensure log_line_prefix includes user and application identity
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*log_line_prefix\s*='
     line: "log_line_prefix = '%m %H %p %u %d %c %h %r %a %e '"

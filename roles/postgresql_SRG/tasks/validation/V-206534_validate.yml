@@ -5,14 +5,14 @@
 - name: Generate test event
   become: true
   become_user: postgres
-  command: psql -c "SELECT 1;"
+  ansible.builtin.command: psql -c "SELECT 1;"
   tags:
     - audit
     - V-206534
 
 - name: Inspect latest log entry
   become: true
-  shell: |
+  ansible.builtin.shell: |
     tail -n 5 {{ pg_data_dir }}/log/*
   register: log_sample
   changed_when: false
@@ -21,7 +21,7 @@
     - V-206534
 
 - name: Fail if log entry does not contain session ID
-  fail:
+  ansible.builtin.fail:
     msg: "Session ID is not present in PostgreSQL logs."
   when: log_sample.stdout is not search('[0-9a-f]+\\.[0-9a-f]+')
   tags:

@@ -5,7 +5,7 @@
 
 - name: Ensure pgaudit is enabled
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*shared_preload_libraries\s*='
     line: "shared_preload_libraries = 'pgaudit'"
@@ -17,7 +17,7 @@
 
 - name: Configure pgaudit event classes
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log\s*='
     line: "pgaudit.log = 'ddl, role, write, read'"
@@ -28,7 +28,7 @@
 
 - name: Enable catalog auditing
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ pg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='
     line: "pgaudit.log_catalog = on"

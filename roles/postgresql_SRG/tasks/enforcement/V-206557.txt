@@ -1,0 +1,139 @@
+
+
+📌 Control: V-206557
+
+Requirement:
+The DBMS must encrypt passwords for transmission across the network.
+
+If DB-level encryption is not available:
+	•	Encryption must be enforced at OS/network level.
+	•	Passwords must remain encrypted from source to destination.
+
+⸻
+
+🔎 Key Question
+
+Are passwords transmitted across a network?
+
+In your architecture:
+	•	❌ No password authentication
+	•	❌ No remote TCP connections
+	•	❌ No md5 or SCRAM authentication
+	•	❌ No external clients
+	•	❌ Local Unix socket only
+	•	❌ No password transmitted
+
+Therefore:
+
+There is no password transmission occurring.
+
+⸻
+
+🧠 STIG Logic Interpretation
+
+This control protects against:
+	•	Cleartext password transmission
+	•	Network sniffing
+	•	MITM attacks
+	•	Remote authentication exposure
+
+If:
+	•	No password is ever transmitted
+	•	No network-based authentication exists
+	•	Only local peer authentication used
+
+Then:
+
+The encryption requirement is not applicable.
+
+You cannot encrypt something that does not exist.
+
+⸻
+
+⚖ Applicability Determination
+
+Condition	Result
+Passwords transmitted over TCP	Control applies
+SCRAM over TCP	Must use SSL
+TLS enforced	Compliant
+No password authentication at all	Not Applicable
+Local socket peer auth only	Not Applicable
+
+
+⸻
+
+🎯 Based on Your Environment
+
+Since you have:
+	•	Localhost-only DB
+	•	Peer authentication
+	•	No stored passwords
+	•	No TCP password auth
+
+Then:
+
+✅ V-206557 = NOT A FINDING
+Because no password transmission occurs.
+
+⸻
+
+🚨 Important Warning
+
+If at any time you enable:
+
+host all all 127.0.0.1/32 scram-sha-256
+
+or allow TCP connections,
+
+Then this control immediately applies again, and SSL/TLS would be required.
+
+⸻
+
+📄 Short SRG Artifact (NAF Version)
+
+⸻
+
+Control ID: V-206557
+
+Title: Encrypt Passwords During Network Transmission
+
+System: PostgreSQL 16 on RHEL 8.x
+
+Environment: Isolated Localhost Deployment
+
+Status: ☑ NOT A FINDING
+
+⸻
+
+1️⃣ Control Requirement
+
+The DBMS must encrypt passwords during network transmission. If DB-level encryption is not available, encryption must be enforced at the OS or network layer.
+
+⸻
+
+2️⃣ Implementation Determination
+
+This PostgreSQL deployment:
+	•	Does not use password authentication
+	•	Does not transmit passwords over TCP/IP
+	•	Uses peer (Unix socket) authentication only
+	•	Does not accept remote network connections
+	•	Does not expose port 5432 externally
+
+Because no password transmission occurs, encryption of transmitted passwords is not applicable.
+
+⸻
+
+3️⃣ Technical Evidence
+	•	pg_hba.conf contains peer authentication only.
+	•	No md5, password, or scram-sha-256 entries exist.
+	•	listen_addresses restricted to localhost.
+	•	No remote clients connect via TCP.
+
+⸻
+
+4️⃣ Conclusion
+
+V-206557 is Not a Finding.
+
+The PostgreSQL instance does not transmit passwords across a network; therefore, encryption of password transmission is not applicable.
