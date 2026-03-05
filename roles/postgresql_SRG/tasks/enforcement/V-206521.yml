@@ -2,36 +2,23 @@
 ############################################################
 # PostgreSQL STIG | V-206521
 #
-# FINDING DEFINITION:
-# Configure the DBMS settings and access controls to permit
-# user access only to objects and data that the user is
-# authorized to view or interact with, and prevent access
-# to all other objects and data.
+# Enforce Least Privilege Access Control
 #
-# CONTROL INTENT:
-# Enforce least privilege (AC-6). Users must only access
-# explicitly authorized database objects. All other access
-# must be denied by default.
+# Control Objective:
+# Users must only access explicitly authorized database
+# objects and data. PUBLIC privileges must be revoked and
+# role-based access control enforced.
 #
-# COMPLIANCE CHECKLIST:
-# ✔ PUBLIC does NOT have CONNECT on database
-# ✔ PUBLIC does NOT have USAGE on schema
-# ✔ PUBLIC does NOT have CREATE on schema
-# ✔ Default privileges are revoked from PUBLIC
-# ✔ Access is role-based (RBAC model)
-# ✔ Superuser accounts are minimized
-#
-# FAILED CONDITIONS (Finding if any are true):
-# ✖ PUBLIC retains CONNECT privilege on database
-# ✖ PUBLIC retains USAGE or CREATE on schema
-# ✖ Default privileges grant access to PUBLIC
-# ✖ Excessive direct object grants to users
-# ✖ Excessive superuser accounts
-# ✖ Users can access objects without explicit authorization
-#
+# NIST Mapping:
+# AC-3 Access Enforcement
+# AC-6 Least Privilege
 ############################################################
 
-- name: V-206521 | Revoke PUBLIC access to database
+############################################################
+# Revoke PUBLIC access to database
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC CONNECT on database"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -42,10 +29,10 @@
     - postgresql_srg_revoke_public
 
 ############################################################
-# Revoke PUBLIC access from schemas
+# Revoke PUBLIC schema privileges
 ############################################################
 
-- name: V-206521 | Revoke PUBLIC access on schemas
+- name: "V-206521 | Revoke PUBLIC access on schemas"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -57,10 +44,62 @@
     - postgresql_srg_revoke_public
 
 ############################################################
+# Revoke PUBLIC CREATE privilege
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC create privilege on schemas"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE CREATE ON SCHEMA {{ item }} FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when: postgresql_srg_access_control_enabled
+
+############################################################
+# Revoke PUBLIC table access
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC privileges on tables"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE ALL ON ALL TABLES IN SCHEMA {{ item }} FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when: postgresql_srg_access_control_enabled
+
+############################################################
+# Revoke PUBLIC sequence access
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC privileges on sequences"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE ALL ON ALL SEQUENCES IN SCHEMA {{ item }} FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when: postgresql_srg_access_control_enabled
+
+############################################################
+# Revoke PUBLIC function execute
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC execute on functions"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA {{ item }} FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when: postgresql_srg_access_control_enabled
+
+############################################################
 # Harden Default Privileges
 ############################################################
 
-- name: V-206521 | Remove default PUBLIC table privileges
+- name: "V-206521 | Remove default PUBLIC table privileges"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -72,11 +111,35 @@
     - postgresql_srg_access_control_enabled
     - postgresql_srg_enforce_default_privileges
 
+- name: "V-206521 | Remove default PUBLIC sequence privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+     REVOKE ALL ON SEQUENCES FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when:
+    - postgresql_srg_access_control_enabled
+    - postgresql_srg_enforce_default_privileges
+
+- name: "V-206521 | Remove default PUBLIC function privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+     REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;"
+  loop: "{{ postgresql_srg_application_schemas }}"
+  when:
+    - postgresql_srg_access_control_enabled
+    - postgresql_srg_enforce_default_privileges
+
 ############################################################
-# Example Role-Based Access Model
+# Role-Based Access Control Model
 ############################################################
 
-- name: V-206521 | Ensure readonly role exists
+- name: "V-206521 | Ensure readonly role exists"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -87,7 +150,7 @@
     "CREATE ROLE {{ postgresql_srg_readonly_role }};"
   when: postgresql_srg_access_control_enabled
 
-- name: V-206521 | Grant SELECT privileges to readonly role
+- name: "V-206521 | Grant readonly access"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -101,7 +164,7 @@
 # Enforce Superuser Restriction
 ############################################################
 
-- name: V-206521 | Check for unauthorized SUPERUSER roles
+- name: "V-206521 | Detect unauthorized superusers"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -114,7 +177,7 @@
   changed_when: false
   when: postgresql_srg_access_control_enabled
 
-- name: V-206521 | Fail if extra superusers detected
+- name: "V-206521 | Fail if unauthorized superusers exist"
   ansible.builtin.fail:
     msg: "Unauthorized SUPERUSER roles detected: {{ postgresql_srg_extra_superusers.stdout_lines }}"
   when:

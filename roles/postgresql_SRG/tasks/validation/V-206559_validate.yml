@@ -1,39 +1,47 @@
 ---
 ############################################################
-# STIG V-206559 Validation (Audit Only)
+# STIG V-206559
+# Validation Tasks
 ############################################################
 
 ############################################################
-# Validate SSL is disabled
+# Check for PostgreSQL private key
 ############################################################
 
-- name: "V-206559 | Check SSL setting"
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^ssl\s*=" {{ postgresql_srg_conf_file }}
-  register: postgresql_srg_ssl_check
-  changed_when: false
-
-- name: "V-206559 | Assert SSL disabled"
-  ansible.builtin.assert:
-    that:
-      - "'ssl = off' in postgresql_srg_ssl_check.stdout"
-    fail_msg: "SSL is enabled; PKI keys may be in use"
-    success_msg: "SSL disabled; no PKI keys required"
-
-############################################################
-# Validate no private key exists
-############################################################
-
-- name: "V-206559 | Check for server.key"
+- name: "V-206559 | Check server.key presence"
   become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
-  register: postgresql_srg_key_check
+  register: postgresql_srg_key_validation
 
-- name: "V-206559 | Assert no server.key exists"
+############################################################
+# Validate key permissions
+############################################################
+
+- name: "V-206559 | Validate server.key permissions"
   ansible.builtin.assert:
     that:
-      - not postgresql_srg_key_check.stat.exists
-    fail_msg: "server.key exists — PKI key detected"
-    success_msg: "No DBMS PKI private key found"
+      - postgresql_srg_key_validation.stat.exists == false
+        or postgresql_srg_key_validation.stat.mode == "0600"
+    fail_msg: "server.key permissions insecure"
+    success_msg: "server.key protected or not present"
+
+############################################################
+# Validate FIPS crypto module
+############################################################
+
+- name: "V-206559 | Check FIPS provider"
+  become: true
+  ansible.builtin.shell: |
+    openssl list -providers
+  register: postgresql_srg_fips_validation
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: "Assert FIPS module available"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_fips_validation.stdout is search("fips")
+    fail_msg: "FIPS cryptographic provider not detected"
+    success_msg: "FIPS cryptographic module present"
+  when: postgresql_srg_fips_required | bool

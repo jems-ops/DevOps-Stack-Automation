@@ -1,13 +1,14 @@
+---
 ############################################################
 # STIG V-206521
 # Validation / Audit Tasks
 ############################################################
 
 ############################################################
-# Validate PUBLIC revocation
+# Validate PUBLIC database privileges removed
 ############################################################
 
-- name: V-206521 | Check database ACL
+- name: "V-206521 | Check database ACL"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -18,10 +19,10 @@
   register: postgresql_srg_db_acl
   changed_when: false
 
-- name: Assert PUBLIC does not have database privileges
+- name: "Assert PUBLIC does not have database privileges"
   ansible.builtin.assert:
     that:
-      - "'=Tc/' not in postgresql_srg_db_acl.stdout"
+      - postgresql_srg_db_acl.stdout is not search('=Tc/')
     fail_msg: "PUBLIC still has database privileges"
     success_msg: "PUBLIC database privileges removed"
 
@@ -29,26 +30,119 @@
 # Validate schema privileges
 ############################################################
 
-- name: V-206521 | Check schema ACL
+- name: "V-206521 | Check schema ACL"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -t -c \
     "SELECT nspname, nspacl
      FROM pg_namespace
-     WHERE nspname IN ({{ postgresql_srg_application_schemas | map('regex_replace', '(.*)', "'\\1'") | join(',') }});"
+     WHERE nspname IN ('{{ postgresql_srg_application_schemas | join("','") }}');"
   register: postgresql_srg_schema_acl
   changed_when: false
 
-- name: Display schema ACL
-  ansible.builtin.debug:
-    var: postgresql_srg_schema_acl.stdout_lines
+- name: "Assert PUBLIC schema privileges removed"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_schema_acl.stdout is not search('PUBLIC')
+    fail_msg: "PUBLIC privileges still exist on schema"
+    success_msg: "Schema privileges properly restricted"
 
 ############################################################
-# Validate superuser restriction
+# Validate PUBLIC table privileges
 ############################################################
 
-- name: V-206521 | Validate SUPERUSER roles
+- name: "V-206521 | Check table privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT grantee
+     FROM information_schema.role_table_grants
+     WHERE grantee='PUBLIC'
+     AND table_schema NOT IN ('pg_catalog','information_schema');"
+  register: postgresql_srg_public_table_priv
+  changed_when: false
+
+- name: "Assert PUBLIC has no table privileges"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_public_table_priv.stdout | trim == ""
+    fail_msg: "PUBLIC still has table privileges"
+    success_msg: "No PUBLIC table privileges found"
+
+############################################################
+# Validate PUBLIC sequence privileges
+############################################################
+
+- name: "V-206521 | Check sequence privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT grantee
+     FROM information_schema.role_usage_grants
+     WHERE object_type='SEQUENCE'
+     AND grantee='PUBLIC';"
+  register: postgresql_srg_public_sequence_priv
+  changed_when: false
+
+- name: "Assert PUBLIC has no sequence privileges"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_public_sequence_priv.stdout | trim == ""
+    fail_msg: "PUBLIC still has sequence privileges"
+    success_msg: "No PUBLIC sequence privileges found"
+
+############################################################
+# Validate PUBLIC function privileges
+############################################################
+
+- name: "V-206521 | Check function privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT routine_schema, routine_name
+     FROM information_schema.routine_privileges
+     WHERE grantee='PUBLIC'
+     AND routine_schema NOT IN ('pg_catalog','information_schema');"
+  register: postgresql_srg_public_function_priv
+  changed_when: false
+
+- name: "Assert PUBLIC has no function privileges"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_public_function_priv.stdout | trim == ""
+    fail_msg: "PUBLIC still has function EXECUTE privileges"
+    success_msg: "No PUBLIC function privileges detected"
+
+############################################################
+# Validate Default Privileges
+############################################################
+
+- name: "V-206521 | Check default privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -c \
+    "SELECT defaclobjtype, defaclacl
+     FROM pg_default_acl;"
+  register: postgresql_srg_default_acl
+  changed_when: false
+
+- name: "Assert default privileges do not grant PUBLIC"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_default_acl.stdout is not search('PUBLIC')
+    fail_msg: "Default privileges still grant PUBLIC access"
+    success_msg: "Default privileges hardened"
+
+############################################################
+# Validate SUPERUSER restriction
+############################################################
+
+- name: "V-206521 | Validate SUPERUSER roles"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -59,19 +153,19 @@
   register: postgresql_srg_superuser_validation
   changed_when: false
 
-- name: Assert only postgres is SUPERUSER
+- name: "Assert only postgres is SUPERUSER"
   ansible.builtin.assert:
     that:
       - postgresql_srg_superuser_validation.stdout_lines | length == 1
-      - "'postgres' in postgresql_srg_superuser_validation.stdout"
+      - postgresql_srg_superuser_validation.stdout is search('postgres')
     fail_msg: "Unauthorized SUPERUSER roles detected"
     success_msg: "SUPERUSER restriction compliant"
 
 ############################################################
-# Validate role grants
+# Display role grants (audit evidence)
 ############################################################
 
-- name: V-206521 | List role table grants
+- name: "V-206521 | List role table grants"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -82,6 +176,6 @@
   register: postgresql_srg_role_grants
   changed_when: false
 
-- name: Display role grants
+- name: "Display role grants"
   ansible.builtin.debug:
     var: postgresql_srg_role_grants.stdout_lines

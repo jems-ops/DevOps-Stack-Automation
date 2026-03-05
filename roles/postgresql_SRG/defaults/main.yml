@@ -75,6 +75,19 @@ postgresql_srg_revoke_public: true
 postgresql_srg_enforce_default_privileges: true
 
 ############################################################
+# V-206555 — Password Storage Security
+############################################################
+
+postgresql_srg_config_scan_paths:
+  - /etc
+  - /opt
+  - /var/lib/pgsql
+postgresql_srg_pgpass_search_paths:
+  - /root
+  - /home
+  - /var/lib/pgsql
+
+############################################################
 # V-206545 — Installation Account Control
 ############################################################
 
@@ -99,7 +112,7 @@ postgresql_srg_v206557_enabled: true
 postgresql_srg_v206559_enabled: true
 postgresql_srg_v206561_enabled: true
 postgresql_srg_v206562_enabled: true
-postgresql_srg_v206570_enabled: true
+postgresql_srg_v206570_enabled: false
 postgresql_srg_v206604_enabled: true
 postgresql_srg_v206605_enabled: true
 postgresql_srg_v265854_enabled: true

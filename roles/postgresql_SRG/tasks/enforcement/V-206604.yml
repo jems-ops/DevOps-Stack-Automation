@@ -1,58 +1,35 @@
 ---
 ############################################################
-# STIG V-206604 Enforcement
-# Configure Required Cryptographic Protection
+# STIG V-206604
+# Cryptographic Protection Based on Data Classification
+#
+# Architecture:
+# PostgreSQL instance stores internal application metadata.
+# Database is not externally accessible and does not transmit
+# sensitive data across network boundaries.
 ############################################################
 
 ############################################################
-# Ensure FIPS Crypto Policy
+# Ensure PostgreSQL restricted to localhost
 ############################################################
 
-- name: "V-206604 | Ensure crypto policy set to FIPS"
-  become: true
-  ansible.builtin.command: update-crypto-policies --set FIPS
-  register: postgresql_srg_crypto_policy
-  changed_when: "'Setting system policy to FIPS' in postgresql_srg_crypto_policy.stdout"
-  when: postgresql_srg_fips_required | bool
-
-############################################################
-# Ensure FIPS Kernel Mode Enabled
-############################################################
-
-- name: "V-206604 | Verify FIPS enabled"
-  become: true
-  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
-  register: postgresql_srg_fips_status
-  changed_when: false
-  when: postgresql_srg_fips_required | bool
-
-- name: "V-206604 | Fail if FIPS disabled"
-  ansible.builtin.fail:
-    msg: "FIPS mode is not enabled. Reboot required after enabling."
-  when:
-    - postgresql_srg_fips_required | bool
-    - postgresql_srg_fips_status.stdout | default('1') != "1"
-
-############################################################
-# Restrict PostgreSQL to Localhost
-############################################################
-
-- name: "V-206604 | Restrict listen_addresses to localhost"
+- name: "V-206604 | Restrict PostgreSQL listen_addresses"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?listen_addresses'
     line: "listen_addresses = 'localhost'"
+    state: present
   notify: Restart PostgreSQL
 
 ############################################################
-# Remove Weak Authentication Methods
+# Remove external host entries
 ############################################################
 
-- name: "V-206604 | Remove weak auth methods"
+- name: "V-206604 | Remove external host access"
   become: true
   ansible.builtin.replace:
     path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^\s*(host|local).*(md5|password)\s*$'
+    regexp: '^\s*host\s+.*(0\.0\.0\.0\/0|\/0)'
     replace: ''
   notify: Reload PostgreSQL

@@ -1,48 +1,83 @@
 ---
 ############################################################
-# STIG V-206520 Enforcement
-# Control: Enterprise Authentication Integration
-# Status: NOT A FINDING (Isolated Architecture Model)
+# STIG V-206520
+# Enterprise Authentication Integration
+#
+# Architecture Decision:
+# PostgreSQL operates in an isolated application-bound
+# architecture and does not support enterprise interactive
+# user authentication.
+#
+# Compliance achieved through:
+# - localhost-only access
+# - peer authentication for postgres admin
+# - SCRAM authentication for service accounts
+# - restricted login roles
 ############################################################
 
-- name: "V-206520 | Ensure PostgreSQL is not listening on all interfaces"
+############################################################
+# Restrict PostgreSQL network exposure
+############################################################
+
+- name: "V-206520 | Restrict listen_addresses to localhost"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?listen_addresses'
     line: "listen_addresses = 'localhost'"
+    state: present
   notify: Restart PostgreSQL
 
 ############################################################
-# Remove Trust Authentication
+# Remove trust authentication
 ############################################################
 
-- name: "V-206520 | Remove trust authentication entries"
+- name: "V-206520 | Remove trust authentication methods"
   become: true
   ansible.builtin.replace:
     path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^\s*host\s+.*\strust\s*$'
+    regexp: '^\s*(local|host|hostssl|hostnossl).*\strust\s*$'
     replace: ''
   notify: Reload PostgreSQL
 
 ############################################################
-# Enforce SCRAM Authentication
+# Enforce peer authentication for postgres admin
 ############################################################
 
-- name: "V-206520 | Ensure local TCP connections use SCRAM"
+- name: "V-206520 | Ensure postgres admin uses peer auth"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^local\s+all\s+postgres'
+    line: "local   all   postgres   peer"
+    state: present
+  notify: Reload PostgreSQL
+
+############################################################
+# Enforce SCRAM authentication for localhost access
+############################################################
+
+- name: "V-206520 | Enforce SCRAM authentication (IPv4)"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_hba_file }}"
     regexp: '^host\s+all\s+all\s+127\.0\.0\.1/32'
-    line: 'host    all    all    127.0.0.1/32    scram-sha-256'
-    create: false
+    line: "host    all    all    127.0.0.1/32    scram-sha-256"
+  notify: Reload PostgreSQL
+
+- name: "V-206520 | Enforce SCRAM authentication (IPv6)"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^host\s+all\s+all\s+::1/128'
+    line: "host    all    all    ::1/128    scram-sha-256"
   notify: Reload PostgreSQL
 
 ############################################################
-# Audit and Remove Unauthorized Login Roles
+# Detect unauthorized login roles
 ############################################################
 
-- name: "V-206520 | Get login roles"
+- name: "V-206520 | Identify login roles"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
@@ -50,11 +85,10 @@
   register: postgresql_srg_login_roles
   changed_when: false
 
-- name: "V-206520 | Remove unauthorized login roles"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -c "DROP ROLE {{ item }};"
-  loop: "{{ postgresql_srg_login_roles.stdout_lines }}"
-  when: item not in postgresql_srg_approved_login_roles
-  notify: Reload PostgreSQL
+- name: "V-206520 | Fail if unauthorized login roles exist"
+  ansible.builtin.fail:
+    msg: "Unauthorized login roles detected: {{ postgresql_srg_login_roles.stdout_lines }}"
+  when: >
+    postgresql_srg_login_roles.stdout_lines |
+    difference(postgresql_srg_approved_login_roles) |
+    length > 0

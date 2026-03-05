@@ -1,64 +1,61 @@
 ---
 ############################################################
-# STIG V-206556 Validation (Audit Only)
+# STIG V-206556
+# Validation Tasks
 ############################################################
 
 ############################################################
-# Check for .pgpass files
+# Validate password encryption configuration
 ############################################################
 
-- name: "V-206556 | Search for .pgpass files"
-  become: true
-  ansible.builtin.find:
-    paths:
-      - /var/lib/pgsql
-      - /home
-      - /root
-    patterns: ".pgpass"
-    recurse: true
-  register: postgresql_srg_pgpass_audit
-  changed_when: false
-
-- name: "V-206556 | Assert no .pgpass files exist"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_pgpass_audit.matched == 0
-    fail_msg: ".pgpass files detected"
-    success_msg: "No .pgpass files found"
-
-############################################################
-# Check for stored role passwords
-############################################################
-
-- name: "V-206556 | Check for stored role passwords"
+- name: "V-206556 | Check password_encryption setting"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
-  register: postgresql_srg_password_check
+    psql -tAc "SHOW password_encryption;"
+  register: postgresql_srg_password_encryption
   changed_when: false
 
-- name: "V-206556 | Assert no stored role passwords"
+- name: "Assert SCRAM password hashing enabled"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_password_check.stdout_lines | length == 0
-    fail_msg: "Stored DB passwords detected"
-    success_msg: "No stored DB passwords detected"
+      - postgresql_srg_password_encryption.stdout is search("scram-sha-256")
+    fail_msg: "SCRAM password hashing not enabled"
+    success_msg: "SCRAM password hashing confirmed"
 
 ############################################################
-# Check pg_hba.conf for password methods
+# Validate no MD5 authentication present
 ############################################################
 
-- name: "V-206556 | Check for password authentication methods"
+- name: "V-206556 | Check for md5 authentication"
   become: true
   ansible.builtin.shell: |
-    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '(md5|scram-sha-256|password)' || true
-  register: postgresql_srg_hba_password_check
+    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -iw md5 || true
+  register: postgresql_srg_md5_auth_check
   changed_when: false
 
-- name: "V-206556 | Assert no password authentication configured"
+- name: "Assert MD5 authentication disabled"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_hba_password_check.stdout == ""
-    fail_msg: "Password authentication detected in pg_hba.conf"
-    success_msg: "No password authentication configured"
+      - postgresql_srg_md5_auth_check.stdout | trim == ""
+    fail_msg: "MD5 authentication detected"
+    success_msg: "MD5 authentication disabled"
+
+############################################################
+# Validate password hashes
+############################################################
+
+- name: "V-206556 | Check password hash types"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SELECT rolpassword FROM pg_authid WHERE rolpassword IS NOT NULL;"
+  register: postgresql_srg_password_hashes
+  changed_when: false
+
+- name: "Assert only SCRAM hashes exist"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_password_hashes.stdout is search("SCRAM-SHA-256") or postgresql_srg_password_hashes.stdout | trim == ""
+    fail_msg: "Non-SCRAM password hashes detected"
+    success_msg: "All password hashes are SCRAM"

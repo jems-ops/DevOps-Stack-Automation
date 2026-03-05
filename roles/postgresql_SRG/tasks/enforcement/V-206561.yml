@@ -5,7 +5,7 @@
 ############################################################
 
 ############################################################
-# Remove .pgpass Files
+# Secure .pgpass Files
 ############################################################
 
 - name: "V-206561 | Find .pgpass files"
@@ -15,49 +15,68 @@
       - /var/lib/pgsql
       - /home
       - /root
-      - /opt
-      - /etc
     patterns: ".pgpass"
     recurse: true
   register: postgresql_srg_pgpass_files
 
-- name: "V-206561 | Remove discovered .pgpass files"
+
+- name: "V-206561 | Enforce secure permissions on .pgpass"
   become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
-    state: absent
+    owner: postgres
+    group: postgres
+    mode: '0600'
   loop: "{{ postgresql_srg_pgpass_files.files }}"
   when: postgresql_srg_pgpass_files.matched > 0
 
+
 ############################################################
-# Remove Password-Based Authentication Methods
+# Prevent Password Logging
 ############################################################
 
-- name: "V-206561 | Remove password-based auth from pg_hba.conf"
+- name: "V-206561 | Disable logging of sensitive statements"
   become: true
-  ansible.builtin.replace:
-    path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^\s*(host|local).*(md5|scram-sha-256|password)\s*$'
-    replace: ''
-  notify: Reload PostgreSQL
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_statement'
+    line: "log_statement = 'ddl'"
+  notify: Restart PostgreSQL
+
 
 ############################################################
-# Remove Stored Role Passwords
+# Prevent Password Exposure in Logs
 ############################################################
 
-- name: "V-206561 | Identify roles with stored passwords"
+- name: "V-206561 | Ensure log_connections enabled"
   become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
-  register: postgresql_srg_roles_with_passwords
-  changed_when: false
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_connections'
+    line: "log_connections = on"
+  notify: Restart PostgreSQL
 
-- name: "V-206561 | Remove stored role passwords"
+
+- name: "V-206561 | Ensure log_disconnections enabled"
   become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -c "ALTER ROLE {{ item }} PASSWORD NULL;"
-  loop: "{{ postgresql_srg_roles_with_passwords.stdout_lines }}"
-  when: postgresql_srg_roles_with_passwords.stdout_lines | length > 0
-  notify: Reload PostgreSQL
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_disconnections'
+    line: "log_disconnections = on"
+  notify: Restart PostgreSQL
+
+
+############################################################
+# Restrict Access to PostgreSQL Configuration Files
+############################################################
+
+- name: "V-206561 | Secure PostgreSQL configuration permissions"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  loop:
+    - "{{ postgresql_srg_conf_file }}"
+    - "{{ postgresql_srg_hba_file }}"

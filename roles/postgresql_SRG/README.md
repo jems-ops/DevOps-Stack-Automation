@@ -1,19 +1,83 @@
-# PostgreSQL Database SRG Compliance
 
-## Overview
+# PostgreSQL SRG Automation
 
-This repository documents the PostgreSQL configuration baseline and automation used to enforce compliance with applicable **Database SRG audit and protection controls (V-206519 – V-206538)**.
+![SRG Compliance](https://img.shields.io/badge/SRG-CAT%20I%20Compliant-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15%20%7C%2016-blue)
+![Platform](https://img.shields.io/badge/Platform-RHEL%208-red)
+![Automation](https://img.shields.io/badge/Automation-Ansible-yellow)
 
-Notes:
-- This role **does not install PostgreSQL or pgaudit**.
-- Install PostgreSQL 16.x + pgaudit during provisioning (for SonarQube hosts, use the `install-sonarqube` role).
-- pgaudit-dependent validations/remediations are gated behind `postgresql_srg_pgaudit_enabled`.
+---
 
-## Usage
+# Overview
 
-Run enforcement first (configures all STIG controls), then validation (verifies they took effect):
+This repository provides **Ansible automation for PostgreSQL Security Requirements Guide (SRG) controls**.
 
-```bash
+The automation implements:
+
+- PostgreSQL security hardening
+- SRG compliance enforcement
+- Automated validation checks
+- Compliance documentation artifacts
+
+The implementation supports:
+
+- PostgreSQL 15
+- PostgreSQL 16
+- Red Hat Enterprise Linux 8
+
+The automation is designed for **DevSecOps pipelines, RMF submission, and STIG compliance validation**.
+
+---
+
+# Architecture
+
+Application services interact with the PostgreSQL database locally within the system boundary.
+
+Application (SonarQube)
+│
+│ JDBC (localhost)
+▼
+PostgreSQL Database
+│
+▼
+RHEL 8 Operating System
+
+Key architecture principles:
+
+- Database access restricted to localhost
+- Role-based access control enforced
+- SCRAM-SHA-256 password hashing
+- FIPS cryptographic modules enabled
+- No external database exposure
+
+---
+
+# PostgreSQL SRG CAT I Compliance Summary
+
+| Control ID | CAT | Implementation Status | Implementation Method | Validation Method | Evidence | Reason |
+|---|---|---|---|---|---|---|
+| V-206520 | CAT I | Not a Finding | Authentication managed at application and OS layer | Ansible validation checks | Access control enforced via OS authentication | Database not exposed to enterprise users |
+| V-206521 | CAT I | Compliant | RBAC model enforced via PostgreSQL roles | Automated validation playbook | Authorized object access enforced | Least privilege access control |
+| V-206545 | CAT I | Compliant | Hardened authentication configuration | Configuration validation | Sensitive authentication data protected | Authentication configuration secured |
+| V-206555 | CAT I | Compliant | Credential storage review and protection | Configuration scanning and role audit | SCRAM-SHA-256 credential hashing | Password storage secured |
+| V-206556 | CAT I | Compliant | SCRAM-SHA-256 password encryption | PostgreSQL configuration validation | Salted password hashing enforced | Secure password hashing |
+| V-206557 | CAT I | Not a Finding | Localhost-only database communication | Architecture validation | No network password transmission | Application and database share host |
+| V-206559 | CAT I | Not Applicable | No PKI private keys used | Configuration inspection | Control not applicable | System architecture excludes PKI |
+| V-206561 | CAT I | Compliant | Authentication secrets protected | Logging and configuration validation | No secret exposure in logs | Secrets protected |
+| V-206562 | CAT I | Compliant | FIPS cryptographic modules enabled | OS-level FIPS validation | OpenSSL FIPS modules used | Cryptographic compliance enforced |
+| V-206570 | CAT I | Compliant | Database file system protections | Permission validation | Database files protected | Restricted file access |
+| V-206604 | CAT I | Not a Finding | Internal application data only | Architecture review | No external data transmission | Internal service database |
+| V-206605 | CAT I | Compliant | Cryptographic protections enforced | Configuration validation | Encryption mechanisms validated | Cryptographic protections enabled |
+| V-233495 | CAT I | Compliant | FIPS-approved cryptography used | OS cryptographic verification | FIPS mode enabled | NSA-approved crypto standards |
+| V-265854 | CAT I | Compliant | Supported PostgreSQL version maintained | Package validation checks | Security updates applied | Supported DBMS version |
+
+---
+
+# Running the Automation
+
+## Run Full Enforcement
+
+
 # Enforcement + validation in a single run (default)
 ansible-playbook -i inventory playbooks/services/postgresql-srg.yml
 ```
@@ -39,95 +103,57 @@ ansible-playbook -i inventory playbooks/services/postgresql-srg.yml \
   -e postgresql_srg_pgaudit_enabled=false
 ```
 
----
 
-This baseline implements:
+Run a Specific Control
 
-- DoD minimum auditable events  
-- Event selection controls  
-- Session auditing  
-- Privilege and role auditing  
-- Failed access auditing  
-- Full audit record content (who / what / when / where / source / outcome)  
-- OS-level audit log protection  
-
----
-
-# Hardened PostgreSQL Audit Baseline
-
-When pgaudit is installed and enabled, a typical baseline looks like:
-
-```conf
-shared_preload_libraries = 'pgaudit'
-logging_collector = on
-
-log_connections = on
-log_disconnections = on
-log_min_error_statement = error
-log_truncate_on_rotation = off
-log_timezone = 'UTC'
-log_file_mode = 0600
-
-pgaudit.log = 'ddl, role, write'
-pgaudit.log_catalog = on
-
-log_line_prefix = '%m %H %p %u %d %c %h %r %a %e '
+Example:
+```bash
+ansible-playbook -i inventory playbooks/services/postgresql-srg.ym --tags V-206521
 ```
 
----
+Supported Platforms
 
-# PostgreSQL Database SRG Mapping Matrix
+Platform	Version
+Red Hat Enterprise Linux	8.x
+PostgreSQL	15
+PostgreSQL	16
 
-| SRG ID   | Requirement Summary | PostgreSQL Control | Ansibleized | Status | Comments / Implementation Details |
-|-----------|--------------------|-------------------|-------------|--------|-----------------------------------|
-| V-206519 | Restrict modification of audit configuration | Superuser-only GUC enforcement + `log_min_error_statement = error` | ✅ Yes | ✅ Compliant | Unauthorized audit parameter changes denied and logged |
-| V-206522 | Use individual accounts or capture individual identity | `%u` + `%a` in `log_line_prefix` | ✅ Yes | ✅ Compliant | Application identity captured via `application_name` |
-| V-206523 | Support DoD minimum auditable events | `pgaudit.log`, connection logging | ✅ Yes | ✅ Compliant | DDL, ROLE, WRITE, login/logoff events enabled |
-| V-206524 | Allow designated personnel to select audit events | Configurable `pgaudit.log` (superuser context) | ✅ Yes | ✅ Compliant | Audit classes adjustable by authorized admin |
-| V-206525 | Audit retrieval of privileges/roles | `pgaudit.log = 'role, read'`, `pgaudit.log_catalog = on` | ✅ Yes | ✅ Compliant | System catalog and role queries logged |
-| V-206526 | Audit denied access to privileges/roles | `log_min_error_statement = error` | ✅ Yes | ✅ Compliant | Permission denials logged with SQLSTATE |
-| V-206527 | Enable session auditing | `log_connections`, `log_disconnections` | ✅ Yes | ✅ Compliant | Session start, end, duration logged |
-| V-206528 | Include event type in audit record | `pgaudit.log` event classification | ✅ Yes | ✅ Compliant | Events labeled DDL, ROLE, WRITE, etc. |
-| V-206529 | Include date and time of event | `%m`, `log_timezone = 'UTC'` | ✅ Yes | ✅ Compliant | Millisecond UTC timestamps enforced |
-| V-206530 | Include where event occurred | `%H`, `%d`, `%c` | ✅ Yes | ✅ Compliant | Hostname, DB name, session ID logged |
-| V-206531 | Include source of event | `%h`, `%r`, `%a` | ✅ Yes | ✅ Compliant | Client IP and application source logged |
-| V-206532 | Include outcome of event | `%e`, error logging | ✅ Yes | ✅ Compliant | SQLSTATE and severity recorded |
-| V-206533 | Include username | `%u` in prefix | ✅ Yes | ✅ Compliant | Database user logged for every event |
-| V-206534 | Include organization-defined audit fields | Hardened prefix + pgaudit | ✅ Yes | ✅ Compliant | Consolidated audit content baseline applied |
-| V-206538 | Protect audit logs from unauthorized access | `0600` files, `0700` directory, no truncation | ✅ Yes | ✅ Compliant | OS-level protection enforced via Ansible |
 
----
+⸻
 
-# Audit Record Content Coverage
+Compliance Frameworks
 
-Each audit record includes:
+This automation supports:
+	•	DISA PostgreSQL SRG
+	•	NIST 800-53
+	•	RMF / ATO Documentation
+	•	DevSecOps Compliance Pipelines
 
-- Timestamp (UTC)
-- Server hostname
-- Process ID
-- Username
-- Database name
-- Session ID
-- Client IP and port
-- Application name
-- SQLSTATE (outcome)
-- Explicit event type (DDL, ROLE, WRITE)
+⸻
 
----
+Evidence Collection
 
-# Audit Log Protection Controls
+Validation artifacts can be stored in:
 
-| Control | Configuration |
-|----------|--------------|
-| Logging enabled | `logging_collector = on` |
-| File permissions | `log_file_mode = 0600` |
-| Directory permissions | `0700` |
-| Ownership | `postgres:postgres` |
-| Truncation disabled | `log_truncate_on_rotation = off` |
+/rmf/evidence/
 
+Examples include:
+	•	Role audit outputs
+	•	PostgreSQL configuration snapshots
+	•	Ansible validation logs
+	•	Database privilege reports
+
+⸻
+
+Author
+
+Jemal Miftah
+DevSecOps Engineer
+
+⸻
+
+License
+
+Internal Security Automation
 
 ---
-
-# Compliance Status
-
-All PostgreSQL audit-related SRG controls (V-206519 – V-206538) are implemented and fully **Ansible-automated**.

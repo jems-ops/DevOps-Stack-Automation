@@ -2,51 +2,68 @@
 ############################################################
 # PostgreSQL STIG | V-206545
 #
-# FINDING DEFINITION:
-# Develop, document, and implement procedures to restrict
-# and track use of the DBMS software installation account.
+# Control: Restrict and Track Use of DBMS Installation Account
 #
-# CONTROL INTENT:
-# The DBMS installation account (postgres) must be
-# restricted to authorized personnel and all usage must
-# be tracked and auditable.
-#
-# COMPLIANCE CHECKLIST:
-# ✔ postgres account is not used for application access
-# ✔ SSH login as postgres is restricted
-# ✔ Password login is disabled or locked
-# ✔ sudo usage required for privilege escalation
-# ✔ All postgres sessions are audited
-# ✔ Superuser accounts are minimized
-#
-# FAILED CONDITIONS:
-# ✖ Direct SSH login permitted for postgres
-# ✖ Application uses postgres account
-# ✖ Multiple uncontrolled superusers exist
-# ✖ No audit logs for postgres sessions
-# ✖ No documented procedure governing usage
-#
+# Objective:
+# Ensure the PostgreSQL installation account (postgres)
+# is restricted to authorized administrators and its use
+# is fully auditable.
 ############################################################
 
-- name: V-206545 | Restrict postgres OS account interactive login
+
+############################################################
+# Restrict postgres OS account interactive login
+############################################################
+
+- name: "V-206545 | Restrict postgres interactive shell"
   become: true
   ansible.builtin.user:
     name: "{{ postgresql_srg_install_os_account }}"
     shell: "{{ postgresql_srg_install_account_shell }}"
   when: postgresql_srg_install_account_control_enabled
 
+
 ############################################################
-# Enforce sudo-based controlled access
+# Lock postgres password (service account protection)
 ############################################################
 
-- name: V-206545 | Ensure DBA group exists
+- name: "V-206545 | Lock postgres account password"
+  become: true
+  ansible.builtin.user:
+    name: "{{ postgresql_srg_install_os_account }}"
+    password_lock: true
+  when: postgresql_srg_install_account_control_enabled
+
+
+############################################################
+# Prevent direct SSH login for postgres
+############################################################
+
+- name: "V-206545 | Prevent SSH login for postgres"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^DenyUsers'
+    line: "DenyUsers postgres"
+    create: true
+    mode: "0644"
+  notify: Restart sshd
+  when: postgresql_srg_install_account_control_enabled
+
+
+############################################################
+# Enforce sudo-based DBA access
+############################################################
+
+- name: "V-206545 | Ensure DBA group exists"
   become: true
   ansible.builtin.group:
     name: "{{ postgresql_srg_dba_group }}"
     state: present
   when: postgresql_srg_install_account_control_enabled
 
-- name: V-206545 | Configure sudo access for DBA group
+
+- name: "V-206545 | Configure sudo access for DBA group"
   become: true
   ansible.builtin.copy:
     dest: "/etc/sudoers.d/postgres_admins"
@@ -57,15 +74,16 @@
     mode: '0440'
   when: postgresql_srg_install_account_control_enabled
 
+
 ############################################################
-# Restrict PostgreSQL Superuser Roles
+# Restrict PostgreSQL SUPERUSER roles
 ############################################################
 
-- name: V-206545 | Ensure only postgres is SUPERUSER
+- name: "V-206545 | Identify unauthorized superusers"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d postgres -t -c "
+    psql -d postgres -tAc "
     SELECT rolname
     FROM pg_roles
     WHERE rolsuper = true
@@ -74,18 +92,20 @@
   changed_when: false
   when: postgresql_srg_install_account_control_enabled
 
-- name: V-206545 | Fail if unauthorized superusers exist
+
+- name: "V-206545 | Fail if unauthorized superusers exist"
   ansible.builtin.fail:
     msg: "Unauthorized SUPERUSER roles detected: {{ postgresql_srg_extra_superusers.stdout_lines }}"
   when:
     - postgresql_srg_install_account_control_enabled
     - postgresql_srg_extra_superusers.stdout | trim != ""
 
+
 ############################################################
-# Enable pgaudit for privileged activity tracking
+# Enable pgAudit extension
 ############################################################
 
-- name: V-206545 | Ensure pgaudit is loaded
+- name: "V-206545 | Ensure pgaudit library is loaded"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
@@ -94,31 +114,56 @@
   notify: Restart PostgreSQL
   when: postgresql_srg_install_account_control_enabled
 
-- name: V-206545 | Configure pgaudit logging
+
+############################################################
+# Configure PostgreSQL auditing
+############################################################
+
+- name: "V-206545 | Configure PostgreSQL audit logging"
   become: true
   ansible.builtin.blockinfile:
     path: "{{ postgresql_srg_conf_file }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - V-206545"
     block: |
-      pgaudit.log = 'role, ddl, write'
+      pgaudit.log = 'role,ddl,write,read'
       log_connections = on
       log_disconnections = on
+      log_line_prefix = '%m %u %d %p'
   notify: Restart PostgreSQL
   when: postgresql_srg_install_account_control_enabled
 
+
 ############################################################
-# Track usage via auditd
+# Configure auditd tracking for postgres binaries
 ############################################################
 
-- name: V-206545 | Configure auditd rules for PostgreSQL binaries
+- name: "V-206545 | Audit PostgreSQL binaries"
   become: true
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/postgres.rules
     create: true
     mode: "0640"
+    marker: "# {mark} ANSIBLE MANAGED - postgres binaries"
     block: |
       -w {{ postgresql_srg_pg_bin_path }}/psql -p x -k postgres_install_usage
       -w {{ postgresql_srg_pg_bin_path }}/postgres -p x -k postgres_install_usage
+  notify: Restart auditd
+  when:
+    - postgresql_srg_install_account_control_enabled
+    - postgresql_srg_audit_postgres_binaries
+
+
+############################################################
+# Audit PostgreSQL data directory access
+############################################################
+
+- name: "V-206545 | Audit PostgreSQL data directory"
+  become: true
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/postgres.rules
+    marker: "# {mark} ANSIBLE MANAGED - postgres data dir"
+    block: |
+      -w {{ postgresql_srg_data_dir }} -p wa -k postgres_data_access
   notify: Restart auditd
   when:
     - postgresql_srg_install_account_control_enabled

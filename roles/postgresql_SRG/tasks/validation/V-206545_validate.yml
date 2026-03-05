@@ -1,30 +1,74 @@
+---
 ############################################################
 # STIG V-206545
 # Validation / Audit Tasks
 ############################################################
 
-- name: V-206545 | Verify postgres OS account shell
+############################################################
+# Validate postgres OS account shell
+############################################################
+
+- name: "V-206545 | Verify postgres OS account shell"
   become: true
   ansible.builtin.command: "getent passwd {{ postgresql_srg_install_os_account }}"
   register: postgresql_srg_install_shell
   changed_when: false
 
-- name: Assert interactive login is disabled
+- name: "Assert interactive login disabled"
   ansible.builtin.assert:
     that:
-      - "'{{ postgresql_srg_install_account_shell }}' in postgresql_srg_install_shell.stdout"
-    fail_msg: "Installation account shell not restricted"
-    success_msg: "Installation account shell properly restricted"
+      - postgresql_srg_install_account_shell in postgresql_srg_install_shell.stdout
+    fail_msg: "Postgres installation account shell not restricted"
+    success_msg: "Postgres installation account shell properly restricted"
+
+
+############################################################
+# Validate postgres password locked
+############################################################
+
+- name: "V-206545 | Verify postgres password locked"
+  become: true
+  ansible.builtin.shell: |
+    passwd -S {{ postgresql_srg_install_os_account }} | awk '{print $2}'
+  register: postgresql_srg_pass_status
+  changed_when: false
+
+- name: "Assert postgres password locked"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_pass_status.stdout in ['L','LK']
+    fail_msg: "Postgres account password not locked"
+    success_msg: "Postgres account password locked"
+
+
+############################################################
+# Validate SSH restriction
+############################################################
+
+- name: "V-206545 | Check SSH deny rule"
+  become: true
+  ansible.builtin.shell: |
+    grep -E "^DenyUsers.*postgres" /etc/ssh/sshd_config || true
+  register: postgresql_srg_ssh_deny
+  changed_when: false
+
+- name: "Assert SSH login restricted"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_ssh_deny.stdout != ""
+    fail_msg: "Postgres SSH login not restricted"
+    success_msg: "Postgres SSH login restricted"
+
 
 ############################################################
 # Validate SUPERUSER roles
 ############################################################
 
-- name: V-206545 | Check for unauthorized superusers
+- name: "V-206545 | Check unauthorized superusers"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d postgres -t -c "
+    psql -tAc "
     SELECT rolname
     FROM pg_roles
     WHERE rolsuper = true
@@ -32,44 +76,87 @@
   register: postgresql_srg_superuser_validation
   changed_when: false
 
-- name: Assert no extra superusers exist
+- name: "Assert only postgres is SUPERUSER"
   ansible.builtin.assert:
     that:
       - postgresql_srg_superuser_validation.stdout | trim == ""
     fail_msg: "Unauthorized SUPERUSER roles detected"
-    success_msg: "Only postgres is SUPERUSER"
+    success_msg: "Only postgres has SUPERUSER privilege"
+
 
 ############################################################
-# Validate pgaudit
+# Validate pgaudit loaded
 ############################################################
 
-- name: V-206545 | Check shared_preload_libraries
+- name: "V-206545 | Check shared_preload_libraries"
   become: true
   become_user: postgres
-  ansible.builtin.shell: psql -t -c "SHOW shared_preload_libraries;"
+  ansible.builtin.shell: |
+    psql -tAc "SHOW shared_preload_libraries;"
   register: postgresql_srg_spl_validation
   changed_when: false
 
-- name: Assert pgaudit loaded
+- name: "Assert pgaudit loaded"
   ansible.builtin.assert:
     that:
       - "'pgaudit' in postgresql_srg_spl_validation.stdout"
-    fail_msg: "pgaudit not enabled"
-    success_msg: "pgaudit enabled"
+    fail_msg: "pgaudit extension not enabled"
+    success_msg: "pgaudit successfully loaded"
+
 
 ############################################################
-# Validate auditd rule exists
+# Validate PostgreSQL audit logging configuration
 ############################################################
 
-- name: V-206545 | Verify audit rule file
+- name: "V-206545 | Check pgaudit settings"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SHOW pgaudit.log;"
+  register: postgresql_srg_pgaudit_log
+  changed_when: false
+
+- name: "Assert pgaudit logging configured"
+  ansible.builtin.assert:
+    that:
+      - "'role' in postgresql_srg_pgaudit_log.stdout"
+    fail_msg: "pgaudit logging not configured"
+    success_msg: "pgaudit logging configured"
+
+
+############################################################
+# Validate auditd rule file
+############################################################
+
+- name: "V-206545 | Verify audit rule file exists"
   become: true
   ansible.builtin.stat:
     path: /etc/audit/rules.d/postgres.rules
   register: postgresql_srg_audit_rule
 
-- name: Assert audit rule file exists
+
+- name: "Assert audit rule file exists"
   ansible.builtin.assert:
     that:
       - postgresql_srg_audit_rule.stat.exists
     fail_msg: "auditd rules for postgres not configured"
-    success_msg: "auditd rules configured"
+    success_msg: "auditd rules file present"
+
+
+############################################################
+# Validate postgres binary auditing
+############################################################
+
+- name: "V-206545 | Verify postgres binary audit rules"
+  become: true
+  ansible.builtin.shell: |
+    grep postgres_install_usage /etc/audit/rules.d/postgres.rules || true
+  register: postgresql_srg_audit_binary
+  changed_when: false
+
+- name: "Assert postgres binaries audited"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_audit_binary.stdout != ""
+    fail_msg: "PostgreSQL binary auditing not configured"
+    success_msg: "PostgreSQL binaries properly audited"

@@ -1,34 +1,51 @@
 ---
 ############################################################
 # STIG V-265854 Enforcement
-# Ensure Supported DBMS Version
+# Ensure Supported PostgreSQL Version
 ############################################################
 
-- name: "V-265854 | Gather PostgreSQL version"
+############################################################
+# Gather PostgreSQL Server Version
+############################################################
+
+- name: "V-265854 | Gather PostgreSQL server version"
   become: true
-  ansible.builtin.command: "{{ postgresql_srg_psql_path }} --version"
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SHOW server_version;"
   register: postgresql_srg_version
   changed_when: false
 
-- name: "V-265854 | Extract major version"
+############################################################
+# Extract Major Version
+############################################################
+
+- name: "V-265854 | Extract PostgreSQL major version"
   ansible.builtin.set_fact:
-    postgresql_srg_major_version: "{{ (postgresql_srg_version.stdout | regex_search('([0-9]+)\\.', '\\1'))[0] }}"
+    postgresql_srg_major_version: "{{ (postgresql_srg_version.stdout | regex_search('^([0-9]+)', '\\1'))[0] }}"
 
 ############################################################
 # Define Supported Versions
 ############################################################
 
-- name: "V-265854 | Define supported PostgreSQL major versions"
+- name: "V-265854 | Define supported PostgreSQL versions"
   ansible.builtin.set_fact:
     postgresql_srg_supported_versions:
       - "16"
-      - "15"   # Include if still supported in your org
+      - "15"
 
 ############################################################
 # Fail if Unsupported Version
 ############################################################
 
-- name: "V-265854 | Fail if PostgreSQL version unsupported"
+- name: "V-265854 | Fail if unsupported PostgreSQL version detected"
   ansible.builtin.fail:
-    msg: "Unsupported PostgreSQL major version detected: {{ postgresql_srg_major_version }}"
+    msg: >
+      Unsupported PostgreSQL version detected: {{ postgresql_srg_major_version }}.
+      Supported versions: {{ postgresql_srg_supported_versions }}
   when: postgresql_srg_major_version not in postgresql_srg_supported_versions
+
+- name: "V-265854 | Gather PostgreSQL package version"
+  become: true
+  ansible.builtin.package_facts:
+    manager: auto

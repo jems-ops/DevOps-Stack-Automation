@@ -1,28 +1,30 @@
 ---
 ############################################################
-# STIG V-206520 Validation (Audit Only)
+# STIG V-206520
+# Validation / Audit Tasks
 ############################################################
 
 ############################################################
-# Validate listen_addresses
+# Validate listen_addresses restriction
 ############################################################
 
-- name: "V-206520 | Validate listen_addresses"
+- name: "V-206520 | Check listen_addresses"
   become: true
   ansible.builtin.shell: |
     grep -E "^listen_addresses" {{ postgresql_srg_conf_file }}
   register: postgresql_srg_listen_check
   changed_when: false
+  failed_when: false
 
-- name: "V-206520 | Assert listen_addresses restricted"
+- name: "Assert PostgreSQL restricted to localhost"
   ansible.builtin.assert:
     that:
-      - "'localhost' in postgresql_srg_listen_check.stdout"
+      - postgresql_srg_listen_check.stdout is search('localhost')
     fail_msg: "PostgreSQL is listening on non-local interfaces"
     success_msg: "PostgreSQL correctly restricted to localhost"
 
 ############################################################
-# Validate No Trust Authentication
+# Validate trust authentication removed
 ############################################################
 
 - name: "V-206520 | Check for trust authentication"
@@ -32,15 +34,51 @@
   register: postgresql_srg_trust_check
   changed_when: false
 
-- name: "V-206520 | Assert no trust authentication"
+- name: "Assert trust authentication disabled"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_trust_check.stdout == ""
+      - postgresql_srg_trust_check.stdout | trim == ""
     fail_msg: "Trust authentication detected in pg_hba.conf"
-    success_msg: "No trust authentication configured"
+    success_msg: "Trust authentication properly disabled"
 
 ############################################################
-# Validate Login Roles
+# Validate postgres peer authentication
+############################################################
+
+- name: "V-206520 | Verify postgres peer authentication"
+  become: true
+  ansible.builtin.shell: |
+    grep -E "^local\s+all\s+postgres\s+peer" {{ postgresql_srg_hba_file }} || true
+  register: postgresql_srg_peer_check
+  changed_when: false
+
+- name: "Assert postgres peer authentication enabled"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_peer_check.stdout | trim != ""
+    fail_msg: "postgres peer authentication not configured"
+    success_msg: "postgres peer authentication confirmed"
+
+############################################################
+# Validate SCRAM authentication for localhost
+############################################################
+
+- name: "V-206520 | Verify SCRAM authentication entries"
+  become: true
+  ansible.builtin.shell: |
+    grep -E "scram-sha-256" {{ postgresql_srg_hba_file }} || true
+  register: postgresql_srg_scram_check
+  changed_when: false
+
+- name: "Assert SCRAM authentication configured"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_scram_check.stdout | trim != ""
+    fail_msg: "SCRAM authentication not configured"
+    success_msg: "SCRAM authentication confirmed"
+
+############################################################
+# Validate approved login roles
 ############################################################
 
 - name: "V-206520 | Get login roles"
@@ -51,10 +89,9 @@
   register: postgresql_srg_login_roles_audit
   changed_when: false
 
-- name: "V-206520 | Assert only approved login roles exist"
+- name: "Assert only approved login roles exist"
   ansible.builtin.assert:
     that:
-      - item in postgresql_srg_approved_login_roles
-    fail_msg: "Unauthorized login role detected: {{ item }}"
+      - postgresql_srg_login_roles_audit.stdout_lines | difference(postgresql_srg_approved_login_roles) | length == 0
+    fail_msg: "Unauthorized login roles detected: {{ postgresql_srg_login_roles_audit.stdout_lines | difference(postgresql_srg_approved_login_roles) }}"
     success_msg: "All login roles approved"
-  loop: "{{ postgresql_srg_login_roles_audit.stdout_lines }}"

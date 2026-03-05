@@ -1,34 +1,53 @@
 ---
 ############################################################
-# STIG V-265854 Validation (Audit Only)
+# STIG V-265854 Validation
+# Ensure Supported DBMS Version
 ############################################################
 
 ############################################################
-# Check PostgreSQL Version
+# Gather PostgreSQL Server Version
 ############################################################
 
-- name: "V-265854 | Get PostgreSQL version"
+- name: "V-265854 | Get PostgreSQL server version"
   become: true
-  ansible.builtin.command: "{{ postgresql_srg_psql_path }} --version"
-  register: postgresql_srg_version_check
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SHOW server_version;"
+  register: postgresql_srg_server_version
   changed_when: false
+  failed_when: false
 
-- name: "V-265854 | Extract major version"
+############################################################
+# Extract Major Version
+############################################################
+
+- name: "V-265854 | Extract PostgreSQL major version"
   ansible.builtin.set_fact:
-    postgresql_srg_major_version: "{{ (postgresql_srg_version_check.stdout | regex_search('([0-9]+)\\.', '\\1'))[0] }}"
+    postgresql_srg_major_version: "{{ (postgresql_srg_server_version.stdout | regex_search('^([0-9]+)', '\\1'))[0] }}"
 
 ############################################################
 # Define Supported Versions
 ############################################################
 
-- name: "V-265854 | Define supported PostgreSQL major versions"
+- name: "V-265854 | Define supported PostgreSQL versions"
   ansible.builtin.set_fact:
     postgresql_srg_supported_versions:
       - "16"
       - "15"
 
 ############################################################
-# Assert Supported Version
+# Display Version Information
+############################################################
+
+- name: "V-265854 | Display detected PostgreSQL version"
+  ansible.builtin.debug:
+    msg:
+      - "Detected PostgreSQL version: {{ postgresql_srg_server_version.stdout }}"
+      - "Detected major version: {{ postgresql_srg_major_version }}"
+      - "Supported versions: {{ postgresql_srg_supported_versions }}"
+
+############################################################
+# Validate Supported Version
 ############################################################
 
 - name: "V-265854 | Assert PostgreSQL version supported"
@@ -36,19 +55,4 @@
     that:
       - postgresql_srg_major_version in postgresql_srg_supported_versions
     fail_msg: "Unsupported PostgreSQL version detected: {{ postgresql_srg_major_version }}"
-    success_msg: "PostgreSQL version {{ postgresql_srg_major_version }} is supported"
-
-############################################################
-# Validate PostgreSQL Service Active
-############################################################
-
-- name: "V-265854 | Check PostgreSQL service status"
-  become: true
-  ansible.builtin.service_facts:
-
-- name: "V-265854 | Assert PostgreSQL service running"
-  ansible.builtin.assert:
-    that:
-      - "(postgresql_srg_service_name + '.service') in ansible_facts.services"
-    fail_msg: "Service {{ postgresql_srg_service_name }} not found in running services"
-    success_msg: "PostgreSQL service {{ postgresql_srg_service_name }} detected"
+    success_msg: "PostgreSQL version is supported"

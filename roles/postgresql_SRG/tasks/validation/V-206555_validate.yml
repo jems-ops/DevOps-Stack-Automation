@@ -1,41 +1,94 @@
 ---
 ############################################################
 # STIG V-206555 Validation
+# Ensure DB passwords are securely stored and protected
 ############################################################
 
 ############################################################
-# Validate pg_hba.conf contains no password methods
+# Validate Password Encryption Method
 ############################################################
 
-- name: "V-206555 | Check for password authentication methods"
+- name: "V-206555 | Check password_encryption setting"
   become: true
   ansible.builtin.shell: |
-    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '(md5|scram-sha-256|password)' || true
-  register: postgresql_srg_password_auth_check
+    grep -E "^password_encryption" {{ postgresql_srg_conf_file }} || true
+  register: postgresql_srg_password_encryption
   changed_when: false
 
-- name: "V-206555 | Assert no password authentication configured"
+- name: "V-206555 | Assert SCRAM password encryption enabled"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_password_auth_check.stdout == ""
-    fail_msg: "Password-based authentication detected in pg_hba.conf"
-    success_msg: "No password authentication configured"
+      - "'scram-sha-256' in postgresql_srg_password_encryption.stdout"
+    fail_msg: "SCRAM password encryption not configured"
+    success_msg: "SCRAM password encryption enforced"
+
 
 ############################################################
-# Validate no stored passwords exist
+# Validate Role Password Hashing
 ############################################################
 
-- name: "V-206555 | Check for stored role passwords"
+- name: "V-206555 | Check role password hashing"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
-  register: postgresql_srg_stored_passwords
+    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword NOT LIKE 'SCRAM-SHA-256%';"
+  register: postgresql_srg_password_hash_check
   changed_when: false
 
-- name: "V-206555 | Assert no roles have stored passwords"
+- name: "V-206555 | Assert all passwords are SCRAM hashed"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_stored_passwords.stdout_lines | length == 0
-    fail_msg: "Stored DB passwords detected"
-    success_msg: "No stored DB passwords exist"
+      - postgresql_srg_password_hash_check.stdout_lines | length == 0
+    fail_msg: "Non-SCRAM hashed passwords detected"
+    success_msg: "All stored passwords are securely hashed"
+
+
+############################################################
+# Validate No Trust Authentication
+############################################################
+
+- name: "V-206555 | Check for trust authentication"
+  become: true
+  ansible.builtin.shell: |
+    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep trust || true
+  register: postgresql_srg_trust_check
+  changed_when: false
+
+- name: "V-206555 | Assert trust authentication disabled"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_trust_check.stdout == ""
+    fail_msg: "Trust authentication detected"
+    success_msg: "No trust authentication configured"
+
+
+############################################################
+# Validate .pgpass File Permissions
+############################################################
+
+- name: "V-206555 | Find .pgpass files"
+  become: true
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_pgpass_search_paths }}"
+    patterns: ".pgpass"
+    recurse: true
+  register: postgresql_srg_pgpass_files
+
+
+- name: "V-206555 | Check .pgpass permissions"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+  loop: "{{ postgresql_srg_pgpass_files.files }}"
+  register: postgresql_srg_pgpass_permissions
+  when: postgresql_srg_pgpass_files.matched > 0
+
+
+- name: "V-206555 | Assert .pgpass permissions are secure"
+  ansible.builtin.assert:
+    that:
+      - item.stat.mode == "0600"
+    fail_msg: ".pgpass file permissions are not secure"
+    success_msg: ".pgpass permissions correctly secured"
+  loop: "{{ postgresql_srg_pgpass_permissions.results }}"
+  when: postgresql_srg_pgpass_files.matched > 0

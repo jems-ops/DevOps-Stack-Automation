@@ -1,56 +1,87 @@
 ---
 ############################################################
-# STIG V-206562 Validation (Audit Only)
+# STIG V-206562 Validation
+# Ensure FIPS 140-2/140-3 Cryptographic Modules in Use
+#
+# NOTE:
+# FIPS enablement handled by RHEL8 STIG baseline.
+# This playbook only validates compliance.
 ############################################################
 
 ############################################################
-# Validate FIPS Mode Enabled
+# Validate FIPS Kernel Mode
 ############################################################
 
-- name: "V-206562 | Check FIPS status"
+- name: "V-206562 | Check FIPS kernel mode"
   become: true
   ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
-  register: postgresql_srg_fips_check
+  register: postgresql_srg_fips_status
   changed_when: false
-  when: postgresql_srg_fips_required | bool
+  failed_when: false
 
-- name: "V-206562 | Assert FIPS enabled"
+- name: "V-206562 | Assert FIPS kernel mode enabled"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_fips_check.stdout == "1"
-    fail_msg: "FIPS mode is NOT enabled (CAT I Finding)"
-    success_msg: "FIPS mode is enabled"
+      - postgresql_srg_fips_status.stdout == "1"
+    fail_msg: "FIPS kernel mode is NOT enabled"
+    success_msg: "FIPS kernel mode is enabled"
   when: postgresql_srg_fips_required | bool
 
 ############################################################
-# Validate Crypto Policy
+# Validate System Crypto Policy
 ############################################################
 
-- name: "V-206562 | Check crypto policy"
+- name: "V-206562 | Check system crypto policy"
   become: true
   ansible.builtin.command: update-crypto-policies --show
-  register: postgresql_srg_crypto_policy_check
+  register: postgresql_srg_crypto_policy
   changed_when: false
   when: postgresql_srg_fips_required | bool
 
 - name: "V-206562 | Assert crypto policy is FIPS"
   ansible.builtin.assert:
     that:
-      - "'FIPS' in postgresql_srg_crypto_policy_check.stdout"
-    fail_msg: "System crypto policy is not set to FIPS"
-    success_msg: "System crypto policy is set to FIPS"
+      - postgresql_srg_crypto_policy.stdout is search("FIPS")
+    fail_msg: "System crypto policy is NOT set to FIPS"
+    success_msg: "System crypto policy set to FIPS"
   when: postgresql_srg_fips_required | bool
 
 ############################################################
-# Validate OpenSSL Version
+# Validate OpenSSL FIPS Provider
 ############################################################
 
-- name: "V-206562 | Check OpenSSL version"
+- name: "V-206562 | Check OpenSSL providers"
   become: true
-  ansible.builtin.command: openssl version
-  register: postgresql_srg_openssl_check
+  ansible.builtin.shell: |
+    openssl list -providers
+  register: postgresql_srg_openssl_providers
   changed_when: false
+  when: postgresql_srg_fips_required | bool
 
-- name: "V-206562 | Display OpenSSL version"
-  ansible.builtin.debug:
-    msg: "OpenSSL Version: {{ postgresql_srg_openssl_check.stdout }}"
+- name: "V-206562 | Assert OpenSSL FIPS provider present"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_openssl_providers.stdout is search("fips")
+    fail_msg: "OpenSSL FIPS provider NOT detected"
+    success_msg: "OpenSSL FIPS provider detected"
+  when: postgresql_srg_fips_required | bool
+
+############################################################
+# Validate PostgreSQL Uses OpenSSL
+############################################################
+
+- name: "V-206562 | Check PostgreSQL SSL library"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SHOW ssl_library;"
+  register: postgresql_srg_ssl_library
+  changed_when: false
+  failed_when: false
+
+- name: "V-206562 | Assert PostgreSQL uses OpenSSL"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_ssl_library.stdout is search("OpenSSL")
+    fail_msg: "PostgreSQL not using OpenSSL cryptographic library"
+    success_msg: "PostgreSQL using OpenSSL cryptographic library"

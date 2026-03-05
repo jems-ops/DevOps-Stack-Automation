@@ -1,57 +1,22 @@
 ---
 ############################################################
-# STIG V-206605 Enforcement
-# Configure Required Cryptographic Protection
+# STIG V-206605
+# Cryptographic Protection Based on System Classification
+#
+# Architecture:
+# PostgreSQL stores internal application metadata and
+# relies on OS-level FIPS cryptographic modules.
 ############################################################
 
 ############################################################
-# Ensure FIPS Package Installed
+# Restrict PostgreSQL network exposure
 ############################################################
 
-- name: "V-206605 | Ensure dracut-fips installed"
-  become: true
-  ansible.builtin.package:
-    name: dracut-fips
-    state: present
-  when: postgresql_srg_fips_required | bool
-
-############################################################
-# Ensure Crypto Policy is FIPS
-############################################################
-
-- name: "V-206605 | Set system crypto policy to FIPS"
-  become: true
-  ansible.builtin.command: update-crypto-policies --set FIPS
-  register: postgresql_srg_crypto_policy
-  changed_when: "'Setting system policy to FIPS' in postgresql_srg_crypto_policy.stdout"
-  when: postgresql_srg_fips_required | bool
-
-############################################################
-# Verify FIPS Kernel Mode
-############################################################
-
-- name: "V-206605 | Check FIPS enabled"
-  become: true
-  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
-  register: postgresql_srg_fips_status
-  changed_when: false
-  when: postgresql_srg_fips_required | bool
-
-- name: "V-206605 | Fail if FIPS not enabled"
-  ansible.builtin.fail:
-    msg: "FIPS mode not enabled. Reboot required after enabling."
-  when:
-    - postgresql_srg_fips_required | bool
-    - postgresql_srg_fips_status.stdout != "1"
-
-############################################################
-# Ensure PostgreSQL Bound to Localhost
-############################################################
-
-- name: "V-206605 | Restrict listen_addresses to localhost"
+- name: "V-206605 | Restrict PostgreSQL listen_addresses"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?listen_addresses'
     line: "listen_addresses = 'localhost'"
+    state: present
   notify: Restart PostgreSQL

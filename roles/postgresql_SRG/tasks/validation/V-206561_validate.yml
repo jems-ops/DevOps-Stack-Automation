@@ -1,84 +1,101 @@
 ---
 ############################################################
 # STIG V-206561 Validation (Audit Only)
+# Prevent Display of Authentication Secrets
 ############################################################
 
 ############################################################
-# Check for .pgpass files
+# Check .pgpass File Permissions
 ############################################################
 
-- name: "V-206561 | Scan for .pgpass files"
+- name: "V-206561 | Locate .pgpass files"
   become: true
   ansible.builtin.find:
     paths:
       - /var/lib/pgsql
       - /home
       - /root
-      - /opt
-      - /etc
     patterns: ".pgpass"
     recurse: true
   register: postgresql_srg_pgpass_audit
   changed_when: false
 
-- name: "V-206561 | Assert no .pgpass files exist"
+
+- name: "V-206561 | Check .pgpass permissions"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+  loop: "{{ postgresql_srg_pgpass_audit.files }}"
+  register: postgresql_srg_pgpass_permissions
+  when: postgresql_srg_pgpass_audit.matched > 0
+
+
+- name: "V-206561 | Assert .pgpass permissions secure"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_pgpass_audit.matched == 0
-    fail_msg: ".pgpass file detected"
-    success_msg: "No .pgpass files detected"
+      - item.stat.mode == "0600"
+    fail_msg: ".pgpass permissions are not secure"
+    success_msg: ".pgpass permissions correctly secured"
+  loop: "{{ postgresql_srg_pgpass_permissions.results }}"
+  when: postgresql_srg_pgpass_audit.matched > 0
+
 
 ############################################################
-# Check for password strings in configuration files
+# Check for password exposure in configuration files
 ############################################################
 
-- name: "V-206561 | Search for password= patterns in PostgreSQL configs"
+- name: "V-206561 | Search for plaintext password references"
   become: true
   ansible.builtin.shell: |
-    grep -Rl 'password=' {{ postgresql_srg_data_dir }}/*.conf /var/lib/pgsql/.pgpass 2>/dev/null || true
+    grep -R "password=" {{ postgresql_srg_data_dir }} 2>/dev/null || true
   register: postgresql_srg_password_pattern_check
   changed_when: false
 
-- name: "V-206561 | Assert no password patterns in PostgreSQL configs"
+
+- name: "V-206561 | Assert no plaintext passwords in config"
   ansible.builtin.assert:
     that:
       - postgresql_srg_password_pattern_check.stdout == ""
-    fail_msg: "Password string detected in PostgreSQL configuration files"
-    success_msg: "No password strings found in PostgreSQL configs"
+    fail_msg: "Plaintext password detected in configuration files"
+    success_msg: "No plaintext password exposure detected"
+
 
 ############################################################
-# Check for PGPASSWORD in environment
+# Check PGPASSWORD Environment Variable Exposure
 ############################################################
 
-- name: "V-206561 | Check process environment for PGPASSWORD"
+- name: "V-206561 | Check running processes for PGPASSWORD"
   become: true
   ansible.builtin.shell: |
     ps eww -A | grep PGPASSWORD | grep -v grep || true
   register: postgresql_srg_env_check
   changed_when: false
 
-- name: "V-206561 | Assert no PGPASSWORD in process list"
+
+- name: "V-206561 | Assert no PGPASSWORD exposure"
   ansible.builtin.assert:
     that:
       - postgresql_srg_env_check.stdout == ""
     fail_msg: "PGPASSWORD environment variable detected"
     success_msg: "No PGPASSWORD environment variables detected"
 
+
 ############################################################
-# Check for stored DB role passwords
+# Verify Role Passwords Are Securely Hashed
 ############################################################
 
-- name: "V-206561 | Check for stored role passwords"
+- name: "V-206561 | Check role password hashing"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword IS NOT NULL;"
-  register: postgresql_srg_db_password_check
+    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword NOT LIKE 'SCRAM-SHA-256%';"
+  register: postgresql_srg_password_hash_check
   changed_when: false
 
-- name: "V-206561 | Assert no stored role passwords"
+
+- name: "V-206561 | Assert passwords are hashed"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_db_password_check.stdout_lines | length == 0
-    fail_msg: "Stored DB password detected"
-    success_msg: "No stored DB passwords detected"
+      - postgresql_srg_password_hash_check.stdout_lines | length == 0
+    fail_msg: "Non-hashed passwords detected"
+    success_msg: "All role passwords are securely hashed"

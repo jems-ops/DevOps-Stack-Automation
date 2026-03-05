@@ -1,63 +1,60 @@
-
-
 SRG Compliance Artifact – NOT A FINDING
 
-⸻
+
+Control Identification
 
 Control ID: V-206520
-
 SRG ID: SRG-APP-000023-DB-000001
-
 System: PostgreSQL 16 on RHEL 8.x
-
 Environment: Production / Staging (Isolated Network)
-
 Compliance Status: ☑ Not a Finding
 
-⸻
 
-1️⃣ Control Requirement
+1. Control Requirement
 
-The DBMS must integrate with an organization-level authentication/access control mechanism providing centralized account management for:
-	•	Users
-	•	Groups
-	•	Roles
-	•	Other principals
+The DBMS must integrate with an organization-level authentication and access control mechanism providing centralized account management for:
+
+• Users
+• Groups
+• Roles
+• Other principals
 
 If accounts are locally managed, they must be:
-	•	Documented
-	•	Approved
-	•	Justified
 
-⸻
+• Documented
+• Approved
+• Justified
 
-2️⃣ Implementation Justification (Boundary-Based Architecture)
+
+2. Implementation Justification (Boundary-Based Architecture)
 
 This PostgreSQL instance:
-	•	❌ Is NOT accessible from external users
-	•	❌ Is NOT exposed to enterprise network
-	•	❌ Does NOT support multi-user domain authentication
-	•	❌ Is NOT integrated with Active Directory / LDAP / Kerberos
 
-✔ The database operates in a system-boundary isolated architecture
-✔ Access is restricted to:
-	•	Local host only
-	•	Application service account
-	•	OS-level authenticated administrators
+❌ Is NOT accessible from external users
+❌ Is NOT exposed to the enterprise network
+❌ Does NOT support multi-user domain authentication
+❌ Is NOT integrated with Active Directory / LDAP / Kerberos
 
-✔ Network-Level Controls:
-	•	Firewall restricts inbound DB port (5432)
-	•	No public IP assigned
-	•	Private subnet only
-	•	Security Groups restrict access to application tier only
+The database operates in a system-boundary isolated architecture.
+
+Access is restricted to:
+
+• Local host only
+• Application service account
+• OS-level authenticated administrators
+
+Network-Level Controls
+
+• Firewall restricts inbound database port 5432
+• No public IP assigned
+• Database deployed in private subnet only
+• Security groups restrict database access to application tier only
 
 Because the system is not intended to support enterprise-wide interactive users, centralized authentication integration is not applicable to this deployment model.
 
-⸻
 
-3️⃣ Technical Evidence
+3. Technical Evidence
 
-⸻
 
 A. Network Isolation
 
@@ -65,29 +62,29 @@ Verify PostgreSQL is not externally listening:
 
 ss -tulnp | grep 5432
 
-Expected:
+Expected Result:
 
 LISTEN 127.0.0.1:5432
 
 Or restricted to internal private subnet only.
 
-⸻
 
 B. pg_hba.conf Configuration
 
 cat /var/lib/pgsql/16/data/pg_hba.conf
 
-Expected:
+Expected Configuration:
 
 local   all     postgres                     peer
 local   all     all                          peer
 host    all     all     127.0.0.1/32          scram-sha-256
 
+Security validation:
+
 ✔ No external CIDR ranges
-✔ No 0.0.0.0/0
+✔ No 0.0.0.0/0 entries
 ✔ No trust authentication
 
-⸻
 
 C. Trust Authentication Disabled
 
@@ -95,44 +92,41 @@ grep -i trust pg_hba.conf
 
 Expected Result:
 
-No matches found.
+No matches found
 
-⸻
 
 D. Role Audit
 
 SELECT rolname, rolcanlogin FROM pg_roles;
 
-Only approved accounts:
+Approved accounts:
 
 Account	Purpose
-postgres	DB superuser (required)
-application_user	Service account
-pg_monitor	Monitoring
-pg_signal_backend	Internal role
+postgres	Database superuser
+application_user	Application service account
+pg_monitor	Monitoring role
+pg_signal_backend	Internal PostgreSQL role
 
 No general user login accounts exist.
 
-⸻
 
-4️⃣ Account Management Model
+4. Account Management Model
 
-This system follows a System-Specific Account Management Model:
+This system follows a System-Specific Account Management Model.
 
-✔ Application service account only
-✔ No human interactive DB logins
-✔ OS-level sudo access controlled by enterprise IAM
-✔ Quarterly account review
-✔ Local account approval documented
+• Application service account only
+• No human interactive database logins
+• OS-level sudo access controlled by enterprise IAM
+• Quarterly account review performed
+• Local account approval documented
 
-Since user authentication is handled at the application layer and OS layer, PostgreSQL does not require enterprise directory integration.
+Since authentication is handled at the application and OS layer, PostgreSQL does not require enterprise directory integration.
 
-⸻
 
-5️⃣ Compensating Controls
+5. Compensating Controls
 
 Control Element	Implementation
-Network Restriction	Firewall + Security Group
+Network Restriction	Firewall + Security Groups
 External Exposure	None
 Trust Authentication	Disabled
 Role Restriction	Minimal approved roles only
@@ -140,73 +134,73 @@ Password Protection	SCRAM-SHA-256
 OS Authentication	Enterprise-controlled
 
 
-⸻
+6. Ansible Automation Evidence
 
-6️⃣ Ansible Automation Evidence
-
-Role Path:
+Role Path
 
 roles/postgresql_srg_v206520/
 
-Automated Tasks:
-	•	Audit login roles
-	•	Remove unauthorized roles
-	•	Enforce pg_hba.conf restrictions
-	•	Ensure no trust authentication
-	•	Validate bind address
-	•	Restart PostgreSQL if needed
+Automated tasks include:
+
+• Audit login roles
+• Remove unauthorized roles
+• Enforce pg_hba.conf restrictions
+• Ensure trust authentication is disabled
+• Validate database bind address
+• Restart PostgreSQL if configuration changes occur
 
 Execution:
 
 ansible-playbook postgresql_srg_v206520.yml
-Result: SUCCESS
+
+Result:
+
+SUCCESS
 
 
-⸻
-
-7️⃣ Risk Assessment
+7. Risk Assessment
 
 Risk Level: Low
 
 Reasoning:
-	•	Database is isolated
-	•	No external exposure
-	•	No enterprise user logins
-	•	Access restricted to system-level service accounts
-	•	Authentication controlled at OS and application layer
 
-⸻
+• Database operates in an isolated network environment
+• No external exposure
+• No enterprise user logins
+• Access restricted to system-level service accounts
+• Authentication controlled at OS and application layers
 
-8️⃣ Assessor Notes
-	•	Database is not multi-tenant
-	•	No enterprise user authentication required
-	•	No unauthorized local login roles exist
-	•	Trust authentication disabled
-	•	Network boundary protection compensates for centralized authentication requirement
-	•	Integration with LDAP/AD is not applicable to this deployment
 
-⸻
+8. Assessor Notes
 
-9️⃣ Formal Determination
+• Database is not multi-tenant
+• No enterprise user authentication required
+• No unauthorized local login roles exist
+• Trust authentication disabled
+• Network boundary protection compensates for centralized authentication requirement
+• Integration with LDAP or Active Directory is not applicable to this system deployment
 
-This control requires integration with an enterprise-level authentication mechanism when:
-	•	The database supports enterprise users
-	•	The system is externally accessible
-	•	Multiple principals require centralized lifecycle management
+
+9. Formal Determination
+
+This control requires integration with an enterprise authentication mechanism when:
+
+• The database supports enterprise users
+• The system is externally accessible
+• Multiple principals require centralized lifecycle management
 
 This PostgreSQL instance:
-	•	Is isolated
-	•	Does not provide direct user authentication services
-	•	Does not support enterprise interactive access
-	•	Is application-bound only
+
+• Is isolated
+• Does not provide direct user authentication services
+• Does not support enterprise interactive access
+• Is application-bound only
 
 Therefore:
 
 Centralized authentication integration is Not Applicable to this system architecture.
 
-⸻
-
-✅ Final Compliance Status
+Final Compliance Determination
 
 ☑ NOT A FINDING
 

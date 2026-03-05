@@ -1,26 +1,26 @@
 ---
 ############################################################
 # STIG V-233495 Validation (Audit Only)
-# Deploy DBMS Compatible with NSA-Approved Cryptography
+# Ensure DBMS Uses NSA-Approved Cryptography
 ############################################################
 
 ############################################################
-# Validate FIPS Mode
+# Validate FIPS Kernel Mode
 ############################################################
 
-- name: "V-233495 | Check FIPS status"
+- name: "V-233495 | Check FIPS kernel mode"
   become: true
   ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
   register: postgresql_srg_fips_check
   changed_when: false
   when: postgresql_srg_fips_required | bool
 
-- name: "V-233495 | Assert FIPS enabled"
+- name: "V-233495 | Assert FIPS kernel mode enabled"
   ansible.builtin.assert:
     that:
       - postgresql_srg_fips_check.stdout == "1"
-    fail_msg: "FIPS mode is NOT enabled"
-    success_msg: "FIPS mode is enabled"
+    fail_msg: "FIPS kernel mode is NOT enabled"
+    success_msg: "FIPS kernel mode is enabled"
   when: postgresql_srg_fips_required | bool
 
 ############################################################
@@ -37,25 +37,65 @@
 - name: "V-233495 | Assert crypto policy is FIPS"
   ansible.builtin.assert:
     that:
-      - "'FIPS' in postgresql_srg_crypto_policy_check.stdout"
+      - postgresql_srg_crypto_policy_check.stdout is search("FIPS")
     fail_msg: "System crypto policy not set to FIPS"
     success_msg: "System crypto policy set to FIPS"
   when: postgresql_srg_fips_required | bool
 
 ############################################################
-# Validate No Weak Auth Methods
+# Validate OpenSSL FIPS Provider
 ############################################################
 
-- name: "V-233495 | Check for weak auth methods"
+- name: "V-233495 | Check OpenSSL providers"
+  become: true
+  ansible.builtin.shell: |
+    openssl list -providers
+  register: postgresql_srg_openssl_providers
+  changed_when: false
+  when: postgresql_srg_fips_required | bool
+
+- name: "V-233495 | Assert OpenSSL FIPS provider present"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_openssl_providers.stdout is search("fips")
+    fail_msg: "OpenSSL FIPS provider NOT detected"
+    success_msg: "OpenSSL FIPS provider detected"
+  when: postgresql_srg_fips_required | bool
+
+############################################################
+# Validate PostgreSQL SSL Library
+############################################################
+
+- name: "V-233495 | Check PostgreSQL SSL library"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tAc "SHOW ssl_library;"
+  register: postgresql_srg_ssl_library
+  changed_when: false
+  failed_when: false
+
+- name: "V-233495 | Assert PostgreSQL using OpenSSL"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_ssl_library.stdout is search("OpenSSL")
+    fail_msg: "PostgreSQL not using OpenSSL cryptographic library"
+    success_msg: "PostgreSQL using OpenSSL cryptographic library"
+
+############################################################
+# Validate No Weak Authentication Methods
+############################################################
+
+- name: "V-233495 | Check for weak authentication"
   become: true
   ansible.builtin.shell: |
     grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '(md5|password)' || true
   register: postgresql_srg_weak_auth_check
   changed_when: false
 
-- name: "V-233495 | Assert no weak auth methods"
+- name: "V-233495 | Assert no weak authentication methods"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_weak_auth_check.stdout == ""
-    fail_msg: "Weak authentication methods detected in pg_hba.conf"
+      - postgresql_srg_weak_auth_check.stdout | trim == ""
+    fail_msg: "Weak authentication methods detected"
     success_msg: "No weak authentication methods configured"
