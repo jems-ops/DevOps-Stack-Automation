@@ -1,45 +1,102 @@
 ---
 ############################################################
 # STIG V-206570 Validation (Audit Only)
+# Protect Data at Rest (OS-Level Controls)
 ############################################################
 
 ############################################################
-# Validate Data Directory Permissions
+# Validate Data Directory Ownership and Permissions
 ############################################################
 
-- name: "V-206570 | Check data directory permissions"
+- name: "V-206570 | Check data directory metadata"
   become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}"
   register: postgresql_srg_data_dir_stat
   changed_when: false
 
-- name: "V-206570 | Assert ownership and permissions"
+- name: "V-206570 | Assert data directory ownership and permissions"
   ansible.builtin.assert:
     that:
       - postgresql_srg_data_dir_stat.stat.pw_name == "postgres"
       - postgresql_srg_data_dir_stat.stat.gr_name == "postgres"
-      - postgresql_srg_data_dir_stat.stat.mode == "0700"
-    fail_msg: "Data directory ownership or permissions incorrect"
-    success_msg: "Data directory properly secured"
+      - postgresql_srg_data_dir_stat.stat.mode is search("0700")
+    fail_msg: "PostgreSQL data directory ownership or permissions are incorrect"
+    success_msg: "PostgreSQL data directory properly secured"
 
 ############################################################
-# Validate No World-Readable Files
+# Validate Configuration File Permissions
 ############################################################
 
-- name: "V-206570 | Find world-readable files"
+- name: "V-206570 | Check postgresql.conf permissions"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_conf_file }}"
+  register: postgresql_srg_conf_stat
+  changed_when: false
+
+- name: "V-206570 | Assert postgresql.conf secured"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_conf_stat.stat.pw_name == "postgres"
+      - postgresql_srg_conf_stat.stat.gr_name == "postgres"
+      - postgresql_srg_conf_stat.stat.mode is search("0600")
+    fail_msg: "postgresql.conf permissions are not secure"
+    success_msg: "postgresql.conf permissions correctly secured"
+
+- name: "V-206570 | Check pg_hba.conf permissions"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_hba_file }}"
+  register: postgresql_srg_hba_stat
+  changed_when: false
+
+- name: "V-206570 | Assert pg_hba.conf secured"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_hba_stat.stat.pw_name == "postgres"
+      - postgresql_srg_hba_stat.stat.gr_name == "postgres"
+      - postgresql_srg_hba_stat.stat.mode is search("0600")
+    fail_msg: "pg_hba.conf permissions are not secure"
+    success_msg: "pg_hba.conf permissions correctly secured"
+
+############################################################
+# Validate No World-Readable Database Files
+############################################################
+
+- name: "V-206570 | Find world-readable database files"
   become: true
   ansible.builtin.shell: |
     find {{ postgresql_srg_data_dir }} -type f -perm -o+r
   register: postgresql_srg_world_readable
   changed_when: false
 
-- name: "V-206570 | Assert no world-readable files"
+- name: "V-206570 | Assert no world-readable database files"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_world_readable.stdout == ""
+      - postgresql_srg_world_readable.stdout | trim == ""
     fail_msg: "World-readable database files detected"
     success_msg: "No world-readable database files found"
+
+############################################################
+# Validate Socket Directory (If Present)
+############################################################
+
+- name: "V-206570 | Check socket directory permissions"
+  become: true
+  ansible.builtin.stat:
+    path: /var/run/postgresql
+  register: postgresql_srg_socket_stat
+  ignore_errors: true
+  changed_when: false
+
+- name: "V-206570 | Assert socket directory secured"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_socket_stat.stat.mode is search("0755")
+    fail_msg: "PostgreSQL socket directory permissions are not secure"
+    success_msg: "PostgreSQL socket directory permissions are secure"
+  when: postgresql_srg_socket_stat.stat.exists | default(false)
 
 ############################################################
 # Validate SELinux Mode
@@ -57,3 +114,4 @@
       - postgresql_srg_selinux_check.stdout == "Enforcing"
     fail_msg: "SELinux is not enforcing"
     success_msg: "SELinux is enforcing"
+  when: postgresql_srg_selinux_required | bool
