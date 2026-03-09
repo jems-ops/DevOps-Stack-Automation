@@ -1,29 +1,50 @@
+---
 ############################################################
-# Validation for V-206533
+# STIG V-206533
+# Validation - Audit records include user identity
 ############################################################
 
-- name: Generate test log entry
+- name: V-206533 | Get log_line_prefix
   become: true
   become_user: postgres
-  ansible.builtin.command: psql -c "SELECT 1;"
-  tags:
-    - audit
-    - V-206533
-
-- name: Check log contains user name
-  become: true
   ansible.builtin.shell: |
-    tail -n 5 {{ postgresql_srg_data_dir }}/log/*
-  register: log_sample
+    psql -t -A -c "SHOW log_line_prefix;"
+  register: postgresql_srg_v206533_prefix
   changed_when: false
   tags:
-    - audit
+    - stig
     - V-206533
+    - cat2
 
-- name: Fail if user name is not present in logs
-  ansible.builtin.fail:
-    msg: "User name is not present in PostgreSQL logs."
-  when: "'postgres' not in log_sample.stdout"
+- name: V-206533 | Get pgaudit setting
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SHOW pgaudit.log;"
+  register: postgresql_srg_v206533_pgaudit
+  changed_when: false
   tags:
-    - audit
+    - stig
     - V-206533
+    - cat2
+
+- name: V-206533 | Evaluate identity compliance
+  ansible.builtin.assert:
+    that:
+      - "'%u' in postgresql_srg_v206533_prefix.stdout"
+      - "'%d' in postgresql_srg_v206533_prefix.stdout"
+      - "'%p' in postgresql_srg_v206533_prefix.stdout"
+      - "'%c' in postgresql_srg_v206533_prefix.stdout"
+      - "'%a' in postgresql_srg_v206533_prefix.stdout"
+      - "'%h' in postgresql_srg_v206533_prefix.stdout"
+      - postgresql_srg_v206533_pgaudit.stdout != ""
+    fail_msg: >
+      STIG V-206533 FAILED:
+      Audit records do not contain sufficient identity information.
+    success_msg: >
+      STIG V-206533 PASSED:
+      Audit records contain user, session, and process identity information.
+  tags:
+    - stig
+    - V-206533
+    - cat2

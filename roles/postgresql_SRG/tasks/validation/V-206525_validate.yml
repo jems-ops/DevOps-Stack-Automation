@@ -1,86 +1,57 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206525 Validation
-# Validate auditing of privilege/role retrieval
-############################################################
-
-- name: Validate shared_preload_libraries includes pgaudit
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW shared_preload_libraries;"
-  register: spl_check
-  changed_when: false
-  tags:
-    - audit
-    - V-206525
-
-- name: Fail if pgaudit not enabled
-  ansible.builtin.fail:
-    msg: "pgaudit is not enabled in shared_preload_libraries."
-  when: "'pgaudit' not in spl_check.stdout"
-  tags:
-    - audit
-    - V-206525
-- name: Validate pgaudit.log includes read or role
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW pgaudit.log;"
-  register: pgaudit_log_check
-  changed_when: false
-  tags:
-    - audit
-    - V-206525
-
-- name: Fail if pgaudit.log does not include required classes
-  ansible.builtin.fail:
-    msg: "pgaudit.log must include 'read' or 'role' to audit privilege retrieval."
-  when: "'read' not in pgaudit_log_check.stdout and 'role' not in pgaudit_log_check.stdout"
-  tags:
-    - audit
-    - V-206525
-- name: Validate pgaudit.log_catalog is enabled
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW pgaudit.log_catalog;"
-  register: catalog_check
-  changed_when: false
-  tags:
-    - audit
-    - V-206525
-
-- name: Fail if pgaudit.log_catalog is not on
-  ansible.builtin.fail:
-    msg: "pgaudit.log_catalog must be enabled to audit catalog access."
-  when: "'on' not in catalog_check.stdout"
-  tags:
-    - audit
-    - V-206525
-############################################################
-# Functional Validation – Generate Test Event
+# STIG V-206525
+# Validation - Audit Privilege Retrieval
 ############################################################
 
-- name: Generate privilege retrieval event
+- name: V-206525 | Gather audit settings
   become: true
   become_user: postgres
-  ansible.builtin.command: psql -tAc "SELECT * FROM pg_roles;"
-  register: privilege_query
-  changed_when: false
-  tags:
-    - audit
-    - V-206525
-- name: Check audit log contains READ event for pg_roles
-  become: true
   ansible.builtin.shell: |
-    grep -i "AUDIT" {{ postgresql_srg_data_dir }}/log/* | grep -i "pg_roles" | tail -1
-  register: audit_check
+    psql -t -A -c "SELECT current_setting('shared_preload_libraries')
+    UNION ALL SELECT current_setting('pgaudit.log', true)
+    UNION ALL SELECT current_setting('pgaudit.log_catalog', true);"
+  register: postgresql_srg_v206525_settings
   changed_when: false
   tags:
-    - audit
     - V-206525
+    - stig
+    - cat2
 
-- name: Fail if privilege retrieval was not audited
-  ansible.builtin.fail:
-    msg: "Privilege retrieval (pg_roles) was not logged."
-  when: audit_check.stdout == ""
+- name: V-206525 | Parse settings
+  ansible.builtin.set_fact:
+    v206525_list: "{{ postgresql_srg_v206525_settings.stdout_lines }}"
   tags:
-    - audit
     - V-206525
+    - stig
+    - cat2
+
+- name: V-206525 | Identify non-compliance
+  ansible.builtin.set_fact:
+    v206525_failure_reasons: >-
+      {{
+        [] +
+        (['pgaudit not enabled'] if 'pgaudit' not in v206525_list[0] else []) +
+        (['pgaudit.log missing read'] if 'read' not in v206525_list[1] else []) +
+        (['pgaudit.log missing role'] if 'role' not in v206525_list[1] else []) +
+        (['pgaudit.log_catalog not enabled'] if 'on' not in v206525_list[2] else [])
+      }}
+  tags:
+    - V-206525
+    - stig
+    - cat2
+
+- name: V-206525 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206525_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206525 FAILED:
+      {{ v206525_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206525 PASSED:
+      Privilege and role retrieval auditing properly configured.
+  tags:
+    - V-206525
+    - stig
+    - cat2

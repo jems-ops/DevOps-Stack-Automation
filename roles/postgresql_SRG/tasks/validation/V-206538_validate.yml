@@ -1,21 +1,57 @@
-- name: Check log directory permissions
+---
+############################################################
+# STIG V-206538
+# Validation - Audit logs protected from unauthorized read
+############################################################
+
+- name: V-206538 | Check log directory permissions
   become: true
   ansible.builtin.stat:
-    path: "{{ postgresql_srg_data_dir }}/log"
-  register: log_dir_stat
+    path: "{{ postgresql_srg_log_directory }}"
+  register: v206538_log_dir
+  tags:
+    - stig
+    - V-206538
+    - cat2
 
-- name: Fail if directory not 0700
-  ansible.builtin.fail:
-    msg: "Log directory permissions are not secure."
-  when: log_dir_stat.stat.mode != "0700"
-
-- name: Verify log file permissions
+- name: V-206538 | Find log files
   become: true
-  ansible.builtin.shell: find {{ postgresql_srg_data_dir }}/log -type f ! -perm 0600 -print
-  register: log_modes
-  changed_when: false
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_log_directory }}"
+    patterns: "*.log"
+  register: v206538_log_files
+  tags:
+    - stig
+    - V-206538
+    - cat2
 
-- name: Fail if any log file permissions are not 0600
-  ansible.builtin.fail:
-    msg: "One or more log files have insecure permissions (expected 0600)."
-  when: log_modes.stdout | length > 0
+- name: V-206538 | Validate directory protection
+  ansible.builtin.assert:
+    that:
+      - v206538_log_dir.stat.pw_name == "postgres"
+      - v206538_log_dir.stat.gr_name == "postgres"
+      - v206538_log_dir.stat.mode | int(base=8) <= 700
+    fail_msg: >
+      STIG V-206538 FAILED:
+      Log directory permissions are not properly restricted.
+    success_msg: >
+      Log directory ownership and permissions are compliant.
+  tags:
+    - stig
+    - V-206538
+    - cat2
+
+- name: V-206538 | Validate log file permissions
+  ansible.builtin.assert:
+    that:
+      - v206538_log_files.files | rejectattr('mode', 'equalto', '0600') | list | length == 0
+    fail_msg: >
+      STIG V-206538 FAILED:
+      One or more log files have incorrect permissions (expected 0600).
+    success_msg: >
+      All log files are properly restricted (0600).
+  when: v206538_log_files.matched > 0
+  tags:
+    - stig
+    - V-206538
+    - cat2

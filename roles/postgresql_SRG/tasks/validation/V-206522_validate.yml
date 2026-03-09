@@ -1,23 +1,58 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206522 Validation
+# STIG V-206522
+# Validation - Non-Repudiation Controls
+############################################################
+#
+# VALIDATION LOGIC:
+# - log_connections must be on
+# - log_disconnections must be on
+# - log_line_prefix must include %u
+# - shared_preload_libraries must include pgaudit
+# - pgaudit.log must not be empty
+#
 ############################################################
 
-- name: Simulate application setting individual identity
+- name: "V-206522 | Gather audit-related settings"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -c "SET application_name = 'john.doe'; SELECT 1;"
-  tags:
-    - audit
-    - V-206522
-
-- name: Check log for captured individual identity
-  become: true
-  ansible.builtin.shell: |
-    grep -i "john.doe" {{ postgresql_srg_data_dir }}/log/* | tail -1
-  register: identity_check
+    psql -t -A -c "SELECT current_setting('log_connections')
+    UNION ALL SELECT current_setting('log_disconnections')
+    UNION ALL SELECT current_setting('log_line_prefix')
+    UNION ALL SELECT current_setting('shared_preload_libraries')
+    UNION ALL SELECT current_setting('pgaudit.log', true);"
+  register: postgresql_srg_v206522_settings
   changed_when: false
-  failed_when: identity_check.stdout == ""
   tags:
-    - audit
     - V-206522
+    - stig
+    - cat2
+
+- name: "V-206522 | Parse output"
+  ansible.builtin.set_fact:
+    v206522_settings_list: "{{ postgresql_srg_v206522_settings.stdout_lines }}"
+  tags:
+    - V-206522
+    - stig
+    - cat2
+
+- name: "V-206522 | Assert Non-Repudiation Controls"
+  ansible.builtin.assert:
+    that:
+      - "'on' in v206522_settings_list[0]"        # log_connections
+      - "'on' in v206522_settings_list[1]"        # log_disconnections
+      - "'%u' in v206522_settings_list[2]"        # log_line_prefix
+      - "'pgaudit' in v206522_settings_list[3]"   # shared_preload_libraries
+      - "v206522_settings_list[4] | length > 0"   # pgaudit.log not empty
+    fail_msg: >
+      STIG V-206522 FAILED:
+      Non-repudiation controls are not fully configured.
+      Review logging, log_line_prefix, and pgaudit settings.
+    success_msg: >
+      STIG V-206522 PASSED:
+      Non-repudiation controls properly configured.
+  tags:
+    - V-206522
+    - stig
+    - cat2

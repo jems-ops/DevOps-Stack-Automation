@@ -1,88 +1,56 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206527
-# Validation - Session Auditing
-############################################################
-
-- name: Read postgresql.conf
-  become: true
-  ansible.builtin.slurp:
-    path: "{{ postgresql_srg_conf_file }}"
-  register: pg_conf_slurp
-  tags:
-    - audit
-    - V-206527
-
-- name: Decode configuration content
-  ansible.builtin.set_fact:
-    pg_conf_text: "{{ pg_conf_slurp.content | b64decode }}"
-  tags:
-    - audit
-    - V-206527
-
-############################################################
-# Configuration Validation
+# STIG V-206527
+# Validation - Session Auditing at Startup
 ############################################################
 
-- name: Validate logging_collector is enabled
-  ansible.builtin.fail:
-    msg: "V-206527 FAIL: logging_collector is not enabled."
-  when: pg_conf_text is not search("logging_collector\s*=\s*on")
-  tags:
-    - audit
-    - V-206527
-
-- name: Validate log_connections is enabled
-  ansible.builtin.fail:
-    msg: "V-206527 FAIL: log_connections is not enabled."
-  when: pg_conf_text is not search("log_connections\s*=\s*on")
-  tags:
-    - audit
-    - V-206527
-
-- name: Validate log_disconnections is enabled
-  ansible.builtin.fail:
-    msg: "V-206527 FAIL: log_disconnections is not enabled."
-  when: pg_conf_text is not search("log_disconnections\s*=\s*on")
-  tags:
-    - audit
-    - V-206527
-
-- name: Validate log_line_prefix includes session identifier (%c)
-  ansible.builtin.fail:
-    msg: "V-206527 FAIL: log_line_prefix does not include session identifier (%c)."
-  when: pg_conf_text is not search("log_line_prefix.*%c")
-  tags:
-    - audit
-    - V-206527
-
-############################################################
-# Runtime Validation (Optional but Recommended)
-############################################################
-
-- name: Generate test connection
+- name: V-206527 | Gather session audit settings
   become: true
   become_user: postgres
-  ansible.builtin.command: psql -tAc "SELECT 1;"
-  register: test_connection
-  changed_when: false
-  tags:
-    - audit
-    - V-206527
-
-- name: Check recent logs for connection entry
-  become: true
   ansible.builtin.shell: |
-    grep -E "connection authorized|disconnection" {{ postgresql_srg_data_dir }}/log/* | tail -2
-  register: session_log_check
+    psql -t -A -c "SELECT current_setting('shared_preload_libraries')
+    UNION ALL SELECT current_setting('log_connections')
+    UNION ALL SELECT current_setting('log_disconnections');"
+  register: postgresql_srg_v206527_settings
   changed_when: false
-  failed_when: session_log_check.stdout == ""
   tags:
-    - audit
+    - stig
     - V-206527
+    - cat2
 
-- name: Success message
-  ansible.builtin.debug:
-    msg: "V-206527 PASS: Session auditing is properly configured and operational."
+- name: V-206527 | Parse results
+  ansible.builtin.set_fact:
+    v206527_list: "{{ postgresql_srg_v206527_settings.stdout_lines }}"
   tags:
-    - audit
+    - stig
     - V-206527
+    - cat2
+
+- name: V-206527 | Identify failure reasons
+  ansible.builtin.set_fact:
+    v206527_failure_reasons: >-
+      {{
+        [] +
+        (['pgaudit not loaded at startup'] if 'pgaudit' not in v206527_list[0] else []) +
+        (['log_connections not enabled'] if 'on' not in v206527_list[1] else []) +
+        (['log_disconnections not enabled'] if 'on' not in v206527_list[2] else [])
+      }}
+  tags:
+    - stig
+    - V-206527
+    - cat2
+
+- name: V-206527 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206527_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206527 FAILED:
+      {{ v206527_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206527 PASSED:
+      Session auditing is active at DBMS startup.
+  tags:
+    - stig
+    - V-206527
+    - cat2

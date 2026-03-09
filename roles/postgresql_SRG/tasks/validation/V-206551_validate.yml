@@ -1,0 +1,48 @@
+---
+############################################################
+# STIG V-206551
+# Validation - Ensure unused components disabled
+############################################################
+
+- name: V-206551 | Validate replication disabled
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SHOW max_replication_slots;"
+  register: v206551_slots
+  changed_when: false
+  when: postgresql_srg_disable_replication
+
+- name: V-206551 | Assert replication slots disabled
+  ansible.builtin.assert:
+    that:
+      - v206551_slots.stdout == "0"
+    fail_msg: "STIG V-206551 FAILED: Replication slots enabled."
+    success_msg: "STIG V-206551 PASSED: Replication disabled."
+  when: postgresql_srg_disable_replication
+  tags:
+    - stig
+    - V-206551
+    - cat2
+
+
+- name: V-206551 | Validate remote listening
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SHOW listen_addresses;"
+  register: v206551_listen
+  changed_when: false
+  when: postgresql_srg_disable_remote_access
+
+- name: V-206551 | Assert remote listener disabled
+  ansible.builtin.assert:
+    that:
+      - "'localhost'" in v206551_listen.stdout
+    fail_msg: "STIG V-206551 FAILED: Remote listening enabled."
+    success_msg: "STIG V-206551 PASSED: Remote listener restricted."
+  when: postgresql_srg_disable_remote_access
+  tags:
+    - stig
+    - V-206551
+    - cat2

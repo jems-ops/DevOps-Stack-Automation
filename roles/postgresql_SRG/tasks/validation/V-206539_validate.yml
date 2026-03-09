@@ -1,0 +1,56 @@
+---
+############################################################
+# STIG V-206539
+# Validation - Audit information protected from modification
+############################################################
+
+- name: V-206539 | Check log directory permissions
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_log_directory }}"
+  register: v206539_logdir
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Check log file permissions
+  become: true
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_log_directory }}"
+    file_type: file
+  register: v206539_logfiles
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Validate directory protection
+  ansible.builtin.assert:
+    that:
+      - v206539_logdir.stat.mode | int(base=8) <= 700
+      - v206539_logdir.stat.pw_name == "postgres"
+    fail_msg: >
+      STIG V-206539 FAILED:
+      Log directory not properly protected.
+    success_msg: >
+      Log directory protection compliant.
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Validate log file ownership
+  ansible.builtin.assert:
+    that:
+      - item.pw_name == "postgres"
+    loop: "{{ v206539_logfiles.files }}"
+    fail_msg: >
+      STIG V-206539 FAILED:
+      Log file not owned by postgres.
+    success_msg: >
+      Log files protected from modification.
+  tags:
+    - stig
+    - V-206539
+    - cat2

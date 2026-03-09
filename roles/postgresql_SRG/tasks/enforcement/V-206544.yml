@@ -1,0 +1,68 @@
+---
+############################################################
+# STIG V-206544
+# Enforcement - Limit privileges to change DBMS software modules
+############################################################
+#
+# COMPLIANT WHEN:
+# - PUBLIC cannot create functions
+# - Only approved role owns schemas
+# - Superuser restricted
+# - Critical DBMS directories protected
+# comment: CREATE privileges on the public schema have been revoked from PUBLIC. Only authorized administrative roles may modify database modules such as functions, procedures, and triggers. DBMS software directories and configuration files are restricted to the postgres account. Monitoring and access controls prevent unauthorized modification. Therefore, V-206544 is Not a Finding.
+############################################################
+
+- name: V-206544 | Revoke CREATE on public schema from PUBLIC
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206544
+    - cat2
+
+- name: V-206544 | Restrict DBMS library directory permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: postgres
+    group: postgres
+    mode: '0750'
+    state: directory
+  loop:
+    - /usr/lib64/pgsql
+    - "{{ postgresql_srg_data_directory }}"
+  tags:
+    - stig
+    - V-206544
+    - cat2
+
+- name: V-206544 | Validate superuser restriction
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206544_superusers
+  changed_when: false
+  tags:
+    - stig
+    - V-206544
+    - cat2
+
+- name: V-206544 | Assert only postgres is superuser
+  ansible.builtin.assert:
+    that:
+      - v206544_superusers.stdout_lines | length == 1
+      - "'postgres' in v206544_superusers.stdout"
+    fail_msg: >
+      STIG V-206544 FAILED:
+      Unauthorized privilege to modify DBMS modules detected.
+    success_msg: >
+      DBMS module modification privileges restricted.
+  tags:
+    - stig
+    - V-206544
+    - cat2

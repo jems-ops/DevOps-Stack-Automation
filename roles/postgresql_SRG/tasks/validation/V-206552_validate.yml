@@ -1,0 +1,51 @@
+---
+############################################################
+# STIG V-206552
+# Validation - External executable restriction
+############################################################
+
+- name: V-206552 | Check pg_execute_server_program members
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "
+    SELECT m.rolname
+    FROM pg_auth_members am
+    JOIN pg_roles r ON am.roleid = r.oid
+    JOIN pg_roles m ON am.member = m.oid
+    WHERE r.rolname='pg_execute_server_program';"
+  register: v206552_exec_members
+  changed_when: false
+
+- name: V-206552 | Assert only authorized exec role members
+  ansible.builtin.assert:
+    that:
+      - v206552_exec_members.stdout_lines | difference(postgresql_srg_authorized_exec_roles) | length == 0
+    fail_msg: "STIG V-206552 FAILED: Unauthorized external execution privileges detected."
+    success_msg: "STIG V-206552 PASSED: External execution properly restricted."
+  tags:
+    - stig
+    - V-206552
+    - cat2
+
+
+- name: V-206552 | Check untrusted languages
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "
+    SELECT lanname FROM pg_language
+    WHERE lanname IN ('plpythonu','plperlu','pltclu');"
+  register: v206552_lang
+  changed_when: false
+
+- name: V-206552 | Assert no untrusted languages
+  ansible.builtin.assert:
+    that:
+      - v206552_lang.stdout_lines | length == 0
+    fail_msg: "STIG V-206552 FAILED: Untrusted procedural languages present."
+    success_msg: "STIG V-206552 PASSED: No untrusted languages present."
+  tags:
+    - stig
+    - V-206552
+    - cat2

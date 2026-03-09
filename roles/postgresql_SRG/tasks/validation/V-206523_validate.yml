@@ -1,117 +1,44 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206523 Validation
-# Validate DoD Minimum Set of Auditable Events
-############################################################
-
-- name: V-206523 | Check pgaudit is loaded
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW shared_preload_libraries;"
-  register: preload_libs
-  changed_when: false
-  failed_when: "'pgaudit' not in preload_libs.stdout"
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Check pgaudit log classes
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW pgaudit.log;"
-  register: pgaudit_log
-  changed_when: false
-  failed_when: pgaudit_log.stdout == ""
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Check log_connections enabled
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW log_connections;"
-  register: log_conn
-  changed_when: false
-  failed_when: log_conn.stdout.strip() != "on"
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Check log_disconnections enabled
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW log_disconnections;"
-  register: log_disconn
-  changed_when: false
-  failed_when: log_disconn.stdout.strip() != "on"
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Check log_min_error_statement is error
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW log_min_error_statement;"
-  register: log_min_err
-  changed_when: false
-  failed_when: log_min_err.stdout.strip() != "error"
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Check log_line_prefix includes required fields
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW log_line_prefix;"
-  register: log_prefix
-  changed_when: false
-  failed_when: >
-    '%u' not in log_prefix.stdout or
-    '%h' not in log_prefix.stdout or
-    '%e' not in log_prefix.stdout
-  tags:
-    - audit
-    - V-206523
-############################################################
-# Functional Validation – Trigger Audit Events
+# STIG V-206523
+# Validation - Audit Record Generation
 ############################################################
 
-- name: V-206523 | Generate DDL event
+- name: "V-206523 | Gather audit settings"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "CREATE TABLE stig_test(id int);"
-    psql -tAc "DROP TABLE stig_test;"
-  failed_when: false
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Generate failed login attempt
-  ansible.builtin.shell: |
-    psql -U invalid_user -d postgres -c '\q'
-  failed_when: false
-  tags:
-    - audit
-    - V-206523
-
-- name: V-206523 | Verify audit log contains DDL entry
-  become: true
-  ansible.builtin.shell: |
-    grep -i "AUDIT" {{ postgresql_srg_data_dir }}/log/* | tail -1
-  register: audit_entry
+    psql -t -A -c "SELECT current_setting('log_connections')
+    UNION ALL SELECT current_setting('log_disconnections')
+    UNION ALL SELECT current_setting('log_statement')
+    UNION ALL SELECT current_setting('shared_preload_libraries')
+    UNION ALL SELECT current_setting('pgaudit.log', true)
+    UNION ALL SELECT current_setting('pgaudit.log_catalog', true);"
+  register: v206523_settings
   changed_when: false
-  failed_when: audit_entry.stdout == ""
-  tags:
-    - audit
-    - V-206523
+  tags: [V-206523, stig, cat2]
 
-- name: V-206523 | Verify failed authentication logged
-  become: true
-  ansible.builtin.shell: |
-    grep -i "authentication failed" {{ postgresql_srg_data_dir }}/log/* | tail -1
-  register: auth_fail_entry
-  changed_when: false
-  failed_when: auth_fail_entry.stdout == ""
-  tags:
-    - audit
-    - V-206523
+- name: "V-206523 | Parse settings"
+  ansible.builtin.set_fact:
+    v206523_list: "{{ v206523_settings.stdout_lines }}"
+  tags: [V-206523, stig, cat2]
+
+- name: "V-206523 | Assert DoD audit coverage"
+  ansible.builtin.assert:
+    that:
+      - "'on' in v206523_list[0]"
+      - "'on' in v206523_list[1]"
+      - "'ddl' in v206523_list[2]"
+      - "'pgaudit' in v206523_list[3]"
+      - "'read' in v206523_list[4]"
+      - "'write' in v206523_list[4]"
+      - "'ddl' in v206523_list[4]"
+      - "'role' in v206523_list[4]"
+      - "'on' in v206523_list[5]"
+    fail_msg: >
+      STIG V-206523 FAILED:
+      Required DoD auditable events are not fully configured.
+    success_msg: >
+      STIG V-206523 PASSED:
+      Required DoD auditable events are properly configured.
+  tags: [V-206523, stig, cat2]

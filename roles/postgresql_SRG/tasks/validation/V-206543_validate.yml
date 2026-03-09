@@ -1,0 +1,46 @@
+---
+############################################################
+# STIG V-206543
+# Validation - Audit features protected from removal
+############################################################
+
+- name: V-206543 | Check shared_preload_libraries
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SHOW shared_preload_libraries;"
+  register: v206543_preload
+  changed_when: false
+  tags:
+    - stig
+    - V-206543
+    - cat2
+
+- name: V-206543 | Check pgaudit extension
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -A -c \
+    "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
+  register: v206543_extension
+  changed_when: false
+  tags:
+    - stig
+    - V-206543
+    - cat2
+
+- name: V-206543 | Assert audit feature protection
+  ansible.builtin.assert:
+    that:
+      - "'pgaudit' in v206543_preload.stdout"
+      - "'pgaudit' in v206543_extension.stdout"
+    fail_msg: >
+      STIG V-206543 FAILED:
+      Audit feature removed or not properly configured.
+    success_msg: >
+      STIG V-206543 PASSED:
+      Audit feature protected from removal.
+  tags:
+    - stig
+    - V-206543
+    - cat2

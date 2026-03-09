@@ -1,29 +1,55 @@
+---
 ############################################################
-# Validation for V-206531
+# STIG V-206531
+# Validation - Audit records contain SOURCE information
 ############################################################
 
-- name: Generate test log entry
+- name: V-206531 | Gather source logging settings
   become: true
   become_user: postgres
-  ansible.builtin.command: psql -c "SELECT 1;"
-  tags:
-    - audit
-    - V-206531
-
-- name: Verify log contains client source information
-  become: true
   ansible.builtin.shell: |
-    tail -n 5 {{ postgresql_srg_data_dir }}/log/*
-  register: log_sample
+    psql -t -A -c "SELECT current_setting('log_line_prefix')
+    UNION ALL SELECT current_setting('log_hostname');"
+  register: postgresql_srg_v206531_settings
   changed_when: false
   tags:
-    - audit
+    - stig
     - V-206531
+    - cat2
 
-- name: Fail if client source information is not present in logs
-  ansible.builtin.fail:
-    msg: "Client source information is not present in PostgreSQL logs."
-  when: "'local' not in log_sample.stdout and '127.0.0.1' not in log_sample.stdout"
+- name: V-206531 | Parse results
+  ansible.builtin.set_fact:
+    v206531_list: "{{ postgresql_srg_v206531_settings.stdout_lines }}"
   tags:
-    - audit
+    - stig
     - V-206531
+    - cat2
+
+- name: V-206531 | Identify failure reasons
+  ansible.builtin.set_fact:
+    v206531_failure_reasons: >-
+      {{
+        [] +
+        (['Remote host (%r) missing'] if '%r' not in v206531_list[0] else []) +
+        (['Application name (%a) missing'] if '%a' not in v206531_list[0] else []) +
+        (['log_hostname not enabled'] if 'on' not in v206531_list[1] else [])
+      }}
+  tags:
+    - stig
+    - V-206531
+    - cat2
+
+- name: V-206531 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206531_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206531 FAILED:
+      {{ v206531_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206531 PASSED:
+      Audit records contain source/origin information.
+  tags:
+    - stig
+    - V-206531
+    - cat2

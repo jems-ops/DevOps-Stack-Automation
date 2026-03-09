@@ -1,0 +1,60 @@
+---
+############################################################
+# STIG V-206544
+# Validation - Module modification restrictions
+############################################################
+
+- name: V-206544 | Check schema create privilege
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -A -c \
+    "SELECT has_schema_privilege('public','CREATE');"
+  register: v206544_schema_check
+  changed_when: false
+  tags:
+    - stig
+    - V-206544
+    - cat2
+
+- name: V-206544 | Assert CREATE revoked from PUBLIC
+  ansible.builtin.assert:
+    that:
+      - "'f'" in v206544_schema_check.stdout
+    fail_msg: >
+      STIG V-206544 FAILED:
+      PUBLIC can create or modify DB modules.
+    success_msg: >
+      Schema modification properly restricted.
+  tags:
+    - stig
+    - V-206544
+    - cat2
+
+- name: V-206544 | Check critical directory permissions
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /usr/lib64/pgsql
+    - "{{ postgresql_srg_data_directory }}"
+  register: v206544_dirs
+  tags:
+    - stig
+    - V-206544
+    - cat2
+
+- name: V-206544 | Validate directory protection
+  ansible.builtin.assert:
+    that:
+      - item.stat.pw_name == "postgres"
+    loop: "{{ v206544_dirs.results }}"
+    fail_msg: >
+      STIG V-206544 FAILED:
+      DBMS software directories not properly protected.
+    success_msg: >
+      DBMS directories protected.
+  tags:
+    - stig
+    - V-206544
+    - cat2

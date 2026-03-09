@@ -1,0 +1,46 @@
+---
+############################################################
+# STIG V-206550
+# Validation - Ensure only approved components exist
+############################################################
+
+- name: V-206550 | Validate extensions
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -A -c \
+    "SELECT extname FROM pg_extension;"
+  register: v206550_validate_ext
+  changed_when: false
+
+- name: V-206550 | Assert extensions compliance
+  ansible.builtin.assert:
+    that:
+      - v206550_validate_ext.stdout_lines | difference(postgresql_srg_allowed_extensions) | length == 0
+    fail_msg: "STIG V-206550 FAILED: Unauthorized extensions installed."
+    success_msg: "STIG V-206550 PASSED: Only approved extensions installed."
+  tags:
+    - stig
+    - V-206550
+    - cat2
+
+
+- name: V-206550 | Validate languages
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c \
+    "SELECT lanname FROM pg_language WHERE lanname NOT IN ('internal','c');"
+  register: v206550_validate_lang
+  changed_when: false
+
+- name: V-206550 | Assert language compliance
+  ansible.builtin.assert:
+    that:
+      - v206550_validate_lang.stdout_lines | difference(postgresql_srg_allowed_languages) | length == 0
+    fail_msg: "STIG V-206550 FAILED: Unauthorized procedural languages present."
+    success_msg: "STIG V-206550 PASSED: Only approved languages present."
+  tags:
+    - stig
+    - V-206550
+    - cat2

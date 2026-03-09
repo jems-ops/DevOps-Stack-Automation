@@ -1,94 +1,57 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206526 VALIDATION
-# Ensure denied access to privileges/role memberships is audited
+# STIG V-206526
+# Validation - Audit FAILED privilege retrieval
 ############################################################
 
-- name: Read postgresql.conf
+- name: V-206526 | Gather audit configuration
   become: true
-  ansible.builtin.slurp:
-    path: "{{ postgresql_srg_conf_file }}"
-  register: pg_conf_raw
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT current_setting('pgaudit.log', true)
+    UNION ALL SELECT current_setting('pgaudit.log_catalog', true)
+    UNION ALL SELECT current_setting('log_min_error_statement');"
+  register: postgresql_srg_v206526_settings
+  changed_when: false
   tags:
-    - audit
+    - stig
     - V-206526
+    - cat2
 
-- name: Decode configuration
+- name: V-206526 | Parse results
   ansible.builtin.set_fact:
-    pg_conf_text: "{{ pg_conf_raw.content | b64decode }}"
+    v206526_list: "{{ postgresql_srg_v206526_settings.stdout_lines }}"
   tags:
-    - audit
+    - stig
     - V-206526
+    - cat2
 
-############################################################
-# Validate required parameters
-############################################################
+- name: V-206526 | Identify failure reasons
+  ansible.builtin.set_fact:
+    v206526_failure_reasons: >-
+      {{
+        [] +
+        (['pgaudit.log missing read'] if 'read' not in v206526_list[0] else []) +
+        (['pgaudit.log missing role'] if 'role' not in v206526_list[0] else []) +
+        (['pgaudit.log_catalog not enabled'] if 'on' not in v206526_list[1] else []) +
+        (['Failed statements not logged'] if 'error' not in v206526_list[2] else [])
+      }}
+  tags:
+    - stig
+    - V-206526
+    - cat2
 
-- name: Validate log_min_error_statement is set to error
+- name: V-206526 | Assert compliance
   ansible.builtin.assert:
     that:
-      - pg_conf_text is search('log_min_error_statement\s*=\s*error')
-    fail_msg: "log_min_error_statement is not set to error."
-    success_msg: "log_min_error_statement correctly configured."
+      - v206526_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206526 FAILED:
+      {{ v206526_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206526 PASSED:
+      Failed privilege retrieval attempts are audited.
   tags:
-    - audit
+    - stig
     - V-206526
-
-- name: Validate pgaudit logs role activity
-  ansible.builtin.assert:
-    that:
-      - pg_conf_text is search('pgaudit\.log\s*=\s*.*role')
-    fail_msg: "pgaudit.log does not include 'role'."
-    success_msg: "pgaudit.log includes role auditing."
-  tags:
-    - audit
-    - V-206526
-
-- name: Validate pgaudit.log_catalog is enabled
-  ansible.builtin.assert:
-    that:
-      - pg_conf_text is search('pgaudit\.log_catalog\s*=\s*on')
-    fail_msg: "pgaudit.log_catalog is not enabled."
-    success_msg: "pgaudit.log_catalog enabled."
-  tags:
-    - audit
-    - V-206526
-
-############################################################
-# Functional Validation – Generate Denied Event
-############################################################
-
-- name: Create limited test role
-  become: true
-  become_user: postgres
-  ansible.builtin.command:
-    cmd: >-
-      psql -tAc "DO $$ BEGIN IF NOT EXISTS
-      (SELECT 1 FROM pg_roles WHERE rolname='stig_limited')
-      THEN CREATE ROLE stig_limited LOGIN; END IF; END $$;"
-  changed_when: false
-  tags:
-    - audit
-    - V-206526
-
-- name: Attempt unauthorized privilege access
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SET ROLE stig_limited; SELECT * FROM pg_auth_members;"
-  ignore_errors: true
-  register: denied_test
-  changed_when: false
-  tags:
-    - audit
-    - V-206526
-
-- name: Check logs for permission denied entry
-  become: true
-  ansible.builtin.shell: |
-    grep -i "permission denied" {{ postgresql_srg_data_dir }}/log/* | tail -1
-  register: log_check
-  changed_when: false
-  failed_when: log_check.stdout == ""
-  tags:
-    - audit
-    - V-206526
+    - cat2

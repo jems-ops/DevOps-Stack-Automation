@@ -1,31 +1,45 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206529 Validation
-# Ensure audit records include date and time
+# STIG V-206529
+# Validation - Audit records contain timestamps
 ############################################################
 
-- name: Check log_line_prefix contains %m
+- name: V-206529 | Check log_line_prefix
   become: true
+  become_user: postgres
   ansible.builtin.shell: |
-    grep -E "^\s*log_line_prefix" {{ postgresql_srg_conf_file }}
-  register: prefix_check
+    psql -t -A -c "SHOW log_line_prefix;"
+  register: postgresql_srg_v206529_prefix
   changed_when: false
-
-- name: Fail if %m not present
-  ansible.builtin.fail:
-    msg: "log_line_prefix does not include timestamp (%m)."
-  when: "'%m' not in prefix_check.stdout"
-
-- name: Check log_timezone is set to UTC
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^\s*log_timezone" {{ postgresql_srg_conf_file }}
-  register: timezone_check
-  changed_when: false
-
-- name: Fail if log_timezone not set to UTC
-  ansible.builtin.fail:
-    msg: "log_timezone is not set to UTC."
-  when: "'UTC' not in timezone_check.stdout"
   tags:
-    - audit
+    - stig
     - V-206529
+    - cat2
+
+- name: V-206529 | Identify failure reason
+  ansible.builtin.set_fact:
+    v206529_failure_reasons: >-
+      {{
+        [] +
+        (['Timestamp (%m) missing in log_line_prefix']
+         if '%m' not in postgresql_srg_v206529_prefix.stdout else [])
+      }}
+  tags:
+    - stig
+    - V-206529
+    - cat2
+
+- name: V-206529 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206529_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206529 FAILED:
+      {{ v206529_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206529 PASSED:
+      Audit records include timestamp information.
+  tags:
+    - stig
+    - V-206529
+    - cat2

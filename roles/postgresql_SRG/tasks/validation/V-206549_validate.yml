@@ -1,0 +1,62 @@
+---
+############################################################
+# STIG V-206549
+# Validation - Ensure no demo/sample components
+############################################################
+
+- name: V-206549 | Validate databases
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "
+    SELECT datname FROM pg_database
+    WHERE datistemplate = false;"
+  register: v206549_validate_dbs
+  changed_when: false
+  tags:
+    - stig
+    - V-206549
+    - cat2
+
+- name: V-206549 | Assert only approved databases exist
+  ansible.builtin.assert:
+    that:
+      - v206549_validate_dbs.stdout_lines | difference(postgresql_srg_allowed_databases) | length == 0
+    fail_msg: >
+      STIG V-206549 FAILED:
+      Unauthorized or demo databases detected.
+    success_msg: >
+      STIG V-206549 PASSED:
+      No demonstration/sample databases present.
+  tags:
+    - stig
+    - V-206549
+    - cat2
+
+- name: V-206549 | Validate extensions
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -A -c \
+    "SELECT extname FROM pg_extension;"
+  register: v206549_validate_ext
+  changed_when: false
+  tags:
+    - stig
+    - V-206549
+    - cat2
+
+- name: V-206549 | Assert only approved extensions exist
+  ansible.builtin.assert:
+    that:
+      - v206549_validate_ext.stdout_lines | difference(postgresql_srg_allowed_extensions) | length == 0
+    fail_msg: >
+      STIG V-206549 FAILED:
+      Unauthorized extensions detected.
+    success_msg: >
+      STIG V-206549 PASSED:
+      No sample/demo extensions present.
+  tags:
+    - stig
+    - V-206549
+    - cat2

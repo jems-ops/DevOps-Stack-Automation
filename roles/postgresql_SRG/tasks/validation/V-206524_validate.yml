@@ -1,11 +1,26 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206524 Validation
-# Allow designated personnel to select auditable events
+# STIG V-206524
+# Validation - Audit Configuration Control
 ############################################################
 
-- name: Verify only authorized roles are superusers
+- name: "V-206524 | Check SUPERUSER roles"
   become: true
   become_user: postgres
-  ansible.builtin.command: psql -tAc "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
-  register: superuser_list
+  ansible.builtin.shell: psql -t -A -F',' -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206524_superusers
   changed_when: false
+  tags: [V-206524, stig, cat2]
+
+- name: "V-206524 | Assert only authorized admin roles control auditing"
+  ansible.builtin.assert:
+    that:
+      - v206524_superusers.stdout_lines | difference(postgresql_srg_admin_roles) | length == 0
+    fail_msg: >
+      STIG V-206524 FAILED:
+      Unauthorized roles can modify audit configuration:
+      {{ v206524_superusers.stdout_lines }}
+    success_msg: >
+      STIG V-206524 PASSED:
+      Only authorized roles can configure auditing.
+  tags: [V-206524, stig, cat2]

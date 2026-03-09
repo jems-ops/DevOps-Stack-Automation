@@ -22,6 +22,7 @@ postgresql_srg_service_name: postgresql
 postgresql_srg_data_dir: /var/lib/pgsql/data
 postgresql_srg_conf_file: "{{ postgresql_srg_data_dir }}/postgresql.conf"
 postgresql_srg_hba_file: "{{ postgresql_srg_data_dir }}/pg_hba.conf"
+postgresql_srg_log_directory: "{{ postgresql_srg_data_dir }}/log"
 postgresql_srg_pg_bin_path: "/usr/pgsql-{{ postgresql_srg_pg_version }}/bin"
 postgresql_srg_psql_path: "{{ postgresql_srg_pg_bin_path }}/psql"
 
@@ -106,34 +107,96 @@ postgresql_srg_audit_postgres_binaries: true
 ############################################################
 
 # --- CAT I Controls ---
-postgresql_srg_v206520_enabled: true
-postgresql_srg_v206521_enabled: true
-postgresql_srg_v206545_enabled: true
-postgresql_srg_v206555_enabled: true
-postgresql_srg_v206556_enabled: true
-postgresql_srg_v206557_enabled: true
-postgresql_srg_v206559_enabled: true
-postgresql_srg_v206561_enabled: true
-postgresql_srg_v206562_enabled: true
-postgresql_srg_v206570_enabled: true
-postgresql_srg_v206604_enabled: true
-postgresql_srg_v206605_enabled: true
-postgresql_srg_v265854_enabled: true
-postgresql_srg_v233495_enabled: true
+postgresql_srg_v206520_enabled: false
+postgresql_srg_v206521_enabled: false
+postgresql_srg_v206545_enabled: false
+postgresql_srg_v206555_enabled: false
+postgresql_srg_v206556_enabled: false
+postgresql_srg_v206557_enabled: false
+postgresql_srg_v206559_enabled: false
+postgresql_srg_v206561_enabled: false
+postgresql_srg_v206562_enabled: false
+postgresql_srg_v206570_enabled: false
+postgresql_srg_v206604_enabled: false
+postgresql_srg_v206605_enabled: false
+postgresql_srg_v265854_enabled: false
+postgresql_srg_v233495_enabled: false
 
 # --- CAT II Controls ---
-postgresql_srg_v206519_enabled: false
-postgresql_srg_v206522_enabled: false
-postgresql_srg_v206523_enabled: false
-postgresql_srg_v206524_enabled: false
-postgresql_srg_v206525_enabled: false
-postgresql_srg_v206526_enabled: false
-postgresql_srg_v206527_enabled: false
-postgresql_srg_v206528_enabled: false
-postgresql_srg_v206529_enabled: false
-postgresql_srg_v206530_enabled: false
-postgresql_srg_v206531_enabled: false
-postgresql_srg_v206532_enabled: false
-postgresql_srg_v206533_enabled: false
-postgresql_srg_v206534_enabled: false
-postgresql_srg_v206538_enabled: false
+postgresql_srg_v206519_enabled: true
+postgresql_srg_v206522_enabled: true
+postgresql_srg_v206523_enabled: true
+postgresql_srg_v206524_enabled: true
+postgresql_srg_v206525_enabled: true
+postgresql_srg_v206526_enabled: true
+postgresql_srg_v206527_enabled: true
+postgresql_srg_v206528_enabled: true
+postgresql_srg_v206529_enabled: true
+postgresql_srg_v206530_enabled: true
+postgresql_srg_v206531_enabled: true
+postgresql_srg_v206532_enabled: true
+postgresql_srg_v206533_enabled: true
+postgresql_srg_v206534_enabled: true
+postgresql_srg_v206538_enabled: true
+
+############################################################
+# V-206519 Settings
+############################################################
+
+postgresql_srg_admin_roles:
+  - postgres
+
+postgresql_srg_admin_conn_limit: 10
+postgresql_srg_user_conn_limit: 2
+
+postgresql_srg_connlimit_exempt_roles: []
+
+############################################################
+# V-206525 Configuration
+############################################################
+
+# Audit requirements
+postgresql_srg_pgaudit_classes: "ddl, role, write, read"
+postgresql_srg_enable_catalog_audit: "on"
+
+############################################################
+# V-206552 Configuration
+############################################################
+postgresql_srg_authorized_exec_roles:
+  - postgres
+
+############################################################
+# V-206551 Configuration
+############################################################
+postgresql_srg_disable_replication: true
+postgresql_srg_disable_remote_access: true
+postgresql_srg_disable_logical_decoding: true
+
+############################################################
+# V-206550 Configuration
+############################################################
+postgresql_srg_allowed_extensions:
+  - plpgsql
+  - pgaudit
+
+postgresql_srg_allowed_languages:
+  - plpgsql
+
+postgresql_srg_allowed_packages:
+  - postgresql16-server
+  - postgresql16
+  - postgresql16-libs
+
+############################################################
+# V-206549 Configuration
+############################################################
+postgresql_srg_allowed_databases:
+  - postgres
+  - myappdb
+
+############################################################
+# V-206548 Configuration
+############################################################
+postgresql_srg_ddl_role: db_ddl
+postgresql_srg_authorized_ddl_users:
+  - postgres

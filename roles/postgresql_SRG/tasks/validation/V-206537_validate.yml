@@ -1,0 +1,54 @@
+---
+############################################################
+# STIG V-206537
+# Validation - DBMS uses system clock
+############################################################
+
+- name: V-206537 | Check chrony status
+  become: true
+  ansible.builtin.shell: chronyc tracking
+  register: v206537_chrony
+  changed_when: false
+  tags:
+    - stig
+    - V-206537
+    - cat2
+
+- name: V-206537 | Check PostgreSQL timezone
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: psql -t -A -c "SHOW timezone;"
+  register: v206537_timezone
+  changed_when: false
+  tags:
+    - stig
+    - V-206537
+    - cat2
+
+- name: V-206537 | Check log_line_prefix
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: psql -t -A -c "SHOW log_line_prefix;"
+  register: v206537_prefix
+  changed_when: false
+  tags:
+    - stig
+    - V-206537
+    - cat2
+
+- name: V-206537 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - "'UTC' in v206537_timezone.stdout"
+      - "'%m' in v206537_prefix.stdout"
+      - "'Leap status' in v206537_chrony.stdout"
+    fail_msg: >
+      STIG V-206537 FAILED:
+      System clock synchronization or timestamp configuration not compliant.
+    success_msg: >
+      STIG V-206537 PASSED:
+      DBMS uses synchronized system clock for timestamps.
+  tags:
+    - stig
+    - V-206537
+    - cat2

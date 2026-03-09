@@ -1,0 +1,75 @@
+---
+############################################################
+# STIG V-206539
+# Enforcement - Protect audit information from modification
+############################################################
+#
+# COMPLIANT WHEN:
+# - Log directory protected (0700)
+# - Log files owned by postgres
+# - Permissions restrictive (0600/0640)
+# - No unauthorized superuser
+# comment: PostgreSQL audit log files are stored in a dedicated directory owned by the postgres account with permissions set to 0700. Log files are owned by postgres and restricted to 0600. Logging collector is enabled, and superuser privileges are restricted to the authorized administrative account. Audit information is protected from unauthorized modification. Therefore, V-206539 is Not a Finding.
+############################################################
+
+- name: V-206539 | Ensure log directory protected
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_log_directory }}"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+    state: directory
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Secure existing log files
+  become: true
+  ansible.builtin.shell: |
+    find {{ postgresql_srg_log_directory }} -type f -exec chown postgres:postgres {} \; -exec chmod 0600 {} \;
+  changed_when: false
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Ensure logging_collector enabled
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*logging_collector\s*='
+    line: "logging_collector = on"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Validate superuser restriction
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206539_superusers
+  changed_when: false
+  tags:
+    - stig
+    - V-206539
+    - cat2
+
+- name: V-206539 | Assert only postgres is superuser
+  ansible.builtin.assert:
+    that:
+      - v206539_superusers.stdout_lines | length == 1
+      - "'postgres' in v206539_superusers.stdout"
+    fail_msg: >
+      STIG V-206539 FAILED:
+      Unauthorized user could modify audit data.
+    success_msg: >
+      Audit information protected from modification.
+  tags:
+    - stig
+    - V-206539
+    - cat2

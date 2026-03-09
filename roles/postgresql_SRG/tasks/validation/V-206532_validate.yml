@@ -1,24 +1,56 @@
+---
 ############################################################
-# Validation for V-206532
+# STIG V-206532
+# Validation - Audit records contain outcome information
 ############################################################
 
-- name: Generate failed event
+- name: V-206532 | Gather outcome logging settings
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "SELECT * FROM non_existing_table;"
-  failed_when: false
-  tags:
-    - audit
-    - V-206532
-
-- name: Check log for error outcome
-  become: true
-  ansible.builtin.shell: |
-    grep -i "ERROR" {{ postgresql_srg_data_dir }}/log/* | tail -1
-  register: error_check
+    psql -t -A -c "SELECT current_setting('pgaudit.log', true)
+    UNION ALL SELECT current_setting('log_min_error_statement')
+    UNION ALL SELECT current_setting('log_error_verbosity');"
+  register: postgresql_srg_v206532_settings
   changed_when: false
-  failed_when: error_check.stdout == ""
   tags:
-    - audit
+    - stig
     - V-206532
+    - cat2
+
+- name: V-206532 | Parse results
+  ansible.builtin.set_fact:
+    v206532_list: "{{ postgresql_srg_v206532_settings.stdout_lines }}"
+  tags:
+    - stig
+    - V-206532
+    - cat2
+
+- name: V-206532 | Identify failure reasons
+  ansible.builtin.set_fact:
+    v206532_failure_reasons: >-
+      {{
+        [] +
+        (['pgaudit not properly configured'] if 'ddl' not in v206532_list[0] else []) +
+        (['Failed statements not logged'] if 'error' not in v206532_list[1] else []) +
+        (['Error verbosity not configured'] if v206532_list[2] == '' else [])
+      }}
+  tags:
+    - stig
+    - V-206532
+    - cat2
+
+- name: V-206532 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206532_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206532 FAILED:
+      {{ v206532_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206532 PASSED:
+      Audit records include outcome (success/failure) information.
+  tags:
+    - stig
+    - V-206532
+    - cat2

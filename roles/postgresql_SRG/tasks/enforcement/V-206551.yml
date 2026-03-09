@@ -1,0 +1,79 @@
+---
+############################################################
+# STIG V-206551
+# Enforcement - Disable unused integrated components
+############################################################
+#
+# COMPLIANT WHEN:
+# - Unused replication disabled
+# - Logical decoding disabled
+# - Remote listener disabled if not required
+# coment: The PostgreSQL instance has been reviewed. Integrated DBMS components that are not required for mission operations, including replication and remote listening services, have been disabled via configuration settings. Therefore, V-206551 is Not a Finding.
+############################################################
+
+############################
+# Disable Remote Listening
+############################
+
+- name: V-206551 | Disable remote TCP listener
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*listen_addresses\s*='
+    line: "listen_addresses = 'localhost'"
+    backup: true
+  when: postgresql_srg_disable_remote_access
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206551
+    - cat2
+
+
+############################
+# Disable Replication
+############################
+
+- name: V-206551 | Disable replication slots
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*max_replication_slots\s*='
+    line: "max_replication_slots = 0"
+  when: postgresql_srg_disable_replication
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206551
+    - cat2
+
+- name: V-206551 | Disable WAL senders
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*max_wal_senders\s*='
+    line: "max_wal_senders = 0"
+  when: postgresql_srg_disable_replication
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206551
+    - cat2
+
+
+############################
+# Disable Logical Decoding
+############################
+
+- name: V-206551 | Disable logical decoding
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*wal_level\s*='
+    line: "wal_level = replica"
+  when: postgresql_srg_disable_logical_decoding
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206551
+    - cat2

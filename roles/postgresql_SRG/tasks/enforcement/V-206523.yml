@@ -1,71 +1,68 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206523
-# Configure DBMS to generate DoD minimum auditable events
+# STIG V-206523
+# Enforcement - Audit Record Generation
+############################################################
+#
+# COMPLIANT WHEN:
+# - log_connections = on
+# - log_disconnections = on
+# - log_statement includes ddl
+# - shared_preload_libraries includes pgaudit
+# - pgaudit.log includes read, write, ddl, role
+# - pgaudit.log_catalog = on
+#
+# VERIFY BY RUNNING:
+# SHOW log_connections;
+# SHOW log_disconnections;
+# SHOW log_statement;
+# SHOW shared_preload_libraries;
+# SHOW pgaudit.log;
+# SHOW pgaudit.log_catalog;
+# Comment: PostgreSQL generates audit records for all DoD-defined auditable
+# events via connection/disconnection logging, DDL statement logging, and
+# pgaudit (read, write, ddl, role). Catalog auditing is enabled.
+# Therefore, V-206523 is Not a Finding.
 ############################################################
 
-- name: Ensure pgaudit is enabled
+- name: "V-206523 | Enable connection logging"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*shared_preload_libraries\s*='
-    line: "shared_preload_libraries = 'pgaudit'"
-    backup: true
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206523
+  become_user: postgres
+  ansible.builtin.shell: psql -c "ALTER SYSTEM SET log_connections = 'on';"
+  tags: [V-206523, stig, cat2]
 
-- name: Configure pgaudit for DoD minimum events
+- name: "V-206523 | Enable disconnection logging"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*pgaudit\.log\s*='
-    line: "pgaudit.log = 'ddl, role, write, read'"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206523
+  become_user: postgres
+  ansible.builtin.shell: psql -c "ALTER SYSTEM SET log_disconnections = 'on';"
+  tags: [V-206523, stig, cat2]
 
-- name: Enable log_connections
+- name: "V-206523 | Enable DDL statement logging"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_connections\s*='
-    line: "log_connections = on"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206523
+  become_user: postgres
+  ansible.builtin.shell: psql -c "ALTER SYSTEM SET log_statement = 'ddl';"
+  tags: [V-206523, stig, cat2]
 
-- name: Enable log_disconnections
+- name: "V-206523 | Enable pgaudit extension"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_disconnections\s*='
-    line: "log_disconnections = on"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206523
+  become_user: postgres
+  ansible.builtin.shell: psql -c "ALTER SYSTEM SET shared_preload_libraries = 'pgaudit';"
+  tags: [V-206523, stig, cat2]
 
-- name: Ensure failed statements are logged
+- name: "V-206523 | Configure pgaudit event classes"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_min_error_statement\s*='
-    line: "log_min_error_statement = error"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206523
+  become_user: postgres
+  ansible.builtin.shell: psql -c "ALTER SYSTEM SET pgaudit.log = 'read, write, ddl, role';"
+  tags: [V-206523, stig, cat2]
 
-- name: Ensure log_line_prefix includes required identifiers
+- name: "V-206523 | Enable catalog auditing"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_line_prefix\s*='
-    line: "log_line_prefix = '%m %H %p %u %d %c %h %r %a %e '"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206523
+  become_user: postgres
+  ansible.builtin.shell: psql -c "ALTER SYSTEM SET pgaudit.log_catalog = 'on';"
+  tags: [V-206523, stig, cat2]
+
+- name: "V-206523 | Reload PostgreSQL"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: psql -c "SELECT pg_reload_conf();"
+  tags: [V-206523, stig, cat2]

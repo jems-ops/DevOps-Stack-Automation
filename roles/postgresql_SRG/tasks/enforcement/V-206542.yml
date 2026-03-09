@@ -1,0 +1,77 @@
+---
+############################################################
+# STIG V-206542
+# Enforcement - Protect audit configuration from modification
+############################################################
+#
+# COMPLIANT WHEN:
+# - postgresql.conf 0600
+# - postgresql.auto.conf 0600
+# - pg_hba.conf 0600
+# - Owned by postgres
+# - No unauthorized superusers
+# comment: PostgreSQL audit configuration files (postgresql.conf, postgresql.auto.conf, and pg_hba.conf) are restricted to the postgres account with permissions set to 0600. Superuser privileges are restricted to the approved administrative account. Audit configuration is protected from unauthorized modification. Therefore, V-206542 is Not a Finding.
+############################################################
+
+- name: V-206542 | Protect postgresql.conf
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_conf_file }}"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  tags:
+    - stig
+    - V-206542
+    - cat2
+
+- name: V-206542 | Protect postgresql.auto.conf
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_directory }}/postgresql.auto.conf"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  tags:
+    - stig
+    - V-206542
+    - cat2
+
+- name: V-206542 | Protect pg_hba.conf
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_directory }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  tags:
+    - stig
+    - V-206542
+    - cat2
+
+- name: V-206542 | Validate only approved SUPERUSER exists
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206542_superusers
+  changed_when: false
+  tags:
+    - stig
+    - V-206542
+    - cat2
+
+- name: V-206542 | Assert superuser restriction
+  ansible.builtin.assert:
+    that:
+      - v206542_superusers.stdout_lines | length == 1
+      - "'postgres' in v206542_superusers.stdout"
+    fail_msg: >
+      STIG V-206542 FAILED:
+      Unauthorized superuser can modify audit configuration.
+    success_msg: >
+      Audit configuration protected from unauthorized modification.
+  tags:
+    - stig
+    - V-206542
+    - cat2

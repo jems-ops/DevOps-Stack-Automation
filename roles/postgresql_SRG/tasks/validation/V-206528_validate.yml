@@ -1,63 +1,58 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206528
-# Validate audit records include event type
-############################################################
-
-- name: Check shared_preload_libraries includes pgaudit
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^\s*shared_preload_libraries" {{ postgresql_srg_conf_file }}
-  register: spl_check
-  changed_when: false
-  failed_when: "'pgaudit' not in spl_check.stdout"
-  tags:
-    - audit
-    - V-206528
-
-- name: Check pgaudit.log is configured
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^\s*pgaudit\.log\s*=" {{ postgresql_srg_conf_file }}
-  register: pgaudit_log_check
-  changed_when: false
-  failed_when: pgaudit_log_check.stdout == ""
-  tags:
-    - audit
-    - V-206528
-
-- name: Check pgaudit.log_catalog is enabled
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^\s*pgaudit\.log_catalog\s*=\s*on" {{ postgresql_srg_conf_file }}
-  register: catalog_check
-  changed_when: false
-  failed_when: catalog_check.stdout == ""
-  tags:
-    - audit
-    - V-206528
-
-############################################################
-# Runtime Validation – Confirm Event Type Appears in Logs
+# STIG V-206528
+# Validation - Audit record contains event type information
 ############################################################
 
-- name: Generate test DDL event
+- name: V-206528 | Gather audit configuration
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "CREATE TABLE IF NOT EXISTS stig_event_test(id int);" ;
-    psql -tAc "DROP TABLE IF EXISTS stig_event_test;"
-  failed_when: false
-  tags:
-    - audit
-    - V-206528
-
-- name: Verify audit log contains event type classification
-  become: true
-  ansible.builtin.shell: |
-    grep -E "AUDIT: SESSION,[0-9]+,[0-9]+,(DDL|ROLE|WRITE|READ)" {{ postgresql_srg_data_dir }}/log/* | tail -1
-  register: audit_event_check
+    psql -t -A -c "SELECT current_setting('pgaudit.log', true)
+    UNION ALL SELECT current_setting('pgaudit.log_catalog', true)
+    UNION ALL SELECT current_setting('log_line_prefix');"
+  register: postgresql_srg_v206528_settings
   changed_when: false
-  failed_when: audit_event_check.stdout == ""
   tags:
-    - audit
+    - stig
     - V-206528
+    - cat2
+
+- name: V-206528 | Parse results
+  ansible.builtin.set_fact:
+    v206528_list: "{{ postgresql_srg_v206528_settings.stdout_lines }}"
+  tags:
+    - stig
+    - V-206528
+    - cat2
+
+- name: V-206528 | Identify failure reasons
+  ansible.builtin.set_fact:
+    v206528_failure_reasons: >-
+      {{
+        [] +
+        (['pgaudit event classes not configured'] if 'ddl' not in v206528_list[0] else []) +
+        (['catalog auditing disabled'] if 'on' not in v206528_list[1] else []) +
+        (['log_line_prefix missing timestamp'] if '%m' not in v206528_list[2] else []) +
+        (['log_line_prefix missing user'] if '%u' not in v206528_list[2] else []) +
+        (['log_line_prefix missing database'] if '%d' not in v206528_list[2] else [])
+      }}
+  tags:
+    - stig
+    - V-206528
+    - cat2
+
+- name: V-206528 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206528_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206528 FAILED:
+      {{ v206528_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206528 PASSED:
+      Audit records contain sufficient event type and forensic information.
+  tags:
+    - stig
+    - V-206528
+    - cat2

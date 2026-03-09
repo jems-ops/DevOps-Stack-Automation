@@ -1,0 +1,45 @@
+---
+############################################################
+# STIG V-206541
+# Validation - Audit features protected
+############################################################
+
+- name: V-206541 | Check postgresql.conf permissions
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_conf_file }}"
+  register: v206541_conf
+  tags:
+    - stig
+    - V-206541
+    - cat2
+
+- name: V-206541 | Check superusers
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206541_superusers
+  changed_when: false
+  tags:
+    - stig
+    - V-206541
+    - cat2
+
+- name: V-206541 | Assert configuration protection
+  ansible.builtin.assert:
+    that:
+      - v206541_conf.stat.mode | int(base=8) <= 600
+      - v206541_conf.stat.pw_name == "postgres"
+      - v206541_superusers.stdout_lines | length == 1
+      - "'postgres' in v206541_superusers.stdout"
+    fail_msg: >
+      STIG V-206541 FAILED:
+      Audit features not properly protected.
+    success_msg: >
+      STIG V-206541 PASSED:
+      Audit features protected from unauthorized access.
+  tags:
+    - stig
+    - V-206541
+    - cat2

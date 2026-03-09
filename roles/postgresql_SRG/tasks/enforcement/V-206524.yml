@@ -1,27 +1,53 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206524
-# Allow designated personnel to select auditable events
+# STIG V-206524
+# Enforcement - Restrict Audit Configuration Control
+############################################################
+#
+# COMPLIANT WHEN:
+# - Only authorized roles have SUPERUSER
+# - PostgreSQL config files owned by postgres
+# - Config files not writable by non-admin users
+#
+# VERIFY BY:
+# SELECT rolname, rolsuper FROM pg_roles;
+# ls -l postgresql.conf
+# ls -l pg_hba.conf
+# comment: PostgreSQL audit config is restricted to the postgres admin role.
+# No application accounts retain SUPERUSER. Config files are owned/writable
+# only by postgres. Therefore, V-206524 is Not a Finding.
 ############################################################
 
-- name: Ensure pgaudit is enabled
+- name: "V-206524 | Gather SUPERUSER roles"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*shared_preload_libraries\s*='
-    line: "shared_preload_libraries = 'pgaudit'"
-    backup: true
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206524
+  become_user: postgres
+  ansible.builtin.shell: psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206524_superusers
+  changed_when: false
+  tags: [V-206524, stig, cat2]
 
-- name: Configure default audit event classes
+- name: "V-206524 | Remove unauthorized SUPERUSER roles"
   become: true
-  ansible.builtin.lineinfile:
+  become_user: postgres
+  ansible.builtin.shell: >
+    psql -c "ALTER ROLE {{ item }} NOSUPERUSER;"
+  loop: "{{ v206524_superusers.stdout_lines }}"
+  when:
+    - item not in postgresql_srg_admin_roles
+  tags: [V-206524, stig, cat2]
+
+- name: "V-206524 | Ensure postgresql.conf ownership"
+  ansible.builtin.file:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*pgaudit\.log\s*='
-    line: "pgaudit.log = 'ddl, role, write, read'"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206524
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  tags: [V-206524, stig, cat2]
+
+- name: "V-206524 | Ensure pg_hba.conf ownership"
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_hba_file }}"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  tags: [V-206524, stig, cat2]

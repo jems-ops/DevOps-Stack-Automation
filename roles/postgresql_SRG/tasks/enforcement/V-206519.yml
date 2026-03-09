@@ -1,53 +1,55 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206519
-# Ensure Denial of Privilege Escalation is Logged
+# STIG V-206519
+# Enforcement - Limit Concurrent Sessions Per Role
 ############################################################
 
-- name: V-206519 | Ensure logging_collector is enabled
+- name: "V-206519 | Gather current role connection limits"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*logging_collector\s*='
-    line: "logging_collector = on"
-    backup: true
-  notify: Restart PostgreSQL
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -F',' -c "SELECT rolname, rolconnlimit FROM pg_roles;"
+  register: postgresql_srg_connlimit_raw
+  changed_when: false
   tags:
-    - stig
     - V-206519
-    - logging
+    - stig
+    - cat2
 
-- name: V-206519 | Ensure log_destination is stderr
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_destination\s*='
-    line: "log_destination = 'stderr'"
-  notify: Restart PostgreSQL
+- name: "V-206519 | Parse role connection limits"
+  ansible.builtin.set_fact:
+    postgresql_srg_roles_parsed: >-
+      {{
+        postgresql_srg_connlimit_raw.stdout_lines
+        | map('split', ',')
+        | list
+      }}
   tags:
-    - stig
     - V-206519
-    - logging
+    - stig
+    - cat2
 
-- name: V-206519 | Ensure log_min_messages is error
+- name: "V-206519 | Enforce connection limits per role"
   become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_min_messages\s*='
-    line: "log_min_messages = error"
-  notify: Restart PostgreSQL
+  become_user: postgres
+  ansible.builtin.shell: >
+    psql -c "ALTER ROLE {{ item[0] }}
+    CONNECTION LIMIT
+    {{
+      (item[0] in postgresql_srg_admin_roles)
+      | ternary(postgresql_srg_admin_conn_limit,
+                postgresql_srg_user_conn_limit)
+    }};"
+  loop: "{{ postgresql_srg_roles_parsed }}"
+  when:
+    - item[0] not in postgresql_srg_connlimit_exempt_roles
+    - not item[0].startswith('pg_')
+    - item[1] | int != (
+        (item[0] in postgresql_srg_admin_roles)
+        | ternary(postgresql_srg_admin_conn_limit,
+                  postgresql_srg_user_conn_limit)
+      )
   tags:
-    - stig
     - V-206519
-    - logging
-
-- name: V-206519 | Ensure log_min_error_statement is error
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_min_error_statement\s*='
-    line: "log_min_error_statement = error"
-  notify: Restart PostgreSQL
-  tags:
     - stig
-    - V-206519
-    - logging
+    - cat2

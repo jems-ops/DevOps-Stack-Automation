@@ -1,0 +1,69 @@
+---
+############################################################
+# STIG V-206541
+# Enforcement - Protect audit features from unauthorized access
+############################################################
+#
+# COMPLIANT WHEN:
+# - postgresql.conf owned by postgres
+# - Config permissions 0600
+# - Log directory protected
+# - No unauthorized SUPERUSER roles
+#
+# VERIFY:
+# ls -l postgresql.conf
+# SELECT rolname FROM pg_roles WHERE rolsuper = true;
+# comment: PostgreSQL audit configuration files are restricted to the postgres account with permissions set to 0600. The log directory is restricted to 0700. Only the designated superuser account is permitted to modify audit settings. Audit features are protected from unauthorized access. Therefore, V-206541 is Not a Finding.
+############################################################
+
+- name: V-206541 | Protect postgresql.conf ownership
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_conf_file }}"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  tags:
+    - stig
+    - V-206541
+    - cat2
+
+- name: V-206541 | Ensure log directory protected
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_log_directory }}"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+    state: directory
+  tags:
+    - stig
+    - V-206541
+    - cat2
+
+- name: V-206541 | Validate only approved SUPERUSER exists
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206541_superusers
+  changed_when: false
+  tags:
+    - stig
+    - V-206541
+    - cat2
+
+- name: V-206541 | Assert only postgres is superuser
+  ansible.builtin.assert:
+    that:
+      - v206541_superusers.stdout_lines | length == 1
+      - v206541_superusers.stdout is search('postgres')
+    fail_msg: >
+      STIG V-206541 FAILED:
+      Unauthorized superuser can modify audit features.
+    success_msg: >
+      Audit configuration protected by restricted superuser access.
+  tags:
+    - stig
+    - V-206541
+    - cat2

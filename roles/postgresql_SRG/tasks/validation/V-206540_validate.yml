@@ -1,0 +1,58 @@
+---
+############################################################
+# STIG V-206540
+# Validation - Audit logs protected from deletion
+############################################################
+
+- name: V-206540 | Check directory permissions
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_log_directory }}"
+  register: v206540_dir
+  tags:
+    - stig
+    - V-206540
+    - cat2
+
+- name: V-206540 | Find log files
+  become: true
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_log_directory }}"
+    patterns: "*.log"
+  register: v206540_logs
+  tags:
+    - stig
+    - V-206540
+    - cat2
+
+- name: V-206540 | Assert directory protection
+  ansible.builtin.assert:
+    that:
+      - v206540_dir.stat.pw_name == "postgres"
+      - v206540_dir.stat.gr_name == "postgres"
+      - v206540_dir.stat.mode | int(base=8) <= 700
+    fail_msg: >
+      STIG V-206540 FAILED:
+      Log directory permissions allow potential deletion.
+    success_msg: >
+      Log directory ownership and permissions compliant.
+  tags:
+    - stig
+    - V-206540
+    - cat2
+
+- name: V-206540 | Validate file protections
+  ansible.builtin.assert:
+    that:
+      - item.mode | int(base=8) <= 600
+    loop: "{{ v206540_logs.files }}"
+    fail_msg: >
+      STIG V-206540 FAILED:
+      One or more log files are not protected from deletion.
+    success_msg: >
+      All audit log files protected from unauthorized deletion.
+  when: v206540_logs.matched > 0
+  tags:
+    - stig
+    - V-206540
+    - cat2

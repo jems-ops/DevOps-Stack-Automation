@@ -1,0 +1,75 @@
+---
+############################################################
+# STIG V-206543
+# Enforcement - Protect audit features from unauthorized removal
+############################################################
+#
+# COMPLIANT WHEN:
+# - pgaudit installed
+# - pgaudit in shared_preload_libraries
+# - pgaudit extension exists
+# - Only approved superuser
+# comment: The PostgreSQL audit extension (pgaudit) is installed and preloaded via shared_preload_libraries. The pgaudit extension exists in the database. Configuration files are restricted to the postgres account, and superuser privileges are limited to the authorized administrative account. Audit features are protected from unauthorized removal. Therefore, V-206543 is Not a Finding.
+############################################################
+
+- name: V-206543 | Ensure pgaudit package installed
+  become: true
+  ansible.builtin.package:
+    name: "{{ postgresql_srg_pgaudit_package }}"
+    state: present
+  tags:
+    - stig
+    - V-206543
+    - cat2
+
+- name: V-206543 | Ensure pgaudit is preloaded
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
+    line: "shared_preload_libraries = 'pgaudit'"
+    backup: yes
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206543
+    - cat2
+
+- name: V-206543 | Ensure pgaudit extension exists
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -A -c \
+    "CREATE EXTENSION IF NOT EXISTS pgaudit;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206543
+    - cat2
+
+- name: V-206543 | Validate superuser restriction
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206543_superusers
+  changed_when: false
+  tags:
+    - stig
+    - V-206543
+    - cat2
+
+- name: V-206543 | Assert only postgres is superuser
+  ansible.builtin.assert:
+    that:
+      - v206543_superusers.stdout_lines | length == 1
+      - "'postgres' in v206543_superusers.stdout"
+    fail_msg: >
+      STIG V-206543 FAILED:
+      Unauthorized superuser could remove audit features.
+    success_msg: >
+      Audit features protected from unauthorized removal.
+  tags:
+    - stig
+    - V-206543
+    - cat2

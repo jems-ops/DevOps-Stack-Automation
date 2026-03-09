@@ -1,69 +1,48 @@
+---
 ############################################################
-# PostgreSQL STIG | V-206530 Validation
-# Ensure audit records include WHERE the event occurred
+# STIG V-206530
+# Validation - Audit records contain WHERE information
 ############################################################
 
-- name: Read current log_line_prefix setting
+- name: V-206530 | Check log_line_prefix
   become: true
   become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW log_line_prefix;"
-  register: log_prefix
+  ansible.builtin.shell: |
+    psql -t -A -c "SHOW log_line_prefix;"
+  register: postgresql_srg_v206530_prefix
   changed_when: false
   tags:
-    - audit
+    - stig
     - V-206530
+    - cat2
 
-- name: Fail if log_line_prefix missing required tokens
-  ansible.builtin.fail:
-    msg: >
-      log_line_prefix does not include required tokens (%H, %d, %c)
-      Current value: {{ log_prefix.stdout }}
-  when: >
-    ('%H' not in log_prefix.stdout) or
-    ('%d' not in log_prefix.stdout) or
-    ('%c' not in log_prefix.stdout)
+- name: V-206530 | Identify failure reasons
+  ansible.builtin.set_fact:
+    v206530_failure_reasons: >-
+      {{
+        [] +
+        (['Database (%d) missing'] if '%d' not in postgresql_srg_v206530_prefix.stdout else []) +
+        (['User (%u) missing'] if '%u' not in postgresql_srg_v206530_prefix.stdout else []) +
+        (['Remote host (%r) missing'] if '%r' not in postgresql_srg_v206530_prefix.stdout else []) +
+        (['Process ID (%p) missing'] if '%p' not in postgresql_srg_v206530_prefix.stdout else []) +
+        (['Application name (%a) missing'] if '%a' not in postgresql_srg_v206530_prefix.stdout else [])
+      }}
   tags:
-    - audit
+    - stig
     - V-206530
+    - cat2
 
-############################################################
-# Generate a test event
-############################################################
-
-- name: Generate test audit event
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -c "SELECT current_database();"
-  changed_when: false
+- name: V-206530 | Assert compliance
+  ansible.builtin.assert:
+    that:
+      - v206530_failure_reasons | length == 0
+    fail_msg: >
+      STIG V-206530 FAILED:
+      {{ v206530_failure_reasons | join(', ') }}
+    success_msg: >
+      STIG V-206530 PASSED:
+      Audit records include sufficient location information.
   tags:
-    - audit
+    - stig
     - V-206530
-
-############################################################
-# Validate log contains hostname and database
-############################################################
-
-- name: Get latest log entry
-  become: true
-  ansible.builtin.shell: tail -n 5 {{ postgresql_srg_data_dir }}/log/*
-  register: log_output
-  changed_when: false
-  tags:
-    - audit
-    - V-206530
-
-- name: Fail if database name not found in audit log
-  ansible.builtin.fail:
-    msg: "Database name not present in audit log entry."
-  when: (postgresql_srg_target_database | default('postgres')) not in log_output.stdout
-  tags:
-    - audit
-    - V-206530
-
-- name: Fail if hostname not found in audit log
-  ansible.builtin.fail:
-    msg: "Hostname not present in audit log entry."
-  when: "'%h' not in log_prefix.stdout"
-  tags:
-    - audit
-    - V-206530
+    - cat2

@@ -1,0 +1,77 @@
+---
+############################################################
+# STIG V-206548
+# Enforcement - Restrict DB structure modification roles
+############################################################
+#
+# COMPLIANT WHEN:
+# - Only approved users in DDL role
+# - No PUBLIC CREATE privilege
+# - No unauthorized superusers
+#
+############################################################
+
+- name: V-206548 | Ensure DDL role exists
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='{{ postgresql_srg_ddl_role }}') THEN
+        CREATE ROLE {{ postgresql_srg_ddl_role }} NOLOGIN;
+      END IF;
+    END $$;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206548
+    - cat2
+
+- name: V-206548 | Revoke CREATE from PUBLIC
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206548
+    - cat2
+
+- name: V-206548 | Grant CREATE to DDL role
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "GRANT CREATE ON SCHEMA public TO {{ postgresql_srg_ddl_role }};"
+  changed_when: false
+  tags:
+    - stig
+    - V-206548
+    - cat2
+
+- name: V-206548 | Restrict DDL role membership
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO $$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT m.rolname
+        FROM pg_auth_members am
+        JOIN pg_roles r1 ON am.roleid = r1.oid
+        JOIN pg_roles m ON am.member = m.oid
+        WHERE r1.rolname='{{ postgresql_srg_ddl_role }}'
+        AND m.rolname NOT IN ({{ postgresql_srg_authorized_ddl_users | map('quote') | join(',') }})
+      LOOP
+        EXECUTE format('REVOKE {{ postgresql_srg_ddl_role }} FROM %I;', r.rolname);
+      END LOOP;
+    END $$;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206548
+    - cat2

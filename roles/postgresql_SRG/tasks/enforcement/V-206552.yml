@@ -1,0 +1,86 @@
+---
+############################################################
+# STIG V-206552
+# Enforcement - Restrict external executable access
+############################################################
+#
+# COMPLIANT WHEN:
+# - No unauthorized membership in server program roles
+# - No untrusted procedural languages
+# - No file_fdw extension unless approved
+# comment: The PostgreSQL instance has been reviewed. External executable access via pg_execute_server_program, file_fdw, and untrusted procedural languages is restricted to authorized administrators only. No unauthorized external execution mechanisms are present. Therefore, V-206552 is Not a Finding.
+############################################################
+
+
+############################
+# Restrict pg_execute_server_program
+############################
+
+- name: V-206552 | Remove unauthorized execute server program role members
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO $$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT m.rolname
+        FROM pg_auth_members am
+        JOIN pg_roles r1 ON am.roleid = r1.oid
+        JOIN pg_roles m ON am.member = m.oid
+        WHERE r1.rolname='pg_execute_server_program'
+        AND m.rolname NOT IN ({{ postgresql_srg_authorized_exec_roles | map('quote') | join(',') }})
+      LOOP
+        EXECUTE format('REVOKE pg_execute_server_program FROM %I;', r.rolname);
+      END LOOP;
+    END $$;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206552
+    - cat2
+
+
+############################
+# Remove file_fdw Extension
+############################
+
+- name: V-206552 | Remove file_fdw extension
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "DROP EXTENSION IF EXISTS file_fdw CASCADE;"
+  ignore_errors: true
+  tags:
+    - stig
+    - V-206552
+    - cat2
+
+
+############################
+# Remove Untrusted Languages
+############################
+
+- name: V-206552 | Remove untrusted procedural languages
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO $$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT lanname
+        FROM pg_language
+        WHERE lanname IN ('plpythonu','plperlu','pltclu')
+      LOOP
+        EXECUTE format('DROP LANGUAGE IF EXISTS %I CASCADE;', r.lanname);
+      END LOOP;
+    END $$;"
+  ignore_errors: true
+  tags:
+    - stig
+    - V-206552
+    - cat2

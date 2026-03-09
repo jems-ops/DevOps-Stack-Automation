@@ -1,0 +1,66 @@
+---
+############################################################
+# STIG V-206549
+# Enforcement - Remove demo/sample databases & objects
+############################################################
+#
+# COMPLIANT WHEN:
+# - No demo/test/sample databases exist
+# - No unauthorized extensions installed
+# - No unnecessary schemas present
+# comment: The PostgreSQL instance has been reviewed. No demonstration or sample databases, database objects, or vendor-provided example applications are installed. Only authorized production databases and required extensions are present. Therefore, V-206549 is Not a Finding.
+############################################################
+
+- name: V-206549 | Get non-template databases
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "
+    SELECT datname FROM pg_database
+    WHERE datistemplate = false;"
+  register: v206549_dbs
+  changed_when: false
+  tags:
+    - stig
+    - V-206549
+    - cat2
+
+- name: V-206549 | Remove unauthorized databases
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "DROP DATABASE {{ item }};"
+  loop: "{{ v206549_dbs.stdout_lines }}"
+  when: item not in postgresql_srg_allowed_databases
+  ignore_errors: true
+  tags:
+    - stig
+    - V-206549
+    - cat2
+
+- name: V-206549 | Get installed extensions
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -t -A -c \
+    "SELECT extname FROM pg_extension;"
+  register: v206549_ext
+  changed_when: false
+  tags:
+    - stig
+    - V-206549
+    - cat2
+
+- name: V-206549 | Remove unauthorized extensions
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "DROP EXTENSION IF EXISTS {{ item }} CASCADE;"
+  loop: "{{ v206549_ext.stdout_lines }}"
+  when: item not in postgresql_srg_allowed_extensions
+  ignore_errors: true
+  tags:
+    - stig
+    - V-206549
+    - cat2
