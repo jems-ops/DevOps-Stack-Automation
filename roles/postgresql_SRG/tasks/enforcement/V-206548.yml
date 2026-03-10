@@ -15,12 +15,12 @@
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -c "DO $$
+    psql -c "DO \$\$
     BEGIN
       IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='{{ postgresql_srg_ddl_role }}') THEN
         CREATE ROLE {{ postgresql_srg_ddl_role }} NOLOGIN;
       END IF;
-    END $$;"
+    END \$\$;"
   changed_when: false
   tags:
     - stig
@@ -56,7 +56,7 @@
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "
-    DO $$
+    DO \$\$
     DECLARE r RECORD;
     BEGIN
       FOR r IN
@@ -65,11 +65,11 @@
         JOIN pg_roles r1 ON am.roleid = r1.oid
         JOIN pg_roles m ON am.member = m.oid
         WHERE r1.rolname='{{ postgresql_srg_ddl_role }}'
-        AND m.rolname NOT IN ({{ postgresql_srg_authorized_ddl_users | map('quote') | join(',') }})
+        AND m.rolname NOT IN ('{{ postgresql_srg_authorized_ddl_users | join("', '") }}')
       LOOP
         EXECUTE format('REVOKE {{ postgresql_srg_ddl_role }} FROM %I;', r.rolname);
       END LOOP;
-    END $$;"
+    END \$\$;"
   changed_when: false
   tags:
     - stig

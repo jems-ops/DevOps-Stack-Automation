@@ -90,6 +90,45 @@
 - name: Enforce V-206534
   ansible.builtin.import_tasks: V-206534.yml
   when: postgresql_srg_v206534_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Enforce V-206537
+  ansible.builtin.import_tasks: V-206537.yml
+  when: postgresql_srg_v206537_enabled | bool
 - name: Enforce V-206538
   ansible.builtin.import_tasks: V-206538.yml
   when: postgresql_srg_v206538_enabled | bool
+- name: Enforce V-206539
+  ansible.builtin.import_tasks: V-206539.yml
+  when: postgresql_srg_v206539_enabled | bool
+- name: Enforce V-206540
+  ansible.builtin.import_tasks: V-206540.yml
+  when: postgresql_srg_v206540_enabled | bool
+- name: Enforce V-206541
+  ansible.builtin.import_tasks: V-206541.yml
+  when: postgresql_srg_v206541_enabled | bool
+- name: Enforce V-206542
+  ansible.builtin.import_tasks: V-206542.yml
+  when: postgresql_srg_v206542_enabled | bool
+- name: Enforce V-206543
+  ansible.builtin.import_tasks: V-206543.yml
+  when: postgresql_srg_v206543_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+- name: Enforce V-206544
+  ansible.builtin.import_tasks: V-206544.yml
+  when: postgresql_srg_v206544_enabled | bool
+- name: Enforce V-206546
+  ansible.builtin.import_tasks: V-206546.yml
+  when: postgresql_srg_v206546_enabled | bool
+- name: Enforce V-206548
+  ansible.builtin.import_tasks: V-206548.yml
+  when: postgresql_srg_v206548_enabled | bool
+- name: Enforce V-206549
+  ansible.builtin.import_tasks: V-206549.yml
+  when: postgresql_srg_v206549_enabled | bool
+- name: Enforce V-206550
+  ansible.builtin.import_tasks: V-206550.yml
+  when: postgresql_srg_v206550_enabled | bool
+- name: Enforce V-206551
+  ansible.builtin.import_tasks: V-206551.yml
+  when: postgresql_srg_v206551_enabled | bool
+- name: Enforce V-206552
+  ansible.builtin.import_tasks: V-206552.yml
+  when: postgresql_srg_v206552_enabled | bool

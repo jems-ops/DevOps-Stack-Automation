@@ -21,7 +21,7 @@
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "
-    DO $$
+    DO \$\$
     DECLARE r RECORD;
     BEGIN
       FOR r IN
@@ -30,11 +30,11 @@
         JOIN pg_roles r1 ON am.roleid = r1.oid
         JOIN pg_roles m ON am.member = m.oid
         WHERE r1.rolname='pg_execute_server_program'
-        AND m.rolname NOT IN ({{ postgresql_srg_authorized_exec_roles | map('quote') | join(',') }})
+        AND m.rolname NOT IN ('{{ postgresql_srg_authorized_exec_roles | join("', '") }}')
       LOOP
         EXECUTE format('REVOKE pg_execute_server_program FROM %I;', r.rolname);
       END LOOP;
-    END $$;"
+    END \$\$;"
   changed_when: false
   tags:
     - stig
@@ -68,7 +68,7 @@
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "
-    DO $$
+    DO \$\$
     DECLARE r RECORD;
     BEGIN
       FOR r IN
@@ -78,7 +78,7 @@
       LOOP
         EXECUTE format('DROP LANGUAGE IF EXISTS %I CASCADE;', r.lanname);
       END LOOP;
-    END $$;"
+    END \$\$;"
   ignore_errors: true
   tags:
     - stig

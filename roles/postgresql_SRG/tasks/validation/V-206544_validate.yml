@@ -9,7 +9,7 @@
   become_user: postgres
   ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -t -A -c \
-    "SELECT has_schema_privilege('public','CREATE');"
+    "SELECT has_schema_privilege('public','public','CREATE');"
   register: v206544_schema_check
   changed_when: false
   tags:
@@ -20,7 +20,7 @@
 - name: V-206544 | Assert CREATE revoked from PUBLIC
   ansible.builtin.assert:
     that:
-      - "'f'" in v206544_schema_check.stdout
+      - "'f' in v206544_schema_check.stdout"
     fail_msg: >
       STIG V-206544 FAILED:
       PUBLIC can create or modify DB modules.
@@ -37,7 +37,7 @@
     path: "{{ item }}"
   loop:
     - /usr/lib64/pgsql
-    - "{{ postgresql_srg_data_directory }}"
+    - "{{ postgresql_srg_data_dir }}"
   register: v206544_dirs
   tags:
     - stig
@@ -47,11 +47,10 @@
 - name: V-206544 | Validate directory protection
   ansible.builtin.assert:
     that:
-      - item.stat.pw_name == "postgres"
-    loop: "{{ v206544_dirs.results }}"
+      - v206544_dirs.results | rejectattr('stat.pw_name', 'equalto', 'postgres') | list | length == 0
     fail_msg: >
       STIG V-206544 FAILED:
-      DBMS software directories not properly protected.
+      One or more DBMS directories not properly protected.
     success_msg: >
       DBMS directories protected.
   tags:

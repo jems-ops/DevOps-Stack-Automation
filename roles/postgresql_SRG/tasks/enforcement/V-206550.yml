@@ -52,7 +52,7 @@
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c \
-    "SELECT lanname FROM pg_language WHERE lanname NOT IN ('internal','c');"
+    "SELECT lanname FROM pg_language WHERE lanname NOT IN ('internal','c','sql');"
   register: v206550_lang
   changed_when: false
   tags:
@@ -81,7 +81,7 @@
 - name: V-206550 | Gather installed PostgreSQL packages
   become: true
   ansible.builtin.shell: |
-    rpm -qa | grep postgresql
+    rpm -qa --qf '%{NAME}\n' | grep postgresql | sort -u
   register: v206550_pkgs
   changed_when: false
   tags:

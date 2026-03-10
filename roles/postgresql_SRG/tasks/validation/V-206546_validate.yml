@@ -1,44 +1,44 @@
 ---
 ############################################################
-# STIG V-204546
+# STIG V-206546
 # Validation - Dedicated DBMS directories
 ############################################################
 
-- name: V-204546 | Get data directory
+- name: V-206546 | Get data directory
   become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c "SHOW data_directory;"
-  register: v204546_data_dir
+  register: v206546_data_dir
   changed_when: false
   tags:
     - stig
-    - V-204546
+    - V-206546
     - cat2
 
-- name: V-204546 | Check binary directory contents
+- name: V-206546 | Check binary directory contents
   become: true
   ansible.builtin.shell: |
-    ls -1 /usr/pgsql-{{ postgresql_srg_version }}
-  register: v204546_bin_contents
+    ls -1 /usr/pgsql-{{ postgresql_srg_pg_version }}
+  register: v206546_bin_contents
   changed_when: false
   tags:
     - stig
-    - V-204546
+    - V-206546
     - cat2
 
-- name: V-204546 | Assert separation
+- name: V-206546 | Assert separation
   ansible.builtin.assert:
     that:
-      - "'/var/lib/pgsql'" in v204546_data_dir.stdout
-      - v204546_bin_contents.stdout_lines | length > 0
+      - "'/var/lib/pgsql' in v206546_data_dir.stdout"
+      - v206546_bin_contents.stdout_lines | length > 0
     fail_msg: >
-      STIG V-204546 FAILED:
+      STIG V-206546 FAILED:
       DBMS software not properly separated from other applications.
     success_msg: >
-      STIG V-204546 PASSED:
+      STIG V-206546 PASSED:
       DBMS software stored in dedicated directories.
   tags:
     - stig
-    - V-204546
+    - V-206546
     - cat2

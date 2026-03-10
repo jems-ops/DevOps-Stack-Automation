@@ -30,7 +30,7 @@
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c \
-    "SELECT lanname FROM pg_language WHERE lanname NOT IN ('internal','c');"
+    "SELECT lanname FROM pg_language WHERE lanname NOT IN ('internal','c','sql');"
   register: v206550_validate_lang
   changed_when: false
 

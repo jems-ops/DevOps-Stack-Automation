@@ -34,7 +34,7 @@
     state: directory
   loop:
     - /usr/lib64/pgsql
-    - "{{ postgresql_srg_data_directory }}"
+    - "{{ postgresql_srg_data_dir }}"
   tags:
     - stig
     - V-206544

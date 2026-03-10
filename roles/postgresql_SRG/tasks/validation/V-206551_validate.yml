@@ -38,7 +38,7 @@
 - name: V-206551 | Assert remote listener disabled
   ansible.builtin.assert:
     that:
-      - "'localhost'" in v206551_listen.stdout
+      - "'localhost' in v206551_listen.stdout"
     fail_msg: "STIG V-206551 FAILED: Remote listening enabled."
     success_msg: "STIG V-206551 PASSED: Remote listener restricted."
   when: postgresql_srg_disable_remote_access

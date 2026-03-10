@@ -55,7 +55,7 @@
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^log_line_prefix\s*='
-    line: "log_line_prefix = '%m %u %d %p %c %a %h '"
+    line: "log_line_prefix = '%m %u %d %r %p %c %a %h '"
   notify: Restart PostgreSQL
   tags:
     - stig

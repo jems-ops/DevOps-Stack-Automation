@@ -44,8 +44,7 @@
 - name: V-206540 | Validate file protections
   ansible.builtin.assert:
     that:
-      - item.mode | int(base=8) <= 600
-    loop: "{{ v206540_logs.files }}"
+      - v206540_logs.files | rejectattr('mode', 'equalto', '0600') | list | length == 0
     fail_msg: >
       STIG V-206540 FAILED:
       One or more log files are not protected from deletion.

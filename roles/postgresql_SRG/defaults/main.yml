@@ -46,6 +46,7 @@ postgresql_srg_data_dir_map:
 
 # pgaudit (many SRG controls assume it is available)
 postgresql_srg_pgaudit_enabled: false
+postgresql_srg_pgaudit_package: "pgaudit_{{ postgresql_srg_pg_version }}"
 
 # FIPS mode (disable in lab environments where FIPS is not available)
 postgresql_srg_fips_required: false
@@ -137,7 +138,21 @@ postgresql_srg_v206531_enabled: true
 postgresql_srg_v206532_enabled: true
 postgresql_srg_v206533_enabled: true
 postgresql_srg_v206534_enabled: true
+postgresql_srg_v206537_enabled: true
 postgresql_srg_v206538_enabled: true
+postgresql_srg_v206539_enabled: true
+postgresql_srg_v206540_enabled: true
+postgresql_srg_v206541_enabled: true
+postgresql_srg_v206542_enabled: true
+postgresql_srg_v206543_enabled: true
+postgresql_srg_v206544_enabled: true
+postgresql_srg_v206546_enabled: true
+postgresql_srg_v206547_enabled: false  # placeholder - no tasks defined
+postgresql_srg_v206548_enabled: true
+postgresql_srg_v206549_enabled: true
+postgresql_srg_v206550_enabled: true
+postgresql_srg_v206551_enabled: true
+postgresql_srg_v206552_enabled: true
 
 ############################################################
 # V-206519 Settings
