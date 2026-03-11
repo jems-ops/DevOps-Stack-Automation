@@ -134,3 +134,27 @@
 - name: Validate V-206552
   ansible.builtin.import_tasks: V-206552_validate.yml
   when: postgresql_srg_v206552_enabled | bool
+- name: Validate V-206553
+  ansible.builtin.import_tasks: V-206553_validate.yml
+  when: postgresql_srg_v206553_enabled | bool
+- name: Validate V-206554
+  ansible.builtin.import_tasks: V-206554_validate.yml
+  when: postgresql_srg_v206554_enabled | bool
+- name: Validate V-206565
+  ansible.builtin.import_tasks: V-206565_validate.yml
+  when: postgresql_srg_v206565_enabled | bool
+- name: Validate V-206566
+  ansible.builtin.import_tasks: V-206566_validate.yml
+  when: postgresql_srg_v206566_enabled | bool
+- name: Validate V-206567
+  ansible.builtin.import_tasks: V-206567_validate.yml
+  when: postgresql_srg_v206567_enabled | bool
+- name: Validate V-206580
+  ansible.builtin.import_tasks: V-206580_validate.yml
+  when: postgresql_srg_v206580_enabled | bool
+- name: Validate V-206600
+  ansible.builtin.import_tasks: V-206600_validate.yml
+  when: postgresql_srg_v206600_enabled | bool
+- name: Validate V-206611
+  ansible.builtin.import_tasks: V-206611_validate.yml
+  when: postgresql_srg_v206611_enabled | bool

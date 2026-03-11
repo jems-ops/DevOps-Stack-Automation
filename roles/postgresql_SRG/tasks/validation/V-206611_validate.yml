@@ -1,0 +1,28 @@
+---
+############################################################
+# STIG V-206611
+# Validation - Patch compliance verification
+############################################################
+
+- name: V-206611 | Check for outstanding security updates
+  become: true
+  ansible.builtin.shell: |
+    dnf updateinfo list security | grep -i postgresql
+  register: v206611_validate_updates
+  failed_when: false
+  changed_when: false
+
+- name: V-206611 | Assert no pending PostgreSQL security updates
+  ansible.builtin.assert:
+    that:
+      - v206611_validate_updates.stdout_lines | length == 0
+    fail_msg: >
+      STIG V-206611 FAILED:
+      Outstanding PostgreSQL security updates detected.
+    success_msg: >
+      STIG V-206611 PASSED:
+      No pending PostgreSQL security updates.
+  tags:
+    - stig
+    - V-206611
+    - cat2

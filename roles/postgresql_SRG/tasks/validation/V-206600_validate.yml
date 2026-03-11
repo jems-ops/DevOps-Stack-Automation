@@ -1,0 +1,47 @@
+---
+############################################################
+# STIG V-206600
+# Validation - Privilege escalation protection
+############################################################
+
+- name: V-206600 | Check superusers
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206600_superusers
+  changed_when: false
+
+- name: V-206600 | Assert only authorized superusers exist
+  ansible.builtin.assert:
+    that:
+      - v206600_superusers.stdout_lines | difference(postgresql_srg_authorized_priv_roles) | length == 0
+    fail_msg: >
+      STIG V-206600 FAILED:
+      Unauthorized superuser accounts detected.
+    success_msg: >
+      STIG V-206600 PASSED:
+      Superuser privileges restricted.
+  tags:
+    - stig
+    - V-206600
+    - cat2
+
+
+- name: V-206600 | Check SECURITY DEFINER functions
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -t -A -c "
+    SELECT proname FROM pg_proc WHERE prosecdef = true;"
+  register: v206600_secdef
+  changed_when: false
+
+- name: V-206600 | Warn if SECURITY DEFINER functions exist
+  ansible.builtin.debug:
+    msg: "Review SECURITY DEFINER functions: {{ v206600_secdef.stdout_lines }}"
+  when: v206600_secdef.stdout_lines | length > 0
+  tags:
+    - stig
+    - V-206600
+    - cat2

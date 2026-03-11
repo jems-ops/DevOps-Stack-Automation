@@ -1,0 +1,51 @@
+---
+############################################################
+# STIG V-206580
+# Enforcement - Automatic session termination
+############################################################
+#
+# COMPLIANT WHEN:
+# - idle_session_timeout set per policy
+# - idle_in_transaction_session_timeout set
+# - statement_timeout set
+#
+############################################################
+
+- name: V-206580 | Configure idle_session_timeout
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*idle_session_timeout\s*='
+    line: "idle_session_timeout = {{ postgresql_srg_idle_session_timeout }}"
+    backup: true
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206580
+    - cat2
+
+
+- name: V-206580 | Configure idle_in_transaction_session_timeout
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*idle_in_transaction_session_timeout\s*='
+    line: "idle_in_transaction_session_timeout = {{ postgresql_srg_idle_tx_timeout }}"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206580
+    - cat2
+
+
+- name: V-206580 | Configure statement_timeout
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*statement_timeout\s*='
+    line: "statement_timeout = {{ postgresql_srg_statement_timeout }}"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206580
+    - cat2

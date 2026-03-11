@@ -1,0 +1,25 @@
+---
+############################################################
+# STIG V-206566
+# Enforcement - System-generated session identifiers
+############################################################
+#
+# PostgreSQL inherently uses system-generated backend session IDs.
+# No configuration allows client-supplied session identifiers.
+#
+############################################################
+
+# SSL not applicable for isolated database - ssl=on omitted
+# V-206566 satisfies session ID requirement via system-generated backend PIDs
+
+- name: V-206566 | Ensure password encryption uses SCRAM
+  become: true
+  lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*password_encryption\s*='
+    line: "password_encryption = scram-sha-256"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206566
+    - cat2

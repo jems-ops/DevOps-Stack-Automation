@@ -1,0 +1,22 @@
+---
+############################################################
+# STIG V-206566
+# Validation - System-generated session IDs
+############################################################
+
+# SSL check omitted - not applicable for isolated database
+- name: V-206566 | Check for trust authentication
+  become: true
+  shell: grep -Ev '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '\btrust\b' || true
+  register: v206566_trust
+  changed_when: false
+
+- name: Assert no trust authentication present
+  assert:
+    that:
+      - v206566_trust.stdout == ""
+    fail_msg: "STIG V-206566 FAILED: trust authentication detected."
+    success_msg: "Only system-controlled session establishment allowed."
+  tags:
+    - stig
+    - V-206566

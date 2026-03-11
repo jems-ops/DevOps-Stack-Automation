@@ -1,0 +1,58 @@
+---
+############################################################
+# STIG V-206565
+# Validation - Session termination and invalidation
+############################################################
+
+- name: V-206565 | Check log_connections
+  become: true
+  become_user: postgres
+  shell: psql -t -A -c "SHOW log_connections;"
+  register: v206565_conn
+  changed_when: false
+
+- name: Assert log_connections enabled
+  assert:
+    that:
+      - v206565_conn.stdout == "on"
+    fail_msg: "STIG V-206565 FAILED: log_connections disabled."
+    success_msg: "log_connections enabled."
+  tags:
+    - stig
+    - V-206565
+
+
+- name: V-206565 | Check log_disconnections
+  become: true
+  become_user: postgres
+  shell: psql -t -A -c "SHOW log_disconnections;"
+  register: v206565_disconn
+  changed_when: false
+
+- name: Assert log_disconnections enabled
+  assert:
+    that:
+      - v206565_disconn.stdout == "on"
+    fail_msg: "STIG V-206565 FAILED: log_disconnections disabled."
+    success_msg: "log_disconnections enabled."
+  tags:
+    - stig
+    - V-206565
+
+
+- name: V-206565 | Verify idle_session_timeout
+  become: true
+  become_user: postgres
+  shell: psql -t -A -c "SHOW idle_session_timeout;"
+  register: v206565_idle
+  changed_when: false
+
+- name: Assert idle_session_timeout configured
+  assert:
+    that:
+      - v206565_idle.stdout != "0"
+    fail_msg: "STIG V-206565 FAILED: idle_session_timeout not set."
+    success_msg: "idle_session_timeout configured."
+  tags:
+    - stig
+    - V-206565

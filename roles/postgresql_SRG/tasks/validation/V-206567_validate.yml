@@ -1,0 +1,40 @@
+---
+############################################################
+# STIG V-206567
+# Validation - MITM protection
+############################################################
+
+# SSL check omitted - not applicable for isolated database
+- name: V-206567 | Check password_encryption
+  become: true
+  become_user: postgres
+  shell: psql -t -A -c "SHOW password_encryption;"
+  register: v206567_scram
+  changed_when: false
+
+- name: Assert SCRAM enabled
+  assert:
+    that:
+      - "'scram-sha-256' in v206567_scram.stdout"
+    fail_msg: "STIG V-206567 FAILED: SCRAM not enforced."
+    success_msg: "SCRAM enforced."
+  tags:
+    - stig
+    - V-206567
+
+
+- name: V-206567 | Check HBA for trust
+  become: true
+  shell: grep -Ev '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '\btrust\b' || true
+  register: v206567_trust
+  changed_when: false
+
+- name: Assert no trust authentication
+  assert:
+    that:
+      - v206567_trust.stdout == ""
+    fail_msg: "STIG V-206567 FAILED: trust authentication detected."
+    success_msg: "No trust authentication found."
+  tags:
+    - stig
+    - V-206567

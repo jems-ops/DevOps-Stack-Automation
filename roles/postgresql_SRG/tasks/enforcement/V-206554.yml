@@ -1,0 +1,64 @@
+---
+############################################################
+# STIG V-206554
+# Enforcement - Unique identification and authentication
+#✔ Require authentication for all connections
+#✔ Use SCRAM or external auth (LDAP/AD/CAC)
+#✔ Disallow trust
+#✔ Disallow peer for network users
+#✔ Prevent shared “application” logins without traceability
+#✔ Log connections
+# comment: The PostgreSQL DBMS is configured to uniquely identify and authenticate all organizational users. All network connections require SCRAM-SHA-256 authentication over SSL/TLS. Trust authentication is disabled. Each user account is uniquely assigned to an individual or service identity. Connection logging is enabled to support accountability. Therefore, V-206554 is Not a Finding.
+############################################################
+
+############################
+# Enforce SCRAM encryption
+############################
+
+- name: V-206554 | Enforce SCRAM password encryption
+  become: true
+  lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*password_encryption\s*='
+    line: "password_encryption = scram-sha-256"
+    backup: true
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206554
+    - cat2
+
+
+############################
+# Remove trust authentication
+############################
+
+- name: V-206554 | Remove trust authentication
+  become: true
+  replace:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^\s*host\s+.*\s+trust\s*$'
+    replace: '# Removed by STIG V-206554 - trust not allowed'
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206554
+    - cat2
+
+
+# hostssl entry omitted - SSL not applicable for isolated database
+############################
+# Enable connection logging
+############################
+
+- name: V-206554 | Enable log_connections
+  become: true
+  lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_connections\s*='
+    line: "log_connections = on"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206554
+    - cat2

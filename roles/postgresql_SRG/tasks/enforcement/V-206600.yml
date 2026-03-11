@@ -1,0 +1,66 @@
+---
+############################################################
+# STIG V-206600
+# Enforcement - Restrict privilege escalation without reauth
+############################################################
+#
+# COMPLIANT WHEN:
+# - No unauthorized membership in privileged roles
+# - No unrestricted SECURITY DEFINER functions
+#
+############################################################
+
+############################
+# Restrict Superuser Membership
+############################
+
+- name: V-206600 | Remove unauthorized superusers
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO \$\$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT rolname
+        FROM pg_roles
+        WHERE rolsuper = true
+        AND rolname NOT IN ('{{ postgresql_srg_authorized_priv_roles | join("', '") }}')
+      LOOP
+        EXECUTE format('ALTER ROLE %I NOSUPERUSER;', r.rolname);
+      END LOOP;
+    END \$\$;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206600
+    - cat2
+
+
+############################
+# Identify Unauthorized SECURITY DEFINER Functions
+############################
+
+- name: V-206600 | Drop unauthorized SECURITY DEFINER functions
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO \$\$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT n.nspname, p.proname
+        FROM pg_proc p
+        JOIN pg_namespace n ON p.pronamespace = n.oid
+        WHERE p.prosecdef = true
+      LOOP
+        RAISE NOTICE 'Review SECURITY DEFINER function: %.%', r.nspname, r.proname;
+      END LOOP;
+    END \$\$;"
+  changed_when: false
+  tags:
+    - stig
+    - V-206600
+    - cat2

@@ -153,6 +153,14 @@ postgresql_srg_v206549_enabled: true
 postgresql_srg_v206550_enabled: true
 postgresql_srg_v206551_enabled: true
 postgresql_srg_v206552_enabled: true
+postgresql_srg_v206553_enabled: true
+postgresql_srg_v206554_enabled: true
+postgresql_srg_v206565_enabled: true
+postgresql_srg_v206566_enabled: true
+postgresql_srg_v206567_enabled: true # no ssl enforcement in this role, but idle timeouts can help mitigate risk of idle sessions
+postgresql_srg_v206580_enabled: true
+postgresql_srg_v206600_enabled: true
+postgresql_srg_v206611_enabled: true
 
 ############################################################
 # V-206519 Settings
@@ -214,4 +222,32 @@ postgresql_srg_allowed_databases:
 ############################################################
 postgresql_srg_ddl_role: db_ddl
 postgresql_srg_authorized_ddl_users:
+  - postgres
+
+############################################################
+# V-206553 Configuration
+############################################################
+postgresql_srg_allowed_listen_addresses: "localhost"
+postgresql_srg_allowed_port: 5432
+############################################################
+# V-206554 Configuration
+############################################################
+password_encryption: scram-sha-256
+
+############################################################
+# V-206611 Configuration
+############################################################
+postgresql_srg_patch_enforce: true
+
+############################################################
+# V-206565 / V-206580 Configuration
+############################################################
+postgresql_srg_idle_session_timeout: 15min
+postgresql_srg_idle_tx_timeout: 10min
+postgresql_srg_statement_timeout: 30min
+
+############################################################
+# V-206600 Configuration
+############################################################
+postgresql_srg_authorized_priv_roles:
   - postgres

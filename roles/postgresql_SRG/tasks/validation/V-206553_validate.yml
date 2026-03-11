@@ -1,0 +1,63 @@
+---
+############################################################
+# STIG V-206553
+# Validation - Restrict ports and services
+############################################################
+
+- name: V-206553 | Check listen_addresses
+  become: true
+  become_user: postgres
+  shell: psql -t -A -c "SHOW listen_addresses;"
+  register: v206553_listen
+  changed_when: false
+
+- name: Assert restricted listening
+  assert:
+    that:
+      - v206553_listen.stdout != "*"
+    fail_msg: "STIG V-206553 FAILED: listen_addresses set to wildcard."
+    success_msg: "Listening address restricted."
+  tags:
+    - stig
+    - V-206553
+
+
+- name: V-206553 | Check port
+  become: true
+  become_user: postgres
+  shell: psql -t -A -c "SHOW port;"
+  register: v206553_port
+  changed_when: false
+
+- name: Assert approved port
+  assert:
+    that:
+      - v206553_port.stdout == "{{ postgresql_srg_allowed_port | string }}"
+    fail_msg: "STIG V-206553 FAILED: Unapproved port configured."
+    success_msg: "Approved port configured."
+  tags:
+    - stig
+    - V-206553
+
+
+- name: V-206553 | Check dangerous function privilege
+  become: true
+  become_user: postgres
+  shell: |
+    psql -t -A -c "
+    SELECT has_function_privilege('public',
+    'pg_catalog.pg_execute_server_program(text)',
+    'EXECUTE');"
+  register: v206553_exec
+  changed_when: false
+  failed_when: false
+
+- name: Assert external execution restricted
+  assert:
+    that:
+      - v206553_exec.rc != 0 or v206553_exec.stdout == "f"
+    fail_msg: "STIG V-206553 FAILED: External execution allowed to PUBLIC."
+    success_msg: "External execution restricted (function not present or privilege revoked)."
+  tags:
+    - stig
+    - V-206553

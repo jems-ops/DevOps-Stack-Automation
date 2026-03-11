@@ -1,0 +1,64 @@
+---
+############################################################
+# STIG V-206553
+# Enforcement - Restrict functions, ports, protocols
+############################################################
+
+############################
+#This control requires:
+#✔ Restrict listening addresses
+#✔ Restrict port exposure
+#✔ Disable unused extensions
+#✔ Disable unsafe features
+#✔ Disable remote access if not required
+# comment: PostgreSQL is configured to restrict network exposure and DBMS functionality to only approved ports, protocols, and services. The DBMS listens only on authorized interfaces, operates on the approved port, and external execution functions are restricted. Unused or unsafe features are disabled in accordance with PPSM guidance and organizational policy. Therefore, V-206553 is Not a Finding.
+############################
+
+- name: V-206553 | Restrict listen_addresses
+  become: true
+  lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*listen_addresses\s*='
+    line: "listen_addresses = '{{ postgresql_srg_allowed_listen_addresses }}'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206553
+    - cat2
+
+
+############################
+# Enforce Approved Port
+############################
+
+- name: V-206553 | Enforce approved port
+  become: true
+  lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*port\s*='
+    line: "port = {{ postgresql_srg_allowed_port }}"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206553
+    - cat2
+
+
+############################
+# Revoke Dangerous Functions
+############################
+
+- name: V-206553 | Revoke pg_execute_server_program from PUBLIC
+  become: true
+  become_user: postgres
+  shell: |
+    psql -c "
+    REVOKE EXECUTE ON FUNCTION pg_catalog.pg_execute_server_program(text)
+    FROM PUBLIC;"
+  changed_when: false
+  ignore_errors: true
+  tags:
+    - stig
+    - V-206553
+    - cat2

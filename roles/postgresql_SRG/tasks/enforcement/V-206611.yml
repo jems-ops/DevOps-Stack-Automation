@@ -1,0 +1,45 @@
+---
+############################################################
+# STIG V-206611
+# Enforcement - Install security-relevant updates
+############################################################
+#
+# COMPLIANT WHEN:
+# - Security updates applied within required timeframe
+# - Patch evidence available
+#
+############################################################
+
+- name: V-206611 | Check available security updates
+  become: true
+  ansible.builtin.shell: |
+    dnf updateinfo list security
+  register: v206611_security_updates
+  changed_when: false
+  tags:
+    - stig
+    - V-206611
+    - cat2
+
+- name: V-206611 | Apply security updates (if enforcement enabled)
+  become: true
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    security: yes
+  when: postgresql_srg_patch_enforce
+  tags:
+    - stig
+    - V-206611
+    - cat2
+
+- name: V-206611 | Record current PostgreSQL version
+  become: true
+  ansible.builtin.shell: |
+    psql --version
+  register: v206611_pg_version
+  changed_when: false
+  tags:
+    - stig
+    - V-206611
+    - cat2
