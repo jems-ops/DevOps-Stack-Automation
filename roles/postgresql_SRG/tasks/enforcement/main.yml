@@ -156,3 +156,63 @@
 - name: Enforce V-206611
   ansible.builtin.import_tasks: V-206611.yml
   when: postgresql_srg_v206611_enabled | bool
+- name: Enforce V-263606
+  ansible.builtin.import_tasks: V-263606.yml
+  when: postgresql_srg_v263606_enabled | bool
+- name: Enforce V-263607
+  ansible.builtin.import_tasks: V-263607.yml
+  when: postgresql_srg_v263607_enabled | bool
+- name: Enforce V-263608
+  ansible.builtin.import_tasks: V-263608.yml
+  when: postgresql_srg_v263608_enabled | bool
+- name: Enforce V-263609
+  ansible.builtin.import_tasks: V-263609.yml
+  when: postgresql_srg_v263609_enabled | bool
+- name: Enforce V-263610
+  ansible.builtin.import_tasks: V-263610.yml
+  when: postgresql_srg_v263610_enabled | bool
+- name: Enforce V-263611
+  ansible.builtin.import_tasks: V-263611.yml
+  when: postgresql_srg_v263611_enabled | bool
+- name: Enforce V-263612
+  ansible.builtin.import_tasks: V-263612.yml
+  when: postgresql_srg_v263612_enabled | bool
+- name: Enforce V-263613
+  ansible.builtin.import_tasks: V-263613.yml
+  when: postgresql_srg_v263613_enabled | bool
+- name: Enforce V-263614
+  ansible.builtin.import_tasks: V-263614.yml
+  when: postgresql_srg_v263614_enabled | bool
+- name: Enforce V-263615
+  ansible.builtin.import_tasks: V-263615.yml
+  when: postgresql_srg_v263615_enabled | bool
+- name: Enforce V-263616
+  ansible.builtin.import_tasks: V-263616.yml
+  when: postgresql_srg_v263616_enabled | bool
+- name: Enforce V-263617
+  ansible.builtin.import_tasks: V-263617.yml
+  when: postgresql_srg_v263617_enabled | bool
+- name: Enforce V-263618
+  ansible.builtin.import_tasks: V-263618.yml
+  when: postgresql_srg_v263618_enabled | bool
+- name: Enforce V-263619
+  ansible.builtin.import_tasks: V-263619.yml
+  when: postgresql_srg_v263619_enabled | bool
+- name: Enforce V-263620
+  ansible.builtin.import_tasks: V-263620.yml
+  when: postgresql_srg_v263620_enabled | bool
+- name: Enforce V-263621
+  ansible.builtin.import_tasks: V-263621.yml
+  when: postgresql_srg_v263621_enabled | bool
+- name: Enforce V-263622
+  ansible.builtin.import_tasks: V-263622.yml
+  when: postgresql_srg_v263622_enabled | bool
+
+############################################################
+# Final pass: re-harden file permissions after all
+# ALTER SYSTEM SET calls (which reset postgresql.auto.conf
+# to 0640). V-206542 is intentionally re-run last.
+############################################################
+- name: Re-enforce V-206542 | Final file permission hardening
+  ansible.builtin.import_tasks: V-206542.yml
+  when: postgresql_srg_v206542_enabled | bool

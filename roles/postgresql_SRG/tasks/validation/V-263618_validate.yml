@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG Control: V-263618
+#
+# Validation:
+# Verify maintenance access is restricted to approved
+# administrative access paths.
+#
+# Verification Commands:
+#
+#    ss -plnt | grep postgres
+#    psql -t -c "SHOW listen_addresses;"
+#
+# Expected:
+# PostgreSQL listening only on approved interfaces.
+############################################################
+
+- name: "V-263618 | Check PostgreSQL listen addresses"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW listen_addresses;"
+  register: postgresql_srg_listen_addresses
+  changed_when: false
+  tags: ['V-263618','CAT II','check']
+
+- name: "V-263618 | Display listen addresses"
+  ansible.builtin.debug:
+    var: postgresql_srg_listen_addresses.stdout
+  tags: ['V-263618','CAT II','check']

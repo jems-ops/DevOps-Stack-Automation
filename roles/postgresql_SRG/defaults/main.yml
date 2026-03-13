@@ -162,6 +162,25 @@ postgresql_srg_v206580_enabled: true
 postgresql_srg_v206600_enabled: true
 postgresql_srg_v206611_enabled: true
 
+# --- New CAT II Controls (V-263606 – V-263622) ---
+postgresql_srg_v263606_enabled: true
+postgresql_srg_v263607_enabled: true
+postgresql_srg_v263608_enabled: true
+postgresql_srg_v263609_enabled: true
+postgresql_srg_v263610_enabled: true
+postgresql_srg_v263611_enabled: true
+postgresql_srg_v263612_enabled: true
+postgresql_srg_v263613_enabled: true
+postgresql_srg_v263614_enabled: true
+postgresql_srg_v263615_enabled: true
+postgresql_srg_v263616_enabled: true
+postgresql_srg_v263617_enabled: false  # Not Applicable – PKI/cert revocation not used
+postgresql_srg_v263618_enabled: true
+postgresql_srg_v263619_enabled: false  # Not Applicable – SSL/TLS not enabled
+postgresql_srg_v263620_enabled: false  # Not Applicable – no TLS key files in this deployment
+postgresql_srg_v263621_enabled: true
+postgresql_srg_v263622_enabled: true
+
 ############################################################
 # V-206519 Settings
 ############################################################
@@ -251,3 +270,11 @@ postgresql_srg_statement_timeout: 30min
 ############################################################
 postgresql_srg_authorized_priv_roles:
   - postgres
+
+############################################################
+# V-263621 / V-263622 NTP Configuration
+############################################################
+# Override these in inventory/group_vars with your actual
+# Satellite / NTP server hostname and IP.
+postgresql_srg_ntp_server: satellite
+postgresql_srg_ntp_server_ip: "192.168.1.100"

@@ -1,0 +1,42 @@
+---
+############################################################
+# STIG Control: V-263622
+#
+# Validation:
+# Ensure the system clock is synchronized with the
+# organization-approved time source.
+#
+# Verification Commands:
+#    getent hosts satellite
+#    systemctl status chronyd
+#    timedatectl status
+#
+# Expected:
+#    System clock synchronized: yes
+############################################################
+
+- name: "V-263622 | Validate Satellite DNS resolution"
+  ansible.builtin.command: "getent hosts {{ postgresql_srg_ntp_server }}"
+  register: postgresql_srg_ntp_dns
+  changed_when: false
+  failed_when: postgresql_srg_ntp_dns.rc != 0
+
+- name: "V-263622 | Check chronyd service"
+  ansible.builtin.command: systemctl is-active chronyd
+  register: postgresql_srg_chrony_status
+  changed_when: false
+
+- name: "V-263622 | Assert chronyd running"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_chrony_status.stdout == "active"
+
+- name: "V-263622 | Check system time synchronization"
+  ansible.builtin.command: timedatectl show -p NTPSynchronized --value
+  register: postgresql_srg_time_sync
+  changed_when: false
+
+- name: "V-263622 | Assert system clock synchronized"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_time_sync.stdout == "yes"

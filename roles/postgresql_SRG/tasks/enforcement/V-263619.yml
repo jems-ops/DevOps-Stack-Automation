@@ -1,0 +1,23 @@
+---
+############################################################
+# STIG Control: V-263619
+#
+# Status: Not Applicable
+#
+# Justification:
+# PostgreSQL SSL/TLS is disabled in this environment.
+# Therefore the DBMS does not maintain a certificate trust
+# store or trust anchors.
+#
+# Verification Command:
+#
+#   psql -t -c "SHOW ssl;"
+#
+# Expected:
+#   off
+# comment: PostgreSQL SSL/TLS encryption is not enabled in this environment (ssl = off).Since the DBMS does not use TLS connections, it does not maintain a certificate trust store or trust anchors for certificate validation.Therefore, this control is not applicable to the current PostgreSQL deployment.
+############################################################
+- name: "V-263619 | Informational control - PostgreSQL SSL/TLS encryption is not enabled and trust store not maintained"
+  ansible.builtin.debug:
+    msg: "PostgreSQL SSL/TLS encryption is not enabled in this environment (ssl = off). Since the DBMS does not use TLS connections, it does not maintain a certificate trust store or trust anchors for certificate validation. Therefore, this control is not applicable to the current PostgreSQL deployment."
+  tags: ['V-263619','CAT II','check']

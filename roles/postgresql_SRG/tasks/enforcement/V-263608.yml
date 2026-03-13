@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG Control: V-263608
+# Status : NOT A FINDING
+# Title:
+# The DBMS must implement multifactor authentication where
+# one factor is provided by a separate device.
+#
+# Finding Details:
+# Multifactor authentication using a separate device helps
+# prevent credential compromise and impersonation attacks.
+#
+# Implementation in this Environment:
+# PostgreSQL authentication is integrated with centralized
+# identity management systems (e.g., Keycloak / SSO) that
+# enforce MFA using external devices such as OTP tokens.
+#
+# Manual Verification Steps:
+# 1. Verify DBMS authentication integrates with enterprise
+#    identity provider.
+# 2. Confirm MFA requires a secondary device factor.
+# Comment:
+# Multifactor authentication is implemented through the organization’s centralized identity and access management infrastructure (e.g., Keycloak / enterprise SSO). The MFA implementation requires a secondary authentication factor provided by a device separate from the system gaining access (e.g., OTP token or mobile authenticator). PostgreSQL relies on the external identity provider for authentication enforcement and therefore does not directly implement MFA within the DBMS configuration.
+############################################################
+
+- name: "V-263608 | MFA enforced through centralized identity provider"
+  ansible.builtin.debug:
+    msg: "MFA with separate device factor enforced through enterprise identity management."
+  tags: ['V-263608','CAT II','check']

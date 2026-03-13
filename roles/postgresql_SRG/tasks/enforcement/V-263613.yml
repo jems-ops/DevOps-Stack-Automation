@@ -1,0 +1,49 @@
+---
+############################################################
+# STIG Control: V-263613
+# Status: Not a Finding - Password blacklist enforcement is handled by enterprise password policy mechanisms.
+# Title:
+# The DBMS must, for password-based authentication, verify
+# that when users create or update passwords, the passwords
+# are not found on the list of commonly-used, expected, or
+# compromised passwords.
+#
+# Severity:
+# CAT II
+#
+# Finding Details:
+# Passwords that appear in common password dictionaries or
+# previously compromised password lists significantly weaken
+# authentication security. Systems should verify passwords
+# against such lists to prevent weak credential selection.
+#
+# Implementation in this Environment:
+# PostgreSQL does not provide native functionality to check
+# passwords against commonly-used or compromised password
+# lists. Password policy enforcement is implemented through
+# enterprise identity management systems or administrative
+# security policies governing password creation.
+#
+# Manual Remediation Steps:
+#
+# 1. Implement password policies within centralized identity
+#    management systems such as LDAP, Active Directory, or
+#    PAM modules that enforce password blacklist validation.
+#
+# 2. Ensure database users follow organizational password
+#    policy standards.
+#
+# Verification Steps:
+#
+# Review organizational password policy enforcement tools.
+#
+# Expected Result:
+# Password creation policies prevent the use of commonly
+# used or compromised passwords.
+# comment: PostgreSQL does not natively implement password blacklist verification. Password strength and compromised password detection are enforced through organizational password policies and identity management systems. Therefore, this control is satisfied through enterprise password policy mechanisms rather than DBMS configuration.
+############################################################
+
+- name: "V-263613 | Informational control - password blacklist handled externally"
+  ansible.builtin.debug:
+    msg: "Password blacklist enforcement is handled by enterprise password policy mechanisms."
+  tags: ['V-263613','CAT II','check']

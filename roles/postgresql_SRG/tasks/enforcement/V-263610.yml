@@ -1,0 +1,30 @@
+---
+############################################################
+# STIG Control: V-263610
+# Status : NOT A FINDING
+# Title:
+# The DBMS must maintain a list of commonly used, expected,
+# or compromised passwords on an organization-defined frequency.
+#
+# Finding Details:
+# Maintaining password blacklist sources helps prevent the
+# use of weak, predictable, or compromised credentials.
+#
+# Implementation in this Environment:
+# PostgreSQL does not maintain an internal password blacklist.
+# Password blacklist management is handled through enterprise
+# identity management systems and organizational password
+# policy enforcement mechanisms.
+#
+# Manual Verification Steps:
+# 1. Review enterprise password policy documentation.
+# 2. Verify compromised password lists are maintained.
+# 3. Confirm updates occur on an organization-defined schedule.
+# Comment:
+# PostgreSQL does not maintain a native password blacklist or compromised password database. The organization enforces password blacklist policies through centralized identity management systems (e.g., LDAP/Active Directory or PAM). These systems maintain and update lists of commonly used or compromised passwords according to organizational policy. Therefore, the requirement is satisfied outside the DBMS.
+############################################################
+
+- name: "V-263610 | Password blacklist managed by enterprise identity systems"
+  ansible.builtin.debug:
+    msg: "Password blacklist maintenance implemented via enterprise identity management policy."
+  tags: ['V-263610','CAT II','check']

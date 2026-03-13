@@ -158,3 +158,54 @@
 - name: Validate V-206611
   ansible.builtin.import_tasks: V-206611_validate.yml
   when: postgresql_srg_v206611_enabled | bool
+- name: Validate V-263606
+  ansible.builtin.import_tasks: V-263606_validate.yml
+  when: postgresql_srg_v263606_enabled | bool
+- name: Validate V-263607
+  ansible.builtin.import_tasks: V-263607_validate.yml
+  when: postgresql_srg_v263607_enabled | bool
+- name: Validate V-263608
+  ansible.builtin.import_tasks: V-263608_validate.yml
+  when: postgresql_srg_v263608_enabled | bool
+- name: Validate V-263609
+  ansible.builtin.import_tasks: V-263609_validate.yml
+  when: postgresql_srg_v263609_enabled | bool
+- name: Validate V-263610
+  ansible.builtin.import_tasks: V-263610_validate.yml
+  when: postgresql_srg_v263610_enabled | bool
+- name: Validate V-263611
+  ansible.builtin.import_tasks: V-263611_validate.yml
+  when: postgresql_srg_v263611_enabled | bool
+- name: Validate V-263612
+  ansible.builtin.import_tasks: V-263612_validate.yml
+  when: postgresql_srg_v263612_enabled | bool
+- name: Validate V-263613
+  ansible.builtin.import_tasks: V-263613_validate.yml
+  when: postgresql_srg_v263613_enabled | bool
+- name: Validate V-263614
+  ansible.builtin.import_tasks: V-263614_validate.yml
+  when: postgresql_srg_v263614_enabled | bool
+- name: Validate V-263615
+  ansible.builtin.import_tasks: V-263615_validate.yml
+  when: postgresql_srg_v263615_enabled | bool
+- name: Validate V-263616
+  ansible.builtin.import_tasks: V-263616_validate.yml
+  when: postgresql_srg_v263616_enabled | bool
+- name: Validate V-263617
+  ansible.builtin.import_tasks: V-263617_validate.yml
+  when: postgresql_srg_v263617_enabled | bool
+- name: Validate V-263618
+  ansible.builtin.import_tasks: V-263618_validate.yml
+  when: postgresql_srg_v263618_enabled | bool
+- name: Validate V-263619
+  ansible.builtin.import_tasks: V-263619_validate.yml
+  when: postgresql_srg_v263619_enabled | bool
+- name: Validate V-263620
+  ansible.builtin.import_tasks: V-263620_validate.yml
+  when: postgresql_srg_v263620_enabled | bool
+- name: Validate V-263621
+  ansible.builtin.import_tasks: V-263621_validate.yml
+  when: postgresql_srg_v263621_enabled | bool
+- name: Validate V-263622
+  ansible.builtin.import_tasks: V-263622_validate.yml
+  when: postgresql_srg_v263622_enabled | bool

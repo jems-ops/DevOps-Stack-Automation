@@ -1,0 +1,27 @@
+---
+############################################################
+# STIG Control: V-263615
+#
+# Validation:
+# PostgreSQL allows long passwords and passphrases with
+# spaces and printable characters.
+#
+# Verification Command:
+#
+#   SHOW password_encryption;
+#
+# Expected:
+#   scram-sha-256
+############################################################
+
+- name: "V-263615 | Check password encryption method"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW password_encryption;"
+  register: postgresql_srg_password_encryption
+  changed_when: false
+
+- name: "V-263615 | Display password encryption setting"
+  ansible.builtin.debug:
+    var: postgresql_srg_password_encryption.stdout_lines
+  tags: ['V-263615','CAT II','check']

@@ -1,0 +1,17 @@
+---
+############################################################
+# STIG Control: V-263614
+#
+# Validation:
+# Verify password recovery procedures require users to
+# change their password immediately after administrator
+# reset.
+#
+# Verification:
+# Review administrative password reset procedures.
+############################################################
+
+- name: "V-263614 | Procedural control validation"
+  ansible.builtin.debug:
+    msg: "Password recovery is handled through documented administrative procedures."
+  tags: ['V-263614','CAT II','check']

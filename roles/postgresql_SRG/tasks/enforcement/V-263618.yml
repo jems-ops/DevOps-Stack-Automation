@@ -1,0 +1,69 @@
+---
+############################################################
+# STIG Control: V-263618
+# Status: Not a Finding - PostgreSQL administrative maintenance sessions are performed through the host operating system using SSH. The database server is deployed within an isolated internal network and administrative access occurs through controlled management paths. Therefore, maintenance sessions are logically separated from standard application network traffic.
+# Title:
+# The DBMS must protect nonlocal maintenance sessions by
+# separating the maintenance session from other network
+# sessions using logically separated communications paths.
+#
+# Severity:
+# CAT II
+#
+# Finding Details:
+# If administrative or maintenance sessions share the same
+# communication paths as regular user traffic, attackers may
+# intercept or manipulate maintenance operations. Separating
+# administrative access paths protects privileged sessions.
+#
+# PostgreSQL itself does not manage network segmentation.
+# Administrative access to the DBMS occurs through the host
+# operating system via secure shell (SSH) and controlled
+# administrative access paths.
+#
+# Implementation in this Environment:
+# PostgreSQL maintenance access is performed through the
+# host operating system using SSH and restricted administrative
+# accounts. The database server resides within an isolated
+# internal network and administrative access is performed
+# through controlled infrastructure such as bastion or
+# management hosts.
+#
+# Manual Remediation Steps:
+#
+# 1. Ensure database administration occurs through SSH to
+#    the host rather than direct DB network access.
+#
+# 2. Restrict administrative access using network controls
+#    such as firewalls, bastion hosts, or management VLANs.
+#
+# 3. Ensure PostgreSQL listens only on approved interfaces.
+#
+#    Verify:
+#    SHOW listen_addresses;
+#
+# 4. Restrict client access in pg_hba.conf to approved
+#    administrative networks.
+#
+# Verification Commands:
+#
+#    ss -plnt | grep postgres
+#    psql -c "SHOW listen_addresses;"
+#    cat $PGDATA/pg_hba.conf
+#
+# Expected Result:
+# Administrative sessions occur through secured and
+# logically separated management paths.
+#
+############################################################
+
+# This control is implemented through infrastructure
+# architecture and OS access controls. No DBMS enforcement
+# action is required.
+
+# comment: PostgreSQL administrative maintenance sessions are performed through the host operating system using SSH. The database server is deployed within an isolated internal network and administrative access occurs through controlled management paths. Therefore, maintenance sessions are logically separated from standard application network traffic.
+
+- name: "V-263618 | Informational control for separated maintenance paths"
+  ansible.builtin.debug:
+    msg: "PostgreSQL maintenance access is performed through secured administrative network paths."
+  tags: ['V-263618','CAT II','check']

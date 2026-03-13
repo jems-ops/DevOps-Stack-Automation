@@ -1,0 +1,14 @@
+---
+############################################################
+# STIG Control: V-263612
+#
+# Validation:
+# Verify that compromised password detection and blacklist
+# updates are handled through enterprise password policy
+# systems rather than PostgreSQL configuration.
+############################################################
+
+- name: "V-263612 | Procedural validation"
+  ansible.builtin.debug:
+    msg: "Password blacklist updates are managed by organizational password policy systems."
+  tags: ['V-263612','CAT II','check']

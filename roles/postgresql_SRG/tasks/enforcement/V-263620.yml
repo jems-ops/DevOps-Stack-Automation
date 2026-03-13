@@ -1,0 +1,70 @@
+---
+############################################################
+# STIG Control: V-263620
+# Status: Not Applicable
+# Title:
+# The DBMS must provide protected storage for cryptographic
+# keys with organization-defined safeguards and/or hardware
+# protected key store.
+#
+# Severity:
+# CAT II
+#
+# Finding Details:
+# Cryptographic keys used for database encryption or TLS
+# communication must be stored securely to prevent
+# unauthorized disclosure. If private keys are accessible
+# to unauthorized users, attackers may decrypt sensitive
+# database communications or impersonate the database
+# server.
+#
+# PostgreSQL commonly stores TLS private keys (server.key)
+# within the database configuration directory. These keys
+# must be restricted so only the postgres service account
+# can read them.
+#
+# Implementation in this Environment:
+# PostgreSQL TLS private keys are stored in the database
+# configuration directory and protected with strict file
+# permissions (0600) owned by the postgres account.
+#
+# Manual Remediation Steps:
+#
+# 1. Locate PostgreSQL TLS key
+#    ls -l $PGDATA/server.key
+#
+# 2. Ensure ownership
+#    sudo chown postgres:postgres server.key
+#
+# 3. Restrict permissions
+#    sudo chmod 600 server.key
+#
+# 4. Restart PostgreSQL if changes were made
+#    sudo systemctl restart postgresql
+#
+# Verification Commands:
+#
+#    ls -l $PGDATA/server.key
+#
+# Expected Result:
+#    -rw------- postgres postgres server.key
+# comment: PostgreSQL TLS encryption is not currently enabled in this environment. No cryptographic key files are stored by the DBMS. Key protection is handled at the operating system level.
+############################################################
+
+- name: "V-263620 | Ensure TLS private key ownership"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}/server.key"
+    owner: postgres
+    group: postgres
+  ignore_errors: true
+  tags: ['V-263620','CAT II','enforce']
+
+
+- name: "V-263620 | Ensure TLS private key permissions"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}/server.key"
+    mode: "0600"
+  ignore_errors: true
+  tags: ['V-263620','CAT II','enforce']

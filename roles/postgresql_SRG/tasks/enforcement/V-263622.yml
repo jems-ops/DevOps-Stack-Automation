@@ -1,0 +1,94 @@
+---
+############################################################
+# STIG Control: V-263622
+#
+# Title:
+# The DBMS must compare internal system clocks with an
+# organization-defined authoritative time source.
+#
+# Severity:
+# CAT II
+#
+# Finding Details:
+# If the host system clock is not synchronized with an
+# authoritative time source, database timestamps, audit logs,
+# and transaction ordering may become inconsistent.
+#
+# PostgreSQL relies on the operating system clock; therefore
+# time synchronization must be enforced at the OS level.
+#
+# Implementation in this Environment:
+# The RHEL 8 host synchronizes time using the chronyd service
+# with the organization-approved NTP server (Satellite).
+#
+# Manual Remediation Steps:
+#
+# 1. Install chrony if not present
+#    sudo dnf install chrony
+#
+# 2. Configure NTP source
+#    sudo vi /etc/chrony.conf
+#
+#    server satellite iburst
+#
+# 3. Ensure hostname resolves
+#    sudo vi /etc/hosts
+#
+#    <satellite_ip> satellite
+#
+# 4. Start and enable chronyd
+#    sudo systemctl enable chronyd
+#    sudo systemctl start chronyd
+#
+# 5. Force synchronization
+#    sudo chronyc makestep
+#
+# Verification Commands:
+#
+#    chronyc sources -v
+#    timedatectl status
+#
+# Expected Result:
+#    System clock synchronized: yes
+#
+############################################################
+
+- name: "V-263622 | Ensure chrony package installed"
+  become: true
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  tags: ['V-263622','CAT II','enforce']
+
+- name: "V-263622 | Ensure Satellite entry exists in /etc/hosts"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ postgresql_srg_ntp_server_ip }} {{ postgresql_srg_ntp_server }}"
+    state: present
+    create: yes
+  tags: ['V-263622','CAT II','enforce']
+
+- name: "V-263622 | Configure Satellite as NTP source"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/chrony.conf
+    regexp: '^server {{ postgresql_srg_ntp_server }}'
+    line: "server {{ postgresql_srg_ntp_server }} iburst"
+    state: present
+  notify: restart chronyd
+  tags: ['V-263622','CAT II','enforce']
+
+- name: "V-263622 | Ensure chronyd service running"
+  become: true
+  ansible.builtin.service:
+    name: chronyd
+    state: started
+    enabled: true
+  tags: ['V-263622','CAT II','enforce']
+
+- name: "V-263622 | Force time synchronization"
+  become: true
+  ansible.builtin.command: chronyc makestep
+  changed_when: false
+  tags: ['V-263622','CAT II','enforce']

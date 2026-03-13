@@ -1,0 +1,34 @@
+---
+############################################################
+# STIG Control: V-263617
+#
+# Status: Not Applicable
+#
+# Justification:
+# PostgreSQL does not use PKI-based authentication in this
+# environment. Certificate validation and revocation
+# mechanisms are therefore not implemented.
+#
+# Verification Command:
+#
+#   psql -t -c "SHOW ssl;"
+#
+# Expected:
+#   off
+############################################################
+
+- name: "V-263617 | Check PostgreSQL SSL status"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW ssl;"
+  register: postgresql_srg_ssl_status
+  changed_when: false
+  tags: ['V-263617','CAT II','check']
+
+- name: "V-263617 | Confirm PKI authentication not used"
+  ansible.builtin.assert:
+    that:
+      - "'off' in postgresql_srg_ssl_status.stdout"
+    success_msg: "Control Not Applicable - PKI authentication not used"
+    fail_msg: "STIG V-263617 FAILED: SSL enabled, PKI authentication may be in use"
+  tags: ['V-263617','CAT II','check']

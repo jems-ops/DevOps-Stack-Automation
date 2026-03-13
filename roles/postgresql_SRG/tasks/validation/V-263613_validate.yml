@@ -1,0 +1,16 @@
+---
+############################################################
+# STIG Control: V-263613
+#
+# Validation:
+# Verify password policy enforcement prevents commonly-used
+# or compromised passwords.
+#
+# This control is implemented through external password
+# policy systems rather than native PostgreSQL configuration.
+############################################################
+
+- name: "V-263613 | Procedural validation"
+  ansible.builtin.debug:
+    msg: "Password blacklist enforcement implemented through organizational password policy controls."
+  tags: ['V-263613','CAT II','check']

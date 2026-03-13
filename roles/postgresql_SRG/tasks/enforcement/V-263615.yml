@@ -1,0 +1,56 @@
+---
+############################################################
+# STIG Control: V-263615
+# Status: Not a Finding - PostgreSQL natively supports long passwords and passphrases, including spaces and printable characters, when using password-based authentication. No restrictions are imposed on printable characters, enabling users to create strong passphrases. Therefore, this control is satisfied through PostgreSQL's native password handling capabilities.
+# Title:
+# The DBMS must, for password-based authentication, allow
+# user selection of long passwords and passphrases,
+# including spaces and all printable characters.
+#
+# Severity:
+# CAT II
+#
+# Finding Details:
+# Password-based authentication mechanisms that restrict
+# password length or disallow printable characters may
+# prevent users from creating strong passphrases. Allowing
+# long passphrases and printable characters increases
+# password entropy and improves resistance to brute-force
+# and dictionary attacks.
+#
+# Implementation in this Environment:
+# PostgreSQL supports long passwords and passphrases,
+# including spaces and printable characters, when using
+# standard password authentication and SCRAM-SHA-256
+# password hashing.
+#
+# PostgreSQL does not restrict printable characters in
+# passwords and allows long passphrases by default.
+#
+# Manual Verification Steps:
+#
+# 1. Connect to PostgreSQL
+#
+#    psql
+#
+# 2. Create a test user with a long passphrase
+#
+#    CREATE ROLE test_user LOGIN PASSWORD
+#    'This is a very long passphrase with spaces !@#$%^&*()';
+#
+# 3. Confirm the user is created successfully.
+#
+# Verification Commands:
+#
+#    SELECT rolname FROM pg_roles;
+#
+# Expected Result:
+# PostgreSQL accepts long passphrases containing spaces
+# and printable characters.
+# comment: PostgreSQL supports long passwords and passphrases, including spaces and printable characters, when using password-based authentication. No restrictions are imposed on printable characters, enabling users to create strong passphrases. Therefore, this control is satisfied through PostgreSQL's native password handling capabilities.
+############################################################
+
+- name: "V-263615 | Informational control - PostgreSQL supports passphrases"
+  ansible.builtin.debug:
+    msg: "PostgreSQL natively supports long passwords and passphrases including spaces and printable characters."
+  tags: ['V-263615','CAT II','check']

@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-263607
+# Status : NOT A FINDING
+# Title:
+# The DBMS must require users to be individually authenticated
+# before granting access to shared accounts or resources.
+#
+# Finding Details:
+# Individual authentication ensures accountability and
+# traceability of user actions within the DBMS.
+#
+# Implementation in this Environment:
+# PostgreSQL enforces individual authentication through
+# unique database roles and pg_hba.conf authentication rules.
+#
+# Manual Verification Steps:
+# 1. Review pg_hba.conf authentication configuration.
+# 2. Verify shared accounts are not used for user access.
+# 3. Confirm users authenticate with unique database roles.
+# Comment:
+# PostgreSQL requires individual authentication through unique database roles and accounts. Access control is implemented using PostgreSQL role-based access control (RBAC) and authentication mechanisms defined in pg_hba.conf. Shared accounts are not used for database access. Additionally, authentication may be integrated with centralized identity management systems to ensure individual user accountability.
+############################################################
+
+- name: "V-263607 | Verify individual database roles exist"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SELECT rolname FROM pg_roles;"
+  register: postgres_roles
+  changed_when: false
+  tags: ['V-263607','CAT II','check']
+
+- name: "V-263607 | Display configured database roles"
+  ansible.builtin.debug:
+    var: postgres_roles.stdout_lines
+  tags: ['V-263607','CAT II','check']

@@ -1,0 +1,32 @@
+---
+############################################################
+# STIG Control: V-263620
+#
+# Validation:
+# Ensure PostgreSQL cryptographic keys are stored securely
+# with restricted permissions.
+#
+# Verification Commands:
+#
+#    ls -l $PGDATA/server.key
+#
+# Expected:
+#    -rw------- postgres postgres server.key
+############################################################
+
+- name: "V-263620 | Check TLS private key"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_data_dir }}/server.key"
+  register: postgresql_srg_tls_key
+  tags: ['V-263620','CAT II','check']
+
+- name: "V-263620 | Validate TLS key permissions"
+  ansible.builtin.assert:
+    that:
+      - postgresql_srg_tls_key.stat.pw_name == "postgres"
+      - postgresql_srg_tls_key.stat.gr_name == "postgres"
+      - postgresql_srg_tls_key.stat.mode == "0600"
+    fail_msg: "STIG V-263620 FAILED: TLS key permissions not secure"
+    success_msg: "TLS key protected with secure permissions"
+  tags: ['V-263620','CAT II','check']

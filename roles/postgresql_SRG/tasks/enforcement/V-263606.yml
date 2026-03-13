@@ -1,0 +1,45 @@
+---
+############################################################
+# STIG Control: V-263606
+# NOT A FINDING
+# Title:
+# Prevent installation of DBMS software components without
+# verification of digital signatures.
+#
+# Finding Details:
+# Installation of unsigned or untrusted software may
+# introduce malicious code or unauthorized components.
+#
+# Implementation in this Environment:
+# PostgreSQL is installed via the OS package manager
+# (DNF/YUM) which verifies GPG signatures of packages.
+#
+# Manual Verification Steps:
+# 1. Verify GPG signature checking is enabled in DNF/YUM.
+# 2. Confirm PostgreSQL packages originate from approved
+#    repositories.
+# Responsibility: System Administrator
+# comment: PostgreSQL software and related components are installed through the operating system package management system (DNF/YUM) which enforces GPG signature verification of packages. Only packages from organization-approved repositories are permitted. Therefore, the installation of unsigned or untrusted software components is prevented through the OS package management controls.
+############################################################
+
+- name: "V-263606 | Verify package signature checking"
+  ansible.builtin.command: grep gpgcheck /etc/dnf/dnf.conf
+  register: gpgcheck_status
+  changed_when: false
+  tags: ['V-263606','CAT II','check']
+
+- name: "V-263606 | Display GPG check configuration"
+  ansible.builtin.debug:
+    var: gpgcheck_status.stdout
+  tags: ['V-263606','CAT II','check']
+
+- name: "V-263606 | Ensure PostgreSQL packages are from approved repositories"
+  ansible.builtin.command: dnf repolist
+  register: repo_list
+  changed_when: false
+  tags: ['V-263606','CAT II','check']
+
+- name: "V-263606 | Display repository list"
+  ansible.builtin.debug:
+    var: repo_list.stdout
+  tags: ['V-263606','CAT II','check']

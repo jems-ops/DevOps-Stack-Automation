@@ -1,0 +1,30 @@
+---
+############################################################
+# STIG Control: V-263611
+# Status : NOT A FINDING
+# Title:
+# The DBMS must update the list of passwords on an
+# organization-defined frequency.
+#
+# Finding Details:
+# Organizations must periodically update password blacklist
+# sources to prevent the use of compromised or weak passwords.
+#
+# Implementation in this Environment:
+# PostgreSQL does not maintain a password blacklist.
+# Password blacklist updates are managed through enterprise
+# identity management systems and password policy services.
+#
+# Manual Verification Steps:
+# 1. Review enterprise password policy configuration.
+# 2. Confirm blacklist updates are performed periodically.
+# 3. Verify compromised password sources are integrated.
+# Comment:
+# PostgreSQL does not maintain a native password blacklist or compromised password database. Password blacklist management and periodic updates are enforced through the organization’s centralized identity management and password policy enforcement systems (e.g., LDAP/Active Directory). Therefore this control is satisfied through enterprise password policy mechanisms rather than DBMS configuration.
+
+############################################################
+
+- name: "V-263611 | Informational control - password blacklist managed externally"
+  ansible.builtin.debug:
+    msg: "Password blacklist updates enforced through enterprise identity management systems."
+  tags: ['V-263611','CAT II','check']

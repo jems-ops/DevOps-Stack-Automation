@@ -1,0 +1,21 @@
+---
+############################################################
+# STIG Control: V-263607
+#
+# Validation:
+# Verify PostgreSQL roles are used for individual
+# authentication and shared credentials are not used.
+############################################################
+
+- name: "V-263607 | Check authentication configuration"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW hba_file;"
+  register: pg_hba_file
+  changed_when: false
+  tags: ['V-263607','CAT II','check']
+
+- name: "V-263607 | Display pg_hba.conf location"
+  ansible.builtin.debug:
+    var: pg_hba_file.stdout
+  tags: ['V-263607','CAT II','check']

@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-263616
+#
+# Validation:
+# Verify PostgreSQL enforces strong password hashing for
+# password-based authentication.
+#
+# Verification Command:
+#
+#    psql -t -c "SHOW password_encryption;"
+#
+# Expected:
+#    scram-sha-256
+############################################################
+
+- name: "V-263616 | Check password encryption method"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW password_encryption;"
+  register: postgresql_srg_password_encryption
+  changed_when: false
+  tags: ['V-263616','CAT II','check']
+  
+- name: "V-263616 | Display password encryption setting"
+  ansible.builtin.debug:
+    var: postgresql_srg_password_encryption.stdout_lines
+  tags: ['V-263616','CAT II','check']
+
+- name: "V-263616 | Assert SCRAM password hashing enabled"
+  ansible.builtin.assert:
+    that:
+      - "'scram-sha-256' in postgresql_srg_password_encryption.stdout"
+    fail_msg: "STIG V-263616 FAILED: Weak password hashing detected"
+    success_msg: "SCRAM-SHA-256 password hashing enabled"
+  tags: ['V-263616','CAT II','check']

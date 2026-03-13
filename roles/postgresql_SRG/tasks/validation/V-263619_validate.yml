@@ -1,0 +1,34 @@
+---
+############################################################
+# STIG Control: V-263619
+#
+# Status: Not Applicable
+#
+# Justification:
+# PostgreSQL SSL/TLS is disabled in this environment.
+# Therefore the DBMS does not maintain a certificate trust
+# store or trust anchors.
+#
+# Verification Command:
+#
+#   psql -t -c "SHOW ssl;"
+#
+# Expected:
+#   off
+############################################################
+
+- name: "V-263619 | Check PostgreSQL SSL status"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW ssl;"
+  register: postgresql_srg_ssl_status
+  changed_when: false
+  tags: ['V-263619','CAT II','check']
+
+- name: "V-263619 | Assert SSL disabled (Not Applicable)"
+  ansible.builtin.assert:
+    that:
+      - "'off' in postgresql_srg_ssl_status.stdout"
+    success_msg: "Control Not Applicable - PostgreSQL SSL/TLS is disabled"
+    fail_msg: "STIG V-263619 FAILED: SSL enabled, trust store may be in use"
+  tags: ['V-263619','CAT II','check']

@@ -1,0 +1,23 @@
+---
+############################################################
+# STIG Control: V-263617
+#
+# Status: Not Applicable
+#
+# Justification:
+# PostgreSQL does not use PKI-based authentication in this
+# environment. Certificate validation and revocation
+# mechanisms are therefore not implemented.
+#
+# Verification Command:
+#
+#   psql -t -c "SHOW ssl;"
+#
+# Expected:
+#   off
+# comment: PostgreSQL in this environment does not implement public key–based authentication.Authentication is performed using SCRAM-SHA-256 credentials over internal trusted network connections.Because PKI authentication is not used, certificate revocation lists (CRL) or OCSP validation mechanisms are not implemented by the DBMS.Therefore, this control is not applicable to the current PostgreSQL deployment.
+############################################################
+- name: "V-263617 | Informational control - PKI authentication not implemented"
+  ansible.builtin.debug:
+    msg: "PostgreSQL does not use PKI-based authentication in this environment. Certificate validation and revocation mechanisms are therefore not implemented."
+  tags: ['V-263617','CAT II','check']

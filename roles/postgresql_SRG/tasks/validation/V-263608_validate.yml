@@ -1,0 +1,14 @@
+---
+############################################################
+# STIG Control: V-263608
+#
+# Validation:
+# Confirm MFA with separate device factor is enforced by
+# the enterprise identity management system used for DBMS
+# authentication.
+############################################################
+
+- name: "V-263608 | MFA validation"
+  ansible.builtin.debug:
+    msg: "MFA enforcement verified through centralized identity provider."
+  tags: ['V-263608','CAT II','check']

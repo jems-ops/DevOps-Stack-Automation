@@ -1,0 +1,54 @@
+---
+############################################################
+# STIG Control: V-263612
+# Status : NOT A FINDING
+# Title:
+# The DBMS must, for password-based authentication, update
+# the list of passwords when organizational passwords are
+# suspected to have been compromised directly or indirectly.
+#
+# Severity:
+# CAT II
+#
+# Finding Details:
+# When compromised passwords are discovered through security
+# incidents or breach intelligence, systems must prevent the
+# continued use of those passwords. Maintaining and updating
+# password blacklists ensures compromised credentials cannot
+# be reused by attackers.
+#
+# Implementation in this Environment:
+# PostgreSQL does not maintain a native password blacklist.
+# Password compromise monitoring and blacklist enforcement
+# are implemented through enterprise identity management
+# systems and organizational password policy enforcement.
+#
+# Administrative security processes ensure compromised
+# passwords are removed from allowed credential lists and
+# users are required to reset affected credentials.
+#
+# Manual Remediation Steps:
+#
+# 1. Identify compromised passwords using organizational
+#    security monitoring and breach intelligence tools.
+#
+# 2. Update password policy enforcement systems such as
+#    LDAP, Active Directory, or PAM modules.
+#
+# 3. Require users with compromised passwords to reset
+#    credentials immediately.
+#
+# Verification:
+#
+# Review organizational password policy procedures and
+# identity management systems responsible for password
+# blacklist updates.
+# comment:
+# Because PostgreSQL can authenticate users with passwords but does not maintain password compromise lists, the control still applies, but it is implemented outside the DBMS.
+# Compromised password monitoring and blacklist enforcement are handled through the organization’s centralized identity management and password policy enforcement systems (e.g., LDAP/Active Directory or PAM). When compromised passwords are identified, administrative processes ensure those credentials are removed from allowed lists and users are required to reset passwords. Therefore, this control is satisfied through enterprise password policy mechanisms rather than DBMS configuration.
+############################################################
+
+- name: "V-263612 | Informational control - compromised password policy handled externally"
+  ansible.builtin.debug:
+    msg: "Compromised password list enforcement implemented through enterprise password policy controls."
+  tags: ['V-263612','CAT II','check']

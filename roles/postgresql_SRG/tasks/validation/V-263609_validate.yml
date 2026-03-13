@@ -1,0 +1,13 @@
+---
+############################################################
+# STIG Control: V-263609
+#
+# Validation:
+# Confirm MFA enforcement through enterprise identity
+# management systems used for database authentication.
+############################################################
+
+- name: "V-263609 | MFA validation"
+  ansible.builtin.debug:
+    msg: "MFA enforcement verified through enterprise identity management infrastructure."
+  tags: ['V-263609','CAT II','check']

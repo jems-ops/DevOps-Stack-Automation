@@ -1,0 +1,30 @@
+---
+############################################################
+# STIG Control: V-263606
+#
+# Validation:
+# Confirm package signature verification is enabled
+# through the operating system package manager.
+############################################################
+
+- name: "V-263606 | Check repository configuration"
+  ansible.builtin.command: grep gpgcheck /etc/yum.repos.d/*.repo
+  register: repo_gpgcheck
+  changed_when: false
+  failed_when: false
+
+- name: "V-263606 | Show repository GPG configuration"
+  ansible.builtin.debug:
+    var: repo_gpgcheck.stdout_lines
+  tags: ['V-263606','CAT II','check']
+
+- name: "V-263606 | Check global GPG check setting"
+  ansible.builtin.command: grep gpgcheck /etc/dnf/dnf.conf
+  register: global_gpgcheck
+  changed_when: false
+  tags: ['V-263606','CAT II','check']
+  
+- name: "V-263606 | Show global GPG check configuration"
+  ansible.builtin.debug:
+    var: global_gpgcheck.stdout_lines
+  tags: ['V-263606','CAT II','check']
