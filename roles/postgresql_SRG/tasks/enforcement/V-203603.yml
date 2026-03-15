@@ -1,0 +1,39 @@
+---
+############################################################
+# STIG Control: V-263603
+#
+# Title:
+# The DBMS must disable accounts when they are no longer
+# associated with a user.
+#
+# Finding Details:
+# Disabling inactive or orphaned accounts reduces risk
+# of unauthorized access.
+#
+# Implementation in this Environment:
+# Database authentication is integrated with enterprise
+# identity management systems. User accounts are disabled
+# through the identity provider when users leave the
+# organization or lose authorization.
+#
+# Manual Verification Steps:
+# 1. Review identity management account lifecycle policies.
+# 2. Confirm user access removal automatically prevents
+#    DBMS authentication.
+# comment: Database user accounts are managed through centralized identity management systems. When users are no longer associated with the organization or system, their accounts are disabled in the identity provider, which automatically prevents authentication to PostgreSQL. Therefore, account lifecycle management and disabling of inactive users are enforced through enterprise identity management controls.
+
+# status: Not a finding
+############################################################
+
+- name: "V-263603 | List PostgreSQL roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SELECT rolname, rolcanlogin FROM pg_roles;"
+  register: postgres_roles
+  changed_when: false
+  tags: ['V-263603','CAT II','check']
+
+- name: "V-263603 | Display database roles"
+  ansible.builtin.debug:
+    var: postgres_roles.stdout_lines
+  tags: ['V-263603','CAT II','check']

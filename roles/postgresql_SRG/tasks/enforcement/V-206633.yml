@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG Control: V-206633
+#
+# Title:
+# DBMS must generate audit records when attempted
+# privileged actions are prevented.
+#
+# Implementation:
+# PostgreSQL records failed privileged actions through
+# error logging and the pgaudit extension.
+#
+# Manual Verification Steps:
+# 1. Verify pgaudit extension is installed.
+# 2. Confirm pgaudit logs DDL and role actions.
+# 3. Attempt a privileged operation without permission
+#    and confirm it appears in the PostgreSQL logs.
+# comment: PostgreSQL records attempted privileged actions through database logging and the pgaudit extension. Failed administrative operations such as CREATE, ALTER, DROP, GRANT, and REVOKE generate audit records when permission checks fail. These events are captured in PostgreSQL logs and provide traceability for unauthorized or prevented privileged actions.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206633 | Ensure pgaudit is enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+  tags: ['V-206633','CAT II', 'enforce']

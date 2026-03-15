@@ -208,6 +208,91 @@
   ansible.builtin.import_tasks: V-263622.yml
   when: postgresql_srg_v263622_enabled | bool
 
+- name: Enforce V-203602
+  ansible.builtin.import_tasks: V-203602.yml
+  when: postgresql_srg_v203602_enabled | bool
+- name: Enforce V-203603
+  ansible.builtin.import_tasks: V-203603.yml
+  when: postgresql_srg_v203603_enabled | bool
+- name: Enforce V-203604
+  ansible.builtin.import_tasks: V-203604.yml
+  when: postgresql_srg_v203604_enabled | bool
+- name: Enforce V-203605
+  ansible.builtin.import_tasks: V-203605.yml
+  when: postgresql_srg_v203605_enabled | bool
+- name: Enforce V-206620
+  ansible.builtin.import_tasks: V-206620.yml
+  when: postgresql_srg_v206620_enabled | bool
+- name: Enforce V-206621
+  ansible.builtin.import_tasks: V-206621.yml
+  when: postgresql_srg_v206621_enabled | bool
+- name: Enforce V-206622
+  ansible.builtin.import_tasks: V-206622.yml
+  when: postgresql_srg_v206622_enabled | bool
+- name: Enforce V-206623
+  ansible.builtin.import_tasks: V-206623.yml
+  when: postgresql_srg_v206623_enabled | bool
+- name: Enforce V-206624
+  ansible.builtin.import_tasks: V-206624.yml
+  when: postgresql_srg_v206624_enabled | bool
+- name: Enforce V-206625
+  ansible.builtin.import_tasks: V-206625.yml
+  when: postgresql_srg_v206625_enabled | bool
+- name: Enforce V-206626
+  ansible.builtin.import_tasks: V-206626.yml
+  when: postgresql_srg_v206626_enabled | bool
+- name: Enforce V-206627
+  ansible.builtin.import_tasks: V-206627.yml
+  when: postgresql_srg_v206627_enabled | bool
+- name: Enforce V-206628
+  ansible.builtin.import_tasks: V-206628.yml
+  when: postgresql_srg_v206628_enabled | bool
+- name: Enforce V-206629
+  ansible.builtin.import_tasks: V-206629.yml
+  when: postgresql_srg_v206629_enabled | bool
+- name: Enforce V-206630
+  ansible.builtin.import_tasks: V-206630.yml
+  when: postgresql_srg_v206630_enabled | bool
+- name: Enforce V-206631
+  ansible.builtin.import_tasks: V-206631.yml
+  when: postgresql_srg_v206631_enabled | bool
+- name: Enforce V-206632
+  ansible.builtin.import_tasks: V-206632.yml
+  when: postgresql_srg_v206632_enabled | bool
+- name: Enforce V-206633
+  ansible.builtin.import_tasks: V-206633.yml
+  when: postgresql_srg_v206633_enabled | bool
+- name: Enforce V-206634
+  ansible.builtin.import_tasks: V-206634.yml
+  when: postgresql_srg_v206634_enabled | bool
+- name: Enforce V-206635
+  ansible.builtin.import_tasks: V-206635.yml
+  when: postgresql_srg_v206635_enabled | bool
+- name: Enforce V-206636
+  ansible.builtin.import_tasks: V-206636.yml
+  when: postgresql_srg_v206636_enabled | bool
+- name: Enforce V-206637
+  ansible.builtin.import_tasks: V-206637.yml
+  when: postgresql_srg_v206637_enabled | bool
+- name: Enforce V-206638
+  ansible.builtin.import_tasks: V-206638.yml
+  when: postgresql_srg_v206638_enabled | bool
+- name: Enforce V-206639
+  ansible.builtin.import_tasks: V-206639.yml
+  when: postgresql_srg_v206639_enabled | bool
+- name: Enforce V-206640
+  ansible.builtin.import_tasks: V-206640.yml
+  when: postgresql_srg_v206640_enabled | bool
+- name: Enforce V-206641
+  ansible.builtin.import_tasks: V-206641.yml
+  when: postgresql_srg_v206641_enabled | bool
+- name: Enforce V-206642
+  ansible.builtin.import_tasks: V-206642.yml
+  when: postgresql_srg_v206642_enabled | bool
+- name: Enforce V-206643
+  ansible.builtin.import_tasks: V-206643.yml
+  when: postgresql_srg_v206643_enabled | bool
+
 ############################################################
 # Final pass: re-harden file permissions after all
 # ALTER SYSTEM SET calls (which reset postgresql.auto.conf

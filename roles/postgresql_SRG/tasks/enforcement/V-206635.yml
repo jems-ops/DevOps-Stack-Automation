@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-206635
+#
+# Title:
+# DBMS must generate audit records when concurrent logons
+# by the same user from different workstations occur.
+#
+# Implementation:
+# PostgreSQL logs connection and disconnection events.
+# Concurrent sessions can be reconstructed from these logs.
+#
+# Manual Verification Steps:
+# 1. Verify connection logging is enabled.
+# 2. Verify disconnection logging is enabled.
+# 3. Confirm log line prefix includes username and client IP.
+# comment: PostgreSQL is configured to log all connection and disconnection events using the parameters log_connections and log_disconnections. These logs include the username, database, and client address via the log_line_prefix configuration. Concurrent logins from multiple workstations can therefore be reconstructed through log analysis. As permitted by the control guidance, additional dedicated concurrent login audit records are not required.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206635 | Ensure connection logging enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_connections'
+    line: "log_connections = on"
+  tags: ['V-206635','CAT II', 'enforce']
+
+- name: "V-206635 | Ensure disconnection logging enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_disconnections'
+    line: "log_disconnections = on"
+  tags: ['V-206635','CAT II', 'enforce']

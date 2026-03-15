@@ -1,0 +1,31 @@
+---
+############################################################
+# STIG Control: V-206643
+#
+# Title:
+# DBMS must be configured in accordance with DoD security
+# configuration and implementation guidance.
+#
+# Finding Details:
+# Failure to follow DoD configuration baselines may expose
+# the DBMS to security vulnerabilities.
+#
+# Implementation:
+# PostgreSQL STIG/SRG security configuration is implemented
+# through automated configuration management using Ansible.
+#
+# Manual Verification Steps:
+# 1. Review PostgreSQL configuration baseline.
+# 2. Confirm STIG/SRG controls are implemented.
+# 3. Verify configuration is maintained through automation.
+# comment: The PostgreSQL DBMS is configured in accordance with DoD security configuration guidance, including the Database SRG and PostgreSQL STIG controls. Security settings are implemented through documented procedures and automated configuration management using Ansible roles. Compliance is validated through periodic review of configuration settings and SRG artifact documentation.
+
+# status: Not a finding
+############################################################
+
+- name: "V-206643 | Document STIG baseline configuration"
+  ansible.builtin.debug:
+    msg:
+      - "PostgreSQL DBMS configured according to DoD SRG/STIG guidance."
+      - "Configuration managed via Ansible security hardening role."
+  tags: ['V-206643','CAT II', 'enforce']

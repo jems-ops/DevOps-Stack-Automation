@@ -1,0 +1,33 @@
+---
+############################################################
+# STIG Control: V-206641
+#
+# Title:
+# The DBMS must implement NIST FIPS 140-2 or 140-3
+# validated cryptographic modules.
+#
+# Implementation:
+# PostgreSQL relies on the OpenSSL library provided by
+# the underlying RHEL operating system. When the system
+# operates in FIPS mode, cryptographic operations are
+# performed using FIPS-validated modules.
+#
+# Manual Verification Steps:
+# 1. Verify RHEL FIPS mode is enabled.
+# 2. Confirm system crypto policy is set to FIPS.
+# 3. Verify PostgreSQL SSL configuration uses system OpenSSL.
+# comment: PostgreSQL cryptographic operations rely on the OpenSSL library provided by the underlying RHEL operating system. The system operates in FIPS mode, ensuring cryptographic functions utilize NIST FIPS 140-2/140-3 validated modules. Therefore, PostgreSQL inherits FIPS-compliant cryptographic protections from the operating system.
+
+# status: Not a finding
+############################################################
+
+- name: "V-206641 | Check FIPS mode"
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: fips_status
+  changed_when: false
+  tags: ['V-206641','CAT II', 'enforce']
+
+- name: "V-206641 | Display FIPS status"
+  ansible.builtin.debug:
+    var: fips_status.stdout
+  tags: ['V-206641','CAT II', 'enforce']

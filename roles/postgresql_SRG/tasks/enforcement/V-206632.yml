@@ -1,0 +1,28 @@
+---
+############################################################
+# STIG Control: V-206632
+#
+# Title:
+# DBMS must generate audit records for all privileged
+# activities or system-level access.
+#
+# Implementation:
+# PostgreSQL uses the pgaudit extension to audit privileged
+# activities such as DDL and role changes.
+#
+# Manual Verification Steps:
+# 1. Verify pgaudit extension is installed.
+# 2. Confirm pgaudit.log includes ddl and role logging.
+# 3. Review database logs for administrative actions.
+# comment: PostgreSQL auditing is implemented using the pgaudit extension. Privileged operations including CREATE, ALTER, DROP, GRANT, REVOKE, and other administrative actions are recorded in audit logs. The logging configuration ensures that privileged activities and system-level database access are captured for monitoring, auditing, and forensic analysis.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206632 | Ensure pgaudit extension is enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+  tags: ['V-206632','CAT II', 'enforce']

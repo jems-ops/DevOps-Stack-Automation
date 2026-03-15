@@ -1,0 +1,28 @@
+---
+############################################################
+# STIG Control: V-206631
+#
+# Title:
+# DBMS must generate audit records for unsuccessful
+# logon or connection attempts.
+#
+# Implementation:
+# PostgreSQL records failed authentication attempts
+# through standard logging configuration.
+#
+# Manual Verification Steps:
+# 1. Verify log_connections is enabled.
+# 2. Attempt login with invalid credentials.
+# 3. Confirm failure appears in PostgreSQL logs.
+# comment: PostgreSQL logs unsuccessful authentication attempts through standard database logging. When login attempts fail due to invalid credentials or unauthorized access, PostgreSQL generates audit records containing the timestamp, username (if provided), and connection source. These logs support monitoring and forensic analysis of unauthorized access attempts.
+
+# status: Not a finding
+############################################################
+
+- name: "V-206631 | Ensure connection logging enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_connections'
+    line: "log_connections = on"
+  tags: ['V-206631','CAT II', 'enforce']

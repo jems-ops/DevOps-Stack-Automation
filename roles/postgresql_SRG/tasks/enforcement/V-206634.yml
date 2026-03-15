@@ -1,0 +1,35 @@
+---
+############################################################
+# STIG Control: V-206634
+#
+# Title:
+# DBMS must generate audit records showing starting and
+# ending time for user database access.
+#
+# Implementation:
+# PostgreSQL logs connection and disconnection events
+# through configuration parameters.
+#
+# Manual Verification Steps:
+# 1. Verify log_connections is enabled.
+# 2. Verify log_disconnections is enabled.
+# 3. Review PostgreSQL logs for connection and disconnection events.
+# comment:PostgreSQL is configured to log connection and disconnection events using the parameters log_connections and log_disconnections. These logs include timestamps, username, database name, and client address, allowing the start and end time of each database session to be reconstructed for auditing and forensic analysis.
+# Status: Not a finding
+############################################################
+
+- name: "V-206634 | Ensure connection logging enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_connections'
+    line: "log_connections = on"
+  tags: ['V-206634','CAT II', 'enforce']
+
+- name: "V-206634 | Ensure disconnection logging enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_disconnections'
+    line: "log_disconnections = on"
+  tags: ['V-206634','CAT II', 'enforce']

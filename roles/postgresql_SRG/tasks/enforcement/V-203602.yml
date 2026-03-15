@@ -1,0 +1,35 @@
+---
+############################################################
+# STIG Control: V-263602
+#
+# Title:
+# The DBMS must disable accounts when the accounts have expired.
+#
+# Finding Details:
+# Expired accounts must not be able to authenticate to the DBMS.
+#
+# Implementation:
+# PostgreSQL enforces account expiration through the
+# role attribute "VALID UNTIL".
+#
+# Manual Verification Steps:
+# 1. Verify roles have expiration configured where required.
+# 2. Confirm expired accounts cannot log in.
+# comment: PostgreSQL supports account expiration through the VALID UNTIL role attribute. When an account reaches the configured expiration time, authentication is automatically denied by the DBMS. In environments where authentication is integrated with enterprise identity management systems (e.g., LDAP, Active Directory, or SSO), account expiration and disabling are enforced through centralized identity management controls. Therefore, expired accounts cannot authenticate to the database.
+
+# status: Not a finding
+############################################################
+
+- name: "V-263602 | Query PostgreSQL role expiration"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SELECT rolname, rolvaliduntil FROM pg_roles;"
+  register: pg_role_expiration
+  changed_when: false
+  tags: ['V-263602','CAT II','check']
+
+- name: "V-263602 | Display role expiration configuration"
+  ansible.builtin.debug:
+    var: pg_role_expiration.stdout_lines
+  tags: ['V-263602','CAT II','check']

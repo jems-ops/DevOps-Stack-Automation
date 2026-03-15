@@ -1,0 +1,28 @@
+---
+############################################################
+# STIG Control: V-206630
+#
+# Title:
+# DBMS must generate audit records when successful
+# logons or connections occur.
+#
+# Implementation:
+# PostgreSQL logs successful connection events when
+# log_connections is enabled.
+#
+# Manual Verification Steps:
+# 1. Verify log_connections is enabled.
+# 2. Connect to the database using psql.
+# 3. Review PostgreSQL logs to confirm the connection event.
+# comment: PostgreSQL generates audit records for successful database logins using the log_connections configuration parameter. Connection logs include timestamp, username, database name, client address, and session information through the configured log line prefix. These records provide traceability for user access to the DBMS.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206630 | Ensure successful login logging enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?log_connections'
+    line: "log_connections = on"
+  tags: ['V-206630','CAT II', 'enforce']

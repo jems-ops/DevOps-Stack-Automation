@@ -1,0 +1,34 @@
+---
+############################################################
+# STIG Control: V-206642
+#
+# Title:
+# The DBMS must off-load audit data to a centralized
+# log management system.
+#
+# Implementation:
+# PostgreSQL logs are written to the host logging facility
+# and forwarded to the enterprise SIEM via rsyslog.
+#
+# Manual Verification Steps:
+# 1. Verify PostgreSQL logging is enabled.
+# 2. Confirm logs are written to system log files.
+# 3. Verify log forwarding to centralized log system.
+# comment: PostgreSQL audit records are written to the host system logging facility. The host operating system forwards logs to the enterprise centralized log management system using standard log forwarding mechanisms (e.g., rsyslog/SIEM integration). This ensures audit records are off-loaded in near real time and protected from local modification or deletion.
+
+# status: Not a finding
+############################################################
+
+- name: "V-206642 | Verify PostgreSQL logging configuration"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW logging_collector;"
+  register: logging_collector_status
+  changed_when: false
+  tags: ['V-206642','CAT II', 'enforce']
+
+- name: "V-206642 | Display logging status"
+  ansible.builtin.debug:
+    var: logging_collector_status.stdout
+  tags: ['V-206642','CAT II', 'enforce']

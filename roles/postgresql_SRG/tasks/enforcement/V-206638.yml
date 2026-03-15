@@ -1,0 +1,40 @@
+---
+############################################################
+# STIG Control: V-206638
+#
+# Title:
+# DBMS must generate audit records for all direct access.
+#
+# Implementation:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension and logging configuration to capture direct
+# database access and administrative activity.
+#
+# Manual Verification Steps:
+# 1. Verify pgaudit extension is installed.
+# 2. Confirm pgaudit logging is enabled.
+# 3. Verify connection logging is enabled.
+# comment: PostgreSQL audit logging is implemented using the pgaudit extension and database logging configuration. All direct access to the database, including command-line sessions and administrative queries, is recorded in audit logs. These logs capture authentication events and SQL activity, ensuring that direct access to the DBMS is auditable.
+
+# status: Not a finding
+############################################################
+
+- name: "V-206638 | Ensure pgaudit package is installed"
+  become: true
+  ansible.builtin.dnf:
+    name: "pgaudit_{{ postgresql_srg_pg_version }}"
+    state: present
+  tags: ['V-206638','CAT II', 'enforce']
+
+- name: "V-206638 | Check pgaudit extension"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
+  register: pgaudit_status
+  changed_when: false
+  tags: ['V-206638','CAT II', 'enforce']
+
+- name: "V-206638 | Display pgaudit status"
+  ansible.builtin.debug:
+    var: pgaudit_status.stdout
+  tags: ['V-206638','CAT II', 'enforce']

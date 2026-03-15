@@ -1,0 +1,10 @@
+---
+############################################################
+# STIG Control: V-203605
+# Validation placeholder – tasks to be implemented.
+############################################################
+
+- name: "V-203605 | Validation not yet implemented"
+  ansible.builtin.debug:
+    msg: "Validation for V-203605 is pending implementation."
+  tags: ['V-203605', 'CAT II', 'check']

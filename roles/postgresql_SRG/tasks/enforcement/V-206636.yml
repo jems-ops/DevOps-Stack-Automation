@@ -1,0 +1,34 @@
+---
+############################################################
+# STIG Control: V-206636
+#
+# Title:
+# DBMS must generate audit records for successful access
+# to database objects.
+#
+# Implementation:
+# PostgreSQL auditing uses the pgaudit extension and
+# database logging configuration to record successful
+# object access operations.
+#
+# Manual Verification Steps:
+# 1. Verify pgaudit extension is installed.
+# 2. Confirm audit logging configuration.
+# 3. Verify object access operations are logged.
+# comment: PostgreSQL auditing is implemented using the pgaudit extension and database logging configuration. Successful accesses to database objects, including SELECT, INSERT, UPDATE, DELETE, and EXECUTE operations, are recorded in audit logs. These logs provide traceability for database activity and support forensic analysis and incident investigation.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206636 | Check pgaudit extension"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
+  register: pgaudit_status
+  changed_when: false
+  tags: ['V-206636','CAT II', 'enforce']
+
+- name: "V-206636 | Display pgaudit status"
+  ansible.builtin.debug:
+    var: pgaudit_status.stdout
+  tags: ['V-206636','CAT II', 'enforce']

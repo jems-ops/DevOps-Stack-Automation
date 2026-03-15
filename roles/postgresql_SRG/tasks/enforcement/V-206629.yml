@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG Control: V-206629
+#
+# Title:
+# DBMS must generate audit records when attempts to
+# delete categories of information fail or are denied.
+#
+# Implementation:
+# PostgreSQL logs failed deletion attempts through
+# error logging and pgaudit audit logging.
+#
+# Manual Verification Steps:
+# 1. Verify pgaudit extension is installed.
+# 2. Confirm pgaudit logs write operations.
+# 3. Attempt a DELETE operation without permission
+#    and confirm the failure appears in logs.
+# comment: PostgreSQL logs unsuccessful attempts to delete database objects or data through standard error logging and audit logging. When deletion operations such as DELETE, DROP, or TRUNCATE fail due to permission restrictions or database constraints, PostgreSQL records the event in audit logs. These records support monitoring and forensic analysis of unauthorized or unsuccessful deletion attempts.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206629 | Ensure pgaudit logging configured"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+  tags: ['V-206629','CAT II', 'enforce']

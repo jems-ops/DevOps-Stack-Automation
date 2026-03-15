@@ -1,0 +1,23 @@
+---
+############################################################
+# STIG Control: V-206623
+# Audit failed attempts to modify categories of information
+# comment: PostgreSQL auditing is implemented using the pgaudit extension. Database modification operations such as ALTER statements and updates to protected objects are recorded in audit logs. Failed attempts to modify database objects generate error entries within the PostgreSQL logging system, ensuring unauthorized modification attempts are traceable for security monitoring and forensic analysis.
+# Status: Not a finding
+############################################################
+
+- name: "V-206623 | Ensure pgaudit extension enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+  tags: ['V-206623','CAT II', 'enforce']
+
+- name: "V-206623 | Configure audit logging for modifications"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?pgaudit\.log\s*='
+    line: "pgaudit.log = '{{ postgresql_srg_pgaudit_classes }}'"
+  tags: ['V-206623','CAT II', 'enforce']

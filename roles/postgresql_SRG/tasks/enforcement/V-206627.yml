@@ -1,0 +1,24 @@
+---
+############################################################
+# STIG Control: V-206627
+# Audit attempts to delete security objects
+# comment: PostgreSQL auditing is implemented using the pgaudit extension. Security-related operations such as DROP ROLE, REVOKE, DROP SCHEMA, and other privileged DDL actions are recorded in audit logs. Both successful and failed attempts to delete security objects generate audit records containing the timestamp, user identity, and affected object.
+
+# Status: Not a finding
+############################################################
+
+- name: "V-206627 | Ensure pgaudit library loaded"
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+  become: true
+  tags: ['V-206627','CAT II', 'enforce']
+
+- name: "V-206627 | Configure audit logging for security operations"
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?pgaudit\.log\s*='
+    line: "pgaudit.log = '{{ postgresql_srg_pgaudit_classes }}'"
+  become: true
+  tags: ['V-206627','CAT II', 'enforce']

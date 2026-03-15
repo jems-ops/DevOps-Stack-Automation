@@ -162,6 +162,38 @@ postgresql_srg_v206580_enabled: true
 postgresql_srg_v206600_enabled: true
 postgresql_srg_v206611_enabled: true
 
+# --- New CAT II Controls (V-203602 – V-203605) ---
+postgresql_srg_v203602_enabled: true
+postgresql_srg_v203603_enabled: true
+postgresql_srg_v203604_enabled: true
+postgresql_srg_v203605_enabled: true
+
+# --- New CAT II Controls (V-206620 – V-206643) ---
+postgresql_srg_v206620_enabled: true
+postgresql_srg_v206621_enabled: true
+postgresql_srg_v206622_enabled: true
+postgresql_srg_v206623_enabled: true
+postgresql_srg_v206624_enabled: true
+postgresql_srg_v206625_enabled: true
+postgresql_srg_v206626_enabled: true
+postgresql_srg_v206627_enabled: true
+postgresql_srg_v206628_enabled: true
+postgresql_srg_v206629_enabled: true
+postgresql_srg_v206630_enabled: true
+postgresql_srg_v206631_enabled: true
+postgresql_srg_v206632_enabled: true
+postgresql_srg_v206633_enabled: true
+postgresql_srg_v206634_enabled: true
+postgresql_srg_v206635_enabled: true
+postgresql_srg_v206636_enabled: true
+postgresql_srg_v206637_enabled: true
+postgresql_srg_v206638_enabled: true
+postgresql_srg_v206639_enabled: true
+postgresql_srg_v206640_enabled: true
+postgresql_srg_v206641_enabled: true
+postgresql_srg_v206642_enabled: true
+postgresql_srg_v206643_enabled: true
+
 # --- New CAT II Controls (V-263606 – V-263622) ---
 postgresql_srg_v263606_enabled: true
 postgresql_srg_v263607_enabled: true
@@ -278,3 +310,12 @@ postgresql_srg_authorized_priv_roles:
 # Satellite / NTP server hostname and IP.
 postgresql_srg_ntp_server: satellite
 postgresql_srg_ntp_server_ip: "192.168.1.100"
+
+############################################################
+# V-263621 / V-263622 NTP Configuration
+############################################################
+postgresql_srg_shared_preload_libraries : 'pgaudit'
+postgresql_srg_pgaudit_log : 'read,write,ddl,role'
+postgresql_srg_log_connections : on
+postgresql_srg_log_disconnections : on
+#postgresql_srg_log_line_prefix : '%m %u %d %r %p '
