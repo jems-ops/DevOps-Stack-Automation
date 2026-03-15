@@ -30,6 +30,6 @@
   become: true
   ansible.builtin.replace:
     path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^\s*host\s+.*(0\.0\.0\.0\/0|\/0)'
+    regexp: '^\s*host(?:ssl|nossl)?\s+.*(?:0\.0\.0\.0\/0|\/0).*$'
     replace: ''
   notify: Reload PostgreSQL

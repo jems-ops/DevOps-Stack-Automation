@@ -1,10 +1,21 @@
 ---
 ############################################################
-# STIG Control: V-203605
-# Validation placeholder – tasks to be implemented.
+# STIG Control: V-263605
+#
+# Validation:
+# Verify audit logs are generated and forwarded to
+# enterprise monitoring systems where alerting is configured.
 ############################################################
 
-- name: "V-203605 | Validation not yet implemented"
+- name: "V-263605 | Check log destination"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW log_destination;"
+  register: log_destination
+  changed_when: false
+  tags: ['V-203605', 'CAT II', 'check']
+
+- name: "V-263605 | Display log destination"
   ansible.builtin.debug:
-    msg: "Validation for V-203605 is pending implementation."
+    var: log_destination.stdout
   tags: ['V-203605', 'CAT II', 'check']
