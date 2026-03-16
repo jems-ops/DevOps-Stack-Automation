@@ -61,9 +61,14 @@ postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "
 # V-206520 — Authentication / Role Control
 ############################################################
 
+# Application database users — keep in sync with postgresql_srg_hba_application_entries.
+# Add one entry per application service account that must be permitted to log in.
 postgresql_srg_approved_login_roles:
   - postgres
-  - sonar
+  - sonar           # SonarQube
+  # - bitbucketuser # Bitbucket
+  # - confuser      # Confluence
+  # - satellite     # Red Hat Satellite
   - stig_validate_role
   - stig_limited
 
@@ -84,9 +89,12 @@ postgresql_srg_enforce_default_privileges: true
 ############################################################
 
 postgresql_srg_config_scan_paths:
-  - /etc
-  - /opt
+  - /etc/postgresql
   - /var/lib/pgsql
+  # NOTE: Do NOT include /opt here — application config files (e.g. sonar.properties) live
+  # under /opt and also contain password= entries.  Setting postgres:postgres 0600 on them
+  # breaks the application.  If you need to audit /opt, use a read-only grep check rather
+  # than the permission-enforcement task.
 postgresql_srg_pgpass_search_paths:
   - /root
   - /home
@@ -147,7 +155,7 @@ postgresql_srg_v206542_enabled: true
 postgresql_srg_v206543_enabled: true
 postgresql_srg_v206544_enabled: true
 postgresql_srg_v206546_enabled: true
-postgresql_srg_v206547_enabled: false  # placeholder - no tasks defined
+postgresql_srg_v206547_enabled: true
 postgresql_srg_v206548_enabled: true
 postgresql_srg_v206549_enabled: true
 postgresql_srg_v206550_enabled: true
@@ -220,8 +228,17 @@ postgresql_srg_v263622_enabled: true
 postgresql_srg_admin_roles:
   - postgres
 
+postgresql_srg_authorized_superusers:
+  - postgres
+
+# PostgreSQL library directory (used by V-206544)
+postgresql_srg_pg_lib_dir: "/usr/pgsql-{{ postgresql_srg_pg_version }}/lib"
+
 postgresql_srg_admin_conn_limit: 10
-postgresql_srg_user_conn_limit: 2
+# Application roles (e.g. sonar, bitbucketuser) need more connections than a plain
+# interactive user.  SonarQube's HikariCP pool uses up to 20 connections per process
+# (web + CE), so 30 gives comfortable headroom without being unlimited (-1).
+postgresql_srg_user_conn_limit: 30
 
 postgresql_srg_connlimit_exempt_roles: []
 
@@ -264,9 +281,18 @@ postgresql_srg_allowed_packages:
 ############################################################
 # V-206549 Configuration
 ############################################################
+# List every application database that is permitted on this instance.
+# Add one entry per application that shares this PostgreSQL server.
 postgresql_srg_allowed_databases:
   - postgres
-  - myappdb
+  - sonarqube       # SonarQube
+  # - bitbucket     # Atlassian Bitbucket
+  # - confluence    # Atlassian Confluence
+  # - satellite     # Red Hat Satellite
+
+# Safety guard: set to true ONLY after confirming postgresql_srg_allowed_databases
+# is complete. When false, unauthorized databases are reported but NOT dropped.
+postgresql_srg_drop_unauthorized_databases: false
 
 ############################################################
 # V-206548 Configuration
@@ -284,6 +310,25 @@ postgresql_srg_allowed_port: 5432
 # V-206554 Configuration
 ############################################################
 password_encryption: scram-sha-256
+
+############################################################
+# V-206567 — Application HBA Entries
+############################################################
+# Each entry produces one pg_hba.conf line and is validated
+# by V-206567 to confirm scram-sha-256 is enforced.
+#
+# To support additional applications, add entries here or
+# override this list in host_vars / group_vars.
+#
+# Supported types: host | hostssl | hostnossl
+# Required fields: type, database, user, address, method
+#
+# Examples (uncomment and adapt as needed):
+#   - { type: host, database: bitbucket,  user: bitbucketuser, address: "127.0.0.1/32", method: scram-sha-256 }
+#   - { type: host, database: confluence, user: confuser,      address: "127.0.0.1/32", method: scram-sha-256 }
+#   - { type: host, database: satellite,  user: satellite,     address: "127.0.0.1/32", method: scram-sha-256 }
+postgresql_srg_hba_application_entries:
+  - { type: host, database: sonarqube, user: sonar, address: "127.0.0.1/32", method: scram-sha-256 }
 
 ############################################################
 # V-206611 Configuration

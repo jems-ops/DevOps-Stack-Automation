@@ -42,7 +42,12 @@
     group: postgres
     mode: '0600'
   loop: "{{ postgresql_srg_password_files.stdout_lines }}"
-  when: postgresql_srg_password_files.stdout_lines | length > 0
+  # Guard: only touch files actually inside the configured scan paths AND within
+  # known PostgreSQL-owned directories.  Never chmod application config files
+  # (e.g. /opt/sonarqube/.../sonar.properties) that happen to contain password=.
+  when:
+    - postgresql_srg_password_files.stdout_lines | length > 0
+    - item is search('^/var/lib/pgsql') or item is search('^/etc/postgresql')
 
 
 ############################################################
