@@ -1,66 +1,119 @@
 ---
 ############################################################
-# STIG V-206549
-# Enforcement - Remove demo/sample databases & objects
-############################################################
+# STIG Control: V-206549
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - No demo/test/sample databases exist
-# - No unauthorized extensions installed
-# - No unnecessary schemas present
-# comment: The PostgreSQL instance has been reviewed. No demonstration or sample databases, database objects, or vendor-provided example applications are installed. Only authorized production databases and required extensions are present. Therefore, V-206549 is Not a Finding.
+# Title:
+# The DBMS must remove demonstration and sample databases,
+# database objects, and applications.
+#
+# Finding Details:
+# Demonstration databases, sample applications, and example
+# objects may contain insecure configurations, default
+# credentials, or unnecessary functionality that can expose
+# the DBMS to unauthorized access or exploitation.
+#
+# Implementation in this Environment:
+# The PostgreSQL instance used for the SonarQube application
+# contains only authorized production databases and required
+# extensions. No demonstration or sample databases, example
+# schemas, or vendor-provided test applications are present.
+#
+# Manual Verification Steps:
+#
+# 1. Verify existing databases:
+#
+#       SELECT datname FROM pg_database;
+#
+# 2. Verify installed extensions:
+#
+#       SELECT extname FROM pg_extension;
+#
+# Comment:
+# The PostgreSQL installation has been reviewed and contains
+# only mission-required databases and extensions. Sample or
+# demonstration databases are not present. Therefore,
+# V-206549 is Not a Finding.
 ############################################################
 
-- name: V-206549 | Get non-template databases
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Identify Non-Template Databases
+############################
+
+- name: "V-206549 | Get non-template databases"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "
-    SELECT datname FROM pg_database
-    WHERE datistemplate = false;"
+  ansible.builtin.command: >
+    psql -t -A -c
+    "SELECT datname
+     FROM pg_database
+     WHERE datistemplate = false;"
   register: v206549_dbs
   changed_when: false
-  tags:
-    - stig
-    - V-206549
-    - cat2
+  tags: ['V-206549','CAT II','check']
 
-- name: V-206549 | Remove unauthorized databases
+
+############################
+# Remove Unauthorized Databases
+############################
+
+- name: "V-206549 | Report unauthorized databases (dry-run)"
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: database '{{ item }}' is not in postgresql_srg_allowed_databases.
+      Set postgresql_srg_drop_unauthorized_databases: true to enforce removal.
+  loop: "{{ v206549_dbs.stdout_lines }}"
+  when:
+    - item not in postgresql_srg_allowed_databases
+    - item not in ['postgres']
+    - not postgresql_srg_drop_unauthorized_databases
+  tags: ['V-206549','CAT II','check']
+
+- name: "V-206549 | Remove unauthorized databases"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
+  ansible.builtin.shell: >
     psql -c "DROP DATABASE {{ item }};"
   loop: "{{ v206549_dbs.stdout_lines }}"
-  when: item not in postgresql_srg_allowed_databases
+  when:
+    - item not in postgresql_srg_allowed_databases
+    - item not in ['postgres']
+    - postgresql_srg_drop_unauthorized_databases | bool
   ignore_errors: true
-  tags:
-    - stig
-    - V-206549
-    - cat2
+  tags: ['V-206549','CAT II','enforce']
 
-- name: V-206549 | Get installed extensions
+
+############################
+# Identify Installed Extensions
+############################
+
+- name: "V-206549 | Get installed extensions"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -A -c \
-    "SELECT extname FROM pg_extension;"
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -t -A -c "SELECT extname FROM pg_extension;"
   register: v206549_ext
   changed_when: false
-  tags:
-    - stig
-    - V-206549
-    - cat2
+  tags: ['V-206549','CAT II','check']
 
-- name: V-206549 | Remove unauthorized extensions
+
+############################
+# Remove Unauthorized Extensions
+############################
+
+- name: "V-206549 | Remove unauthorized extensions"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "DROP EXTENSION IF EXISTS {{ item }} CASCADE;"
+  ansible.builtin.shell: >
+    psql -d {{ postgresql_srg_target_database }}
+    -c "DROP EXTENSION IF EXISTS {{ item }} CASCADE;"
   loop: "{{ v206549_ext.stdout_lines }}"
   when: item not in postgresql_srg_allowed_extensions
   ignore_errors: true
-  tags:
-    - stig
-    - V-206549
-    - cat2
+  tags: ['V-206549','CAT II','enforce']

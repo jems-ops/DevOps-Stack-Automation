@@ -1,53 +1,98 @@
 ---
 ############################################################
-# STIG V-206524
-# Enforcement - Restrict Audit Configuration Control
+# STIG Control: V-206524
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must restrict access to audit configuration
+# settings.
+#
+# Finding Details:
+# Unauthorized modification of audit configuration could
+# allow attackers to disable logging or conceal activity.
+#
+# Implementation in this Environment:
+# PostgreSQL audit configuration is restricted to the
+# authorized administrative role. Only the designated
+# database administrator account retains SUPERUSER
+# privileges.
+#
+# PostgreSQL configuration files are owned by the postgres
+# account and are not writable by non-administrative users.
+#
+# Manual Verification Steps:
+#
+#   SELECT rolname, rolsuper FROM pg_roles;
+#   ls -l postgresql.conf
+#   ls -l pg_hba.conf
+#
 ############################################################
-#
-# COMPLIANT WHEN:
-# - Only authorized roles have SUPERUSER
-# - PostgreSQL config files owned by postgres
-# - Config files not writable by non-admin users
-#
-# VERIFY BY:
-# SELECT rolname, rolsuper FROM pg_roles;
-# ls -l postgresql.conf
-# ls -l pg_hba.conf
-# comment: PostgreSQL audit config is restricted to the postgres admin role.
-# No application accounts retain SUPERUSER. Config files are owned/writable
-# only by postgres. Therefore, V-206524 is Not a Finding.
+
+
+############################################################
+# Gather SUPERUSER roles
 ############################################################
 
 - name: "V-206524 | Gather SUPERUSER roles"
   become: true
   become_user: postgres
-  ansible.builtin.shell: psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  ansible.builtin.shell: |
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
   register: v206524_superusers
   changed_when: false
-  tags: [V-206524, stig, cat2]
+  tags: ['V-206524','CAT II','enforce']
+
+
+############################################################
+# Remove unauthorized SUPERUSER privileges
+############################################################
 
 - name: "V-206524 | Remove unauthorized SUPERUSER roles"
   become: true
   become_user: postgres
-  ansible.builtin.shell: >
+  ansible.builtin.shell: |
     psql -c "ALTER ROLE {{ item }} NOSUPERUSER;"
   loop: "{{ v206524_superusers.stdout_lines }}"
   when:
+    - item | length > 0
     - item not in postgresql_srg_admin_roles
-  tags: [V-206524, stig, cat2]
+  changed_when: true
+  tags: ['V-206524','CAT II','enforce']
 
-- name: "V-206524 | Ensure postgresql.conf ownership"
+
+############################################################
+# Protect configuration files
+############################################################
+
+- name: "V-206524 | Secure postgresql.conf"
+  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_conf_file }}"
     owner: postgres
     group: postgres
-    mode: '0600'
-  tags: [V-206524, stig, cat2]
+    mode: "0600"
+  tags: ['V-206524','CAT II','enforce']
 
-- name: "V-206524 | Ensure pg_hba.conf ownership"
+
+- name: "V-206524 | Secure pg_hba.conf"
+  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_hba_file }}"
     owner: postgres
     group: postgres
-    mode: '0600'
-  tags: [V-206524, stig, cat2]
+    mode: "0600"
+  tags: ['V-206524','CAT II','enforce']
+
+
+############################################################
+# Protect postgresql.auto.conf
+############################################################
+
+- name: "V-206524 | Secure postgresql.auto.conf"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  tags: ['V-206524','CAT II','enforce']

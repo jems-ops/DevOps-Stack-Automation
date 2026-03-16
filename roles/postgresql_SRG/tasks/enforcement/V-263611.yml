@@ -1,30 +1,52 @@
 ---
 ############################################################
 # STIG Control: V-263611
-# Status : NOT A FINDING
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must update the list of passwords on an
 # organization-defined frequency.
 #
 # Finding Details:
-# Organizations must periodically update password blacklist
-# sources to prevent the use of compromised or weak passwords.
+# Systems that maintain password blacklist databases must
+# periodically update those lists to ensure compromised or
+# commonly-used passwords cannot be used for authentication.
 #
 # Implementation in this Environment:
-# PostgreSQL does not maintain a password blacklist.
-# Password blacklist updates are managed through enterprise
-# identity management systems and password policy services.
+# PostgreSQL in this deployment is used solely as the
+# backend database for the SonarQube application. End users
+# do not authenticate directly to the DBMS.
+#
+# Authentication and password policy enforcement,
+# including password blacklist maintenance and updates,
+# are implemented through the enterprise identity
+# provider (Keycloak SSO).
+#
+# Comment:
+# Since PostgreSQL does not perform password-based
+# authentication for end users, password blacklist
+# maintenance and update requirements are handled by
+# the centralized identity provider rather than the DBMS.
+# Therefore this control is not applicable to the
+# PostgreSQL deployment.
 #
 # Manual Verification Steps:
-# 1. Review enterprise password policy configuration.
-# 2. Confirm blacklist updates are performed periodically.
-# 3. Verify compromised password sources are integrated.
-# Comment:
-# PostgreSQL does not maintain a native password blacklist or compromised password database. Password blacklist management and periodic updates are enforced through the organization’s centralized identity management and password policy enforcement systems (e.g., LDAP/Active Directory). Therefore this control is satisfied through enterprise password policy mechanisms rather than DBMS configuration.
-
+#
+# 1. Verify SonarQube authentication uses Keycloak SSO.
+#
+# 2. Confirm PostgreSQL roles are application service
+#    accounts rather than individual user accounts.
+#
+#       SELECT rolname FROM pg_roles;
+#
+# 3. Verify password policy enforcement occurs in the
+#    centralized identity provider.
 ############################################################
 
-- name: "V-263611 | Informational control - password blacklist managed externally"
+- name: "V-263611 | Password blacklist updates handled by identity provider"
   ansible.builtin.debug:
-    msg: "Password blacklist updates enforced through enterprise identity management systems."
-  tags: ['V-263611','CAT II','check']
+    msg: "DBMS does not perform user password authentication; control not applicable."
+  tags:
+    - V-263611
+    - CATII
+    - check

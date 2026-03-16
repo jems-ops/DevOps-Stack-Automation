@@ -1,34 +1,57 @@
 ---
 ############################################################
 # STIG Control: V-206642
+# Status : NOT A FINDING
 #
 # Title:
 # The DBMS must off-load audit data to a centralized
 # log management system.
 #
-# Implementation:
-# PostgreSQL logs are written to the host logging facility
-# and forwarded to the enterprise SIEM via rsyslog.
+# Finding Details:
+# Off-loading audit records to a centralized logging
+# system protects logs from modification or deletion
+# by attackers and ensures audit records are preserved
+# for security monitoring and forensic analysis.
+#
+# Implementation in this Environment:
+# PostgreSQL audit and activity logs are written to the
+# host system logging facility. The host operating system
+# forwards these logs to the enterprise centralized log
+# management system using standard log forwarding
+# mechanisms such as rsyslog and SIEM integration.
 #
 # Manual Verification Steps:
-# 1. Verify PostgreSQL logging is enabled.
-# 2. Confirm logs are written to system log files.
-# 3. Verify log forwarding to centralized log system.
-# comment: PostgreSQL audit records are written to the host system logging facility. The host operating system forwards logs to the enterprise centralized log management system using standard log forwarding mechanisms (e.g., rsyslog/SIEM integration). This ensures audit records are off-loaded in near real time and protected from local modification or deletion.
-
-# status: Not a finding
+#
+# 1. Verify PostgreSQL logging configuration:
+#
+#       SHOW logging_collector;
+#
+# 2. Verify log destination:
+#
+#       SHOW log_destination;
+#
+# 3. Verify system log forwarding configuration:
+#
+#       cat /etc/rsyslog.conf
+#
+# Comment:
+# PostgreSQL audit records are written to the host system
+# logging facility and forwarded to the enterprise
+# centralized log management system. This ensures audit
+# records are off-loaded and preserved outside the local
+# DBMS environment.
 ############################################################
 
-- name: "V-206642 | Verify PostgreSQL logging configuration"
+- name: "V-206642 | Verify PostgreSQL logging collector"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW logging_collector;"
   register: logging_collector_status
   changed_when: false
-  tags: ['V-206642','CAT II', 'enforce']
+  tags: ['V-206642','CAT II','check']
 
-- name: "V-206642 | Display logging status"
+- name: "V-206642 | Display logging collector status"
   ansible.builtin.debug:
     var: logging_collector_status.stdout
-  tags: ['V-206642','CAT II', 'enforce']
+  tags: ['V-206642','CAT II','check']

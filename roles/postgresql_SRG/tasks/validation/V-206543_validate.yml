@@ -4,43 +4,44 @@
 # Validation - Audit features protected from removal
 ############################################################
 
-- name: V-206543 | Check shared_preload_libraries
+- name: "V-206543 | Verify pgaudit loaded"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
+  ansible.builtin.command: >
     psql -t -A -c "SHOW shared_preload_libraries;"
   register: v206543_preload
   changed_when: false
-  tags:
-    - stig
-    - V-206543
-    - cat2
+  tags: ['V-206543','CAT II','check']
 
-- name: V-206543 | Check pgaudit extension
+
+- name: "V-206543 | Verify pgaudit extension installed"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -A -c \
-    "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
-  register: v206543_extension
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -t -A -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
+  register: v206543_ext
   changed_when: false
-  tags:
-    - stig
-    - V-206543
-    - cat2
+  tags: ['V-206543','CAT II','check']
 
-- name: V-206543 | Assert audit feature protection
+
+- name: "V-206543 | Validate superuser restriction"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper=true;"
+  register: v206543_superusers
+  changed_when: false
+  tags: ['V-206543','CAT II','check']
+
+
+- name: "V-206543 | Assert only authorized superusers exist"
   ansible.builtin.assert:
     that:
-      - "'pgaudit' in v206543_preload.stdout"
-      - "'pgaudit' in v206543_extension.stdout"
+      - v206543_superusers.stdout_lines | difference(postgresql_srg_authorized_superusers) | length == 0
     fail_msg: >
       STIG V-206543 FAILED:
-      Audit feature removed or not properly configured.
+      Unauthorized superuser could disable auditing.
     success_msg: >
-      STIG V-206543 PASSED:
-      Audit feature protected from removal.
-  tags:
-    - stig
-    - V-206543
-    - cat2
+      Audit features protected from unauthorized removal.
+  tags: ['V-206543','CAT II','check']

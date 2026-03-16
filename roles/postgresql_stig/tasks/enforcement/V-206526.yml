@@ -1,0 +1,38 @@
+############################################################
+# PostgreSQL STIG | V-206526
+# Audit denied access to privileges and role memberships
+############################################################
+
+- name: Ensure failed statements are logged
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_min_error_statement\s*='
+    line: "log_min_error_statement = error"
+    backup: true
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206526
+
+- name: Ensure pgaudit logs role activity
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log\s*='
+    line: "pgaudit.log = 'role, read'"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206526
+
+- name: Ensure catalog access auditing is enabled
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='
+    line: "pgaudit.log_catalog = on"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206526

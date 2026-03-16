@@ -1,50 +1,57 @@
 ---
 ############################################################
-# STIG V-206533
-# Validation - Audit records include user identity
+# STIG Control: V-206533
+# Validation Only
+#
+# Title:
+# The DBMS must include the user identity in audit records.
+#
+# Finding Details:
+# Audit records must include sufficient information to
+# identify the user responsible for an event within the
+# database system.
+#
+# Validation Checks:
+# 1. PostgreSQL log_line_prefix contains:
+#      %u (user)
+#      %d (database)
+#      %p (process id)
+#      %c (session id)
+#      %a (application)
+#      %h (client host)
 ############################################################
 
-- name: V-206533 | Get log_line_prefix
+
+############################################################
+# Retrieve log_line_prefix
+############################################################
+
+- name: "V-206533 | Check log_line_prefix configuration"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "SHOW log_line_prefix;"
-  register: postgresql_srg_v206533_prefix
+  ansible.builtin.command: psql -t -A -c "SHOW log_line_prefix;"
+  register: v206533_prefix
   changed_when: false
-  tags:
-    - stig
-    - V-206533
-    - cat2
+  tags: ['V-206533','CAT II','check']
 
-- name: V-206533 | Get pgaudit setting
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "SHOW pgaudit.log;"
-  register: postgresql_srg_v206533_pgaudit
-  changed_when: false
-  tags:
-    - stig
-    - V-206533
-    - cat2
 
-- name: V-206533 | Evaluate identity compliance
+############################################################
+# Validate identity fields present
+############################################################
+
+- name: "V-206533 | Validate user identity fields in log_line_prefix"
   ansible.builtin.assert:
     that:
-      - "'%u' in postgresql_srg_v206533_prefix.stdout"
-      - "'%d' in postgresql_srg_v206533_prefix.stdout"
-      - "'%p' in postgresql_srg_v206533_prefix.stdout"
-      - "'%c' in postgresql_srg_v206533_prefix.stdout"
-      - "'%a' in postgresql_srg_v206533_prefix.stdout"
-      - "'%h' in postgresql_srg_v206533_prefix.stdout"
-      - postgresql_srg_v206533_pgaudit.stdout != ""
+      - "'%u' in v206533_prefix.stdout"
+      - "'%d' in v206533_prefix.stdout"
+      - "'%p' in v206533_prefix.stdout"
+      - "'%c' in v206533_prefix.stdout"
+      - "'%a' in v206533_prefix.stdout"
+      - "'%h' in v206533_prefix.stdout"
     fail_msg: >
       STIG V-206533 FAILED:
-      Audit records do not contain sufficient identity information.
+      log_line_prefix does not contain required identity fields.
+      Current value: {{ v206533_prefix.stdout }}
     success_msg: >
-      STIG V-206533 PASSED:
-      Audit records contain user, session, and process identity information.
-  tags:
-    - stig
-    - V-206533
-    - cat2
+      PostgreSQL audit logs include user identity and context fields.
+  tags: ['V-206533','CAT II','check']

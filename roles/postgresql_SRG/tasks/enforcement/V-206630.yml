@@ -1,22 +1,41 @@
 ---
 ############################################################
 # STIG Control: V-206630
+# Status : NOT A FINDING
 #
 # Title:
 # DBMS must generate audit records when successful
 # logons or connections occur.
 #
-# Implementation:
-# PostgreSQL logs successful connection events when
-# log_connections is enabled.
+# Finding Details:
+# Recording successful logon events provides accountability
+# and allows administrators to track user access to the
+# database system.
+#
+# Implementation in this Environment:
+# PostgreSQL logs successful connection events using the
+# log_connections parameter. Log entries include timestamp,
+# username, database, and client address information
+# through the configured log_line_prefix setting.
 #
 # Manual Verification Steps:
-# 1. Verify log_connections is enabled.
-# 2. Connect to the database using psql.
-# 3. Review PostgreSQL logs to confirm the connection event.
-# comment: PostgreSQL generates audit records for successful database logins using the log_connections configuration parameter. Connection logs include timestamp, username, database name, client address, and session information through the configured log line prefix. These records provide traceability for user access to the DBMS.
-
-# Status: Not a finding
+#
+# 1. Verify connection logging:
+#
+#       SHOW log_connections;
+#
+# 2. Verify log prefix includes user and client address:
+#
+#       SHOW log_line_prefix;
+#
+# 3. Connect to the database using psql and confirm
+#    the login event appears in PostgreSQL logs.
+#
+# Comment:
+# PostgreSQL generates audit records for successful database
+# connections using the log_connections parameter. These
+# records include timestamp, username, database name, and
+# client address, providing traceability for database access.
 ############################################################
 
 - name: "V-206630 | Ensure successful login logging enabled"

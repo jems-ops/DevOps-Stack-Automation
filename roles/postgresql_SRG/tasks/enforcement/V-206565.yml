@@ -1,7 +1,51 @@
 ---
 ############################################################
-# STIG V-206565
-# Enforcement - Terminate and invalidate sessions
+# STIG Control: V-206565
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must invalidate session identifiers upon
+# user logout or other session termination.
+#
+# Finding Details:
+# If session identifiers remain valid after a user logs
+# out or a session terminates, attackers may reuse those
+# identifiers to gain unauthorized access. The DBMS must
+# ensure session identifiers are destroyed when sessions
+# end.
+#
+# Implementation in this Environment:
+# PostgreSQL manages sessions using backend server
+# processes. Each database connection is assigned a
+# server-generated process identifier (PID) and session
+# state maintained internally by the DBMS.
+#
+# When a session terminates (logout, timeout, connection
+# close, or administrative termination), the backend
+# process exits and the session identifier becomes
+# invalid. PostgreSQL does not allow session identifiers
+# to persist or be reused.
+#
+# Manual Verification Steps:
+#
+# 1. Verify active database sessions:
+#
+#       SELECT pid, usename, backend_start
+#       FROM pg_stat_activity;
+#
+# 2. Terminate a session:
+#
+#       SELECT pg_terminate_backend(<pid>);
+#
+# 3. Confirm the session disappears from pg_stat_activity,
+#    demonstrating that the session identifier is invalidated.
+#
+# Comment:
+# PostgreSQL automatically invalidates session identifiers
+# when connections terminate because session state is tied
+# to backend server processes. When the backend process
+# exits, the session identifier is destroyed and cannot
+# be reused.
 ############################################################
 
 - name: V-206565 | Enable connection logging

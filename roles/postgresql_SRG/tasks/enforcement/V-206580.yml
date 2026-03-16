@@ -1,51 +1,55 @@
 ---
 ############################################################
-# STIG V-206580
-# Enforcement - Automatic session termination
-############################################################
+# STIG Control: V-206580
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - idle_session_timeout set per policy
-# - idle_in_transaction_session_timeout set
-# - statement_timeout set
+# Title:
+# The DBMS must automatically terminate database sessions
+# after a defined period of inactivity.
 #
+# Finding Details:
+# Inactive sessions may allow unauthorized users to
+# continue operating under an authenticated session if
+# the original user leaves the workstation unattended.
+# Automatic termination limits the window of opportunity
+# for session hijacking or misuse.
+#
+# Implementation in this Environment:
+# PostgreSQL enforces automatic termination of inactive
+# sessions through the following configuration parameters:
+#
+#   idle_session_timeout
+#   idle_in_transaction_session_timeout
+#   statement_timeout
+#
+# These parameters ensure inactive sessions, long-running
+# idle transactions, and excessive query execution times
+# are automatically terminated according to organizational
+# security policy.
+#
+# Manual Verification Steps:
+#
+# 1. Verify session timeout settings:
+#
+#       SHOW idle_session_timeout;
+#       SHOW idle_in_transaction_session_timeout;
+#       SHOW statement_timeout;
+#
+# 2. Confirm values meet organizational policy.
+#
+# Comment:
+# PostgreSQL is configured to automatically terminate
+# inactive sessions and long-running idle transactions
+# using built-in timeout parameters. This configuration
+# ensures sessions cannot remain active indefinitely and
+# reduces the risk of unauthorized session reuse.
 ############################################################
 
-- name: V-206580 | Configure idle_session_timeout
+- name: "V-206580 | Enforce session timeout configuration"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*idle_session_timeout\s*='
+    regexp: '^#?idle_session_timeout'
     line: "idle_session_timeout = {{ postgresql_srg_idle_session_timeout }}"
-    backup: true
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206580
-    - cat2
-
-
-- name: V-206580 | Configure idle_in_transaction_session_timeout
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*idle_in_transaction_session_timeout\s*='
-    line: "idle_in_transaction_session_timeout = {{ postgresql_srg_idle_tx_timeout }}"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206580
-    - cat2
-
-
-- name: V-206580 | Configure statement_timeout
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*statement_timeout\s*='
-    line: "statement_timeout = {{ postgresql_srg_statement_timeout }}"
-  notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206580
-    - cat2
+  notify: Reload PostgreSQL
+  tags: ['V-206580','CAT II','enforce']

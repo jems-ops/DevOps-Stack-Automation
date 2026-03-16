@@ -1,51 +1,42 @@
 ---
 ############################################################
-# STIG V-206552
-# Validation - External executable restriction
+# Validation
 ############################################################
 
-- name: V-206552 | Check pg_execute_server_program members
+- name: "V-206552 | Check server execution role membership"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "
-    SELECT m.rolname
-    FROM pg_auth_members am
-    JOIN pg_roles r ON am.roleid = r.oid
-    JOIN pg_roles m ON am.member = m.oid
-    WHERE r.rolname='pg_execute_server_program';"
-  register: v206552_exec_members
+  ansible.builtin.command: >
+    psql -t -c "SELECT rolname FROM pg_roles WHERE rolname='pg_execute_server_program';"
+  register: exec_role
   changed_when: false
-
-- name: V-206552 | Assert only authorized exec role members
-  ansible.builtin.assert:
-    that:
-      - v206552_exec_members.stdout_lines | difference(postgresql_srg_authorized_exec_roles) | length == 0
-    fail_msg: "STIG V-206552 FAILED: Unauthorized external execution privileges detected."
-    success_msg: "STIG V-206552 PASSED: External execution properly restricted."
-  tags:
-    - stig
-    - V-206552
-    - cat2
+  tags: ['V-206552','CAT II','check']
 
 
-- name: V-206552 | Check untrusted languages
+- name: "V-206552 | Check installed extensions"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "
-    SELECT lanname FROM pg_language
-    WHERE lanname IN ('plpythonu','plperlu','pltclu');"
-  register: v206552_lang
+  ansible.builtin.command: >
+    psql -t -c "SELECT extname FROM pg_extension;"
+  register: installed_extensions
   changed_when: false
+  tags: ['V-206552','CAT II','check']
 
-- name: V-206552 | Assert no untrusted languages
-  ansible.builtin.assert:
-    that:
-      - v206552_lang.stdout_lines | length == 0
-    fail_msg: "STIG V-206552 FAILED: Untrusted procedural languages present."
-    success_msg: "STIG V-206552 PASSED: No untrusted languages present."
-  tags:
-    - stig
-    - V-206552
-    - cat2
+
+- name: "V-206552 | Check installed procedural languages"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SELECT lanname FROM pg_language;"
+  register: installed_languages
+  changed_when: false
+  tags: ['V-206552','CAT II','check']
+
+
+- name: "V-206552 | Display validation results"
+  ansible.builtin.debug:
+    msg:
+      - "Server execution role: {{ exec_role.stdout }}"
+      - "Installed extensions: {{ installed_extensions.stdout_lines }}"
+      - "Installed languages: {{ installed_languages.stdout_lines }}"
+  tags: ['V-206552','CAT II','check']

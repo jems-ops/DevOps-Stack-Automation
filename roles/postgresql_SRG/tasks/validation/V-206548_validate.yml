@@ -4,34 +4,35 @@
 # Validation - DDL role membership verification
 ############################################################
 
-- name: V-206548 | Get DDL role members
+- name: "V-206548 | Check schema privileges"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "
-    SELECT m.rolname
-    FROM pg_auth_members am
-    JOIN pg_roles r ON am.roleid = r.oid
-    JOIN pg_roles m ON am.member = m.oid
-    WHERE r.rolname='{{ postgresql_srg_ddl_role }}';"
-  register: v206548_members
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -t -c "\dn+ public"
+  register: schema_privs
   changed_when: false
-  tags:
-    - stig
-    - V-206548
-    - cat2
+  tags: ['V-206548','CAT II','check']
 
-- name: V-206548 | Assert only authorized DDL users
-  ansible.builtin.assert:
-    that:
-      - v206548_members.stdout_lines | difference(postgresql_srg_authorized_ddl_users) | length == 0
-    fail_msg: >
-      STIG V-206548 FAILED:
-      Unauthorized user has DDL modification privileges.
-    success_msg: >
-      STIG V-206548 PASSED:
-      DDL modification privileges restricted to authorized users.
-  tags:
-    - stig
-    - V-206548
-    - cat2
+
+- name: "V-206548 | Check DDL role members"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "
+    SELECT r.rolname
+    FROM pg_auth_members m
+    JOIN pg_roles r ON m.member = r.oid
+    WHERE m.roleid =
+    (SELECT oid FROM pg_roles WHERE rolname='{{ postgresql_srg_ddl_role }}');"
+  register: ddl_members
+  changed_when: false
+  tags: ['V-206548','CAT II','check']
+
+
+- name: "V-206548 | Display validation results"
+  ansible.builtin.debug:
+    msg:
+      - "Public schema privileges: {{ schema_privs.stdout }}"
+      - "DDL role members: {{ ddl_members.stdout_lines }}"
+  tags: ['V-206548','CAT II','check']

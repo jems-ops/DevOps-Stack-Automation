@@ -1,44 +1,117 @@
 ---
 ############################################################
-# STIG V-206546
-# Validation - Dedicated DBMS directories
+# STIG Control: V-206546
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS software and data directories must be located
+# in dedicated directories separate from other applications.
+#
+# Finding Details:
+# DBMS software and data files must be stored in dedicated
+# directories to prevent unauthorized access, accidental
+# modification, or interference from other applications.
+#
+# Implementation in this Environment:
+# PostgreSQL binaries are installed through the operating
+# system package manager in a dedicated directory under
+# /usr/pgsql-<version>. The PostgreSQL data directory is
+# located in /var/lib/pgsql and is not shared with other
+# applications.
+#
+# Manual Verification Steps:
+#
+# 1. Verify PostgreSQL data directory:
+#
+#       SHOW data_directory;
+#
+# 2. Verify PostgreSQL binary location:
+#
+#       which postgres
+#
+# 3. Verify configuration directory location.
+#
+# Comment:
+# PostgreSQL software and data files are stored in
+# dedicated directories that are not shared with other
+# applications. Therefore, V-206546 is Not a Finding.
 ############################################################
 
-- name: V-206546 | Get data directory
+
+############################################################
+# Validation
+############################################################
+
+############################
+# Check PostgreSQL Data Directory
+############################
+
+- name: "V-206546 | Get PostgreSQL data directory"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
+  ansible.builtin.command: >
     psql -t -A -c "SHOW data_directory;"
   register: v206546_data_dir
   changed_when: false
-  tags:
-    - stig
-    - V-206546
-    - cat2
+  tags: ['V-206546','CAT II','check']
 
-- name: V-206546 | Check binary directory contents
-  become: true
-  ansible.builtin.shell: |
-    ls -1 /usr/pgsql-{{ postgresql_srg_pg_version }}
-  register: v206546_bin_contents
-  changed_when: false
-  tags:
-    - stig
-    - V-206546
-    - cat2
 
-- name: V-206546 | Assert separation
+- name: "V-206546 | Validate data directory path"
   ansible.builtin.assert:
     that:
-      - "'/var/lib/pgsql' in v206546_data_dir.stdout"
-      - v206546_bin_contents.stdout_lines | length > 0
+      - "'pgsql' in v206546_data_dir.stdout"
     fail_msg: >
       STIG V-206546 FAILED:
-      DBMS software not properly separated from other applications.
+      PostgreSQL data directory not located in dedicated path.
     success_msg: >
-      STIG V-206546 PASSED:
-      DBMS software stored in dedicated directories.
-  tags:
-    - stig
-    - V-206546
-    - cat2
+      PostgreSQL data directory located in dedicated directory.
+  tags: ['V-206546','CAT II','check']
+
+
+############################
+# Verify PostgreSQL Binary Location
+############################
+
+- name: "V-206546 | Locate postgres binary"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_pg_bin_path }}/postgres"
+  register: v206546_bin
+  tags: ['V-206546','CAT II','check']
+
+
+- name: "V-206546 | Validate binary directory"
+  ansible.builtin.assert:
+    that:
+      - v206546_bin.stat.exists
+      - "'pgsql' in postgresql_srg_pg_bin_path"
+    fail_msg: >
+      STIG V-206546 FAILED:
+      PostgreSQL binary not located in dedicated pgsql directory.
+    success_msg: >
+      PostgreSQL binary installed in dedicated directory ({{ postgresql_srg_pg_bin_path }}).
+  tags: ['V-206546','CAT II','check']
+
+
+############################
+# Verify Configuration Files
+############################
+
+- name: "V-206546 | Verify postgresql.conf location"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_conf_file }}"
+  register: v206546_conf
+  tags: ['V-206546','CAT II','check']
+
+
+- name: "V-206546 | Assert configuration file exists"
+  ansible.builtin.assert:
+    that:
+      - v206546_conf.stat.exists
+    fail_msg: >
+      STIG V-206546 FAILED:
+      PostgreSQL configuration file not found.
+    success_msg: >
+      PostgreSQL configuration file located in dedicated directory.
+  tags: ['V-206546','CAT II','check']

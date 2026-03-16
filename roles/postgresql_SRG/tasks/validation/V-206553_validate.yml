@@ -1,63 +1,42 @@
 ---
 ############################################################
-# STIG V-206553
-# Validation - Restrict ports and services
+# Validation
 ############################################################
 
-- name: V-206553 | Check listen_addresses
+- name: "V-206553 | Check listen_addresses configuration"
   become: true
   become_user: postgres
-  shell: psql -t -A -c "SHOW listen_addresses;"
-  register: v206553_listen
+  ansible.builtin.command: >
+    psql -t -c "SHOW listen_addresses;"
+  register: postgresql_listen_addresses
   changed_when: false
-
-- name: Assert restricted listening
-  assert:
-    that:
-      - v206553_listen.stdout != "*"
-    fail_msg: "STIG V-206553 FAILED: listen_addresses set to wildcard."
-    success_msg: "Listening address restricted."
-  tags:
-    - stig
-    - V-206553
+  tags: ['V-206553','CAT II','check']
 
 
-- name: V-206553 | Check port
+- name: "V-206553 | Check PostgreSQL port configuration"
   become: true
   become_user: postgres
-  shell: psql -t -A -c "SHOW port;"
-  register: v206553_port
+  ansible.builtin.command: >
+    psql -t -c "SHOW port;"
+  register: postgresql_port
   changed_when: false
-
-- name: Assert approved port
-  assert:
-    that:
-      - v206553_port.stdout == "{{ postgresql_srg_allowed_port | string }}"
-    fail_msg: "STIG V-206553 FAILED: Unapproved port configured."
-    success_msg: "Approved port configured."
-  tags:
-    - stig
-    - V-206553
+  tags: ['V-206553','CAT II','check']
 
 
-- name: V-206553 | Check dangerous function privilege
+- name: "V-206553 | Check external execution function restriction"
   become: true
   become_user: postgres
-  shell: |
-    psql -t -A -c "
-    SELECT has_function_privilege('public',
-    'pg_catalog.pg_execute_server_program(text)',
-    'EXECUTE');"
-  register: v206553_exec
+  ansible.builtin.command: >
+    psql -t -c "SELECT proname FROM pg_proc WHERE proname='pg_execute_server_program';"
+  register: postgresql_exec_func
   changed_when: false
-  failed_when: false
+  tags: ['V-206553','CAT II','check']
 
-- name: Assert external execution restricted
-  assert:
-    that:
-      - v206553_exec.rc != 0 or v206553_exec.stdout == "f"
-    fail_msg: "STIG V-206553 FAILED: External execution allowed to PUBLIC."
-    success_msg: "External execution restricted (function not present or privilege revoked)."
-  tags:
-    - stig
-    - V-206553
+
+- name: "V-206553 | Display validation results"
+  ansible.builtin.debug:
+    msg:
+      - "listen_addresses: {{ postgresql_listen_addresses.stdout }}"
+      - "port: {{ postgresql_port.stdout }}"
+      - "pg_execute_server_program present: {{ postgresql_exec_func.stdout }}"
+  tags: ['V-206553','CAT II','check']

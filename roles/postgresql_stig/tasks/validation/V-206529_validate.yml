@@ -1,0 +1,31 @@
+############################################################
+# PostgreSQL STIG | V-206529 Validation
+# Ensure audit records include date and time
+############################################################
+
+- name: Check log_line_prefix contains %m
+  become: true
+  shell: |
+    grep -E "^\s*log_line_prefix" {{ pg_conf_file }}
+  register: prefix_check
+  changed_when: false
+
+- name: Fail if %m not present
+  fail:
+    msg: "log_line_prefix does not include timestamp (%m)."
+  when: "'%m' not in prefix_check.stdout"
+
+- name: Check log_timezone is set to UTC
+  become: true
+  shell: |
+    grep -E "^\s*log_timezone" {{ pg_conf_file }}
+  register: timezone_check
+  changed_when: false
+
+- name: Fail if log_timezone not set to UTC
+  fail:
+    msg: "log_timezone is not set to UTC."
+  when: "'UTC' not in timezone_check.stdout"
+  tags:
+    - audit
+    - V-206529

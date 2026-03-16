@@ -1,29 +1,53 @@
 ---
 ############################################################
 # STIG Control: V-263608
-# Status : NOT A FINDING
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must implement multifactor authentication where
 # one factor is provided by a separate device.
 #
 # Finding Details:
-# Multifactor authentication using a separate device helps
-# prevent credential compromise and impersonation attacks.
+# Multifactor authentication helps prevent unauthorized
+# access by requiring multiple verification factors during
+# authentication.
 #
 # Implementation in this Environment:
-# PostgreSQL authentication is integrated with centralized
-# identity management systems (e.g., Keycloak / SSO) that
-# enforce MFA using external devices such as OTP tokens.
+# PostgreSQL is deployed as the backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS.
+#
+# User authentication occurs at the application layer
+# through the enterprise identity provider (Keycloak SSO),
+# which enforces multifactor authentication using
+# secondary device factors.
+#
+# PostgreSQL is accessed only by application service
+# accounts and does not perform direct user authentication.
+#
+# Comment:
+# Since PostgreSQL does not authenticate end users in this
+# architecture, multifactor authentication is enforced by
+# the centralized identity provider rather than the DBMS.
+# Therefore this control is not applicable to the PostgreSQL
+# deployment.
 #
 # Manual Verification Steps:
-# 1. Verify DBMS authentication integrates with enterprise
-#    identity provider.
-# 2. Confirm MFA requires a secondary device factor.
-# Comment:
-# Multifactor authentication is implemented through the organization’s centralized identity and access management infrastructure (e.g., Keycloak / enterprise SSO). The MFA implementation requires a secondary authentication factor provided by a device separate from the system gaining access (e.g., OTP token or mobile authenticator). PostgreSQL relies on the external identity provider for authentication enforcement and therefore does not directly implement MFA within the DBMS configuration.
+#
+# 1. Verify SonarQube authentication uses Keycloak SSO.
+#
+# 2. Verify PostgreSQL roles are service accounts only:
+#
+#       SELECT rolname FROM pg_roles;
+#
+# 3. Confirm users do not authenticate directly to
+#    PostgreSQL.
 ############################################################
 
-- name: "V-263608 | MFA enforced through centralized identity provider"
+- name: "V-263608 | MFA handled by application identity provider"
   ansible.builtin.debug:
-    msg: "MFA with separate device factor enforced through enterprise identity management."
-  tags: ['V-263608','CAT II','check']
+    msg: "DBMS does not perform user authentication; control not applicable."
+  tags:
+    - V-263608
+    - CATII
+    - enforce

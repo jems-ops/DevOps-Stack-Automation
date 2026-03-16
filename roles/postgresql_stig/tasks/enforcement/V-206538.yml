@@ -1,0 +1,59 @@
+############################################################
+# PostgreSQL STIG | V-206538
+# Protect audit log data from unauthorized access
+############################################################
+
+- name: Ensure logging_collector is enabled
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*logging_collector\s*='
+    line: "logging_collector = on"
+    backup: true
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206538
+
+- name: Ensure log_file_mode is 0600
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_file_mode\s*='
+    line: "log_file_mode = 0600"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206538
+
+- name: Ensure log_truncate_on_rotation is off
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_truncate_on_rotation\s*='
+    line: "log_truncate_on_rotation = off"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206538
+
+- name: Ensure log directory permissions are secure
+  become: true
+  file:
+    path: "{{ pg_data_dir }}/log"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+  tags:
+    - stig
+    - V-206538
+
+- name: Ensure existing log files are 0600
+  become: true
+  shell: |
+    find {{ pg_data_dir }}/log -type f -exec chmod 0600 {} \;
+  args:
+    warn: false
+  tags:
+    - stig
+    - V-206538

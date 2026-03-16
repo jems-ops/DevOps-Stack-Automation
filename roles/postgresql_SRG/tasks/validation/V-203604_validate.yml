@@ -1,10 +1,21 @@
 ---
 ############################################################
-# STIG Control: V-203604
-# Validation placeholder – tasks to be implemented.
+# STIG Control: V-263604
+#
+# Validation:
+# Confirm audit logs are forwarded to centralized
+# monitoring or SIEM platform for analysis.
 ############################################################
 
-- name: "V-203604 | Validation not yet implemented"
+- name: "V-263604 | Check logging collector"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW logging_collector;"
+  register: logging_collector
+  changed_when: false
+  tags: ['V-203604', 'CAT II', 'validate']
+
+- name: "V-263604 | Display logging collector status"
   ansible.builtin.debug:
-    msg: "Validation for V-203604 is pending implementation."
-  tags: ['V-203604', 'CAT II', 'check']
+    var: logging_collector.stdout
+  tags: ['V-203604', 'CAT II', 'validate']

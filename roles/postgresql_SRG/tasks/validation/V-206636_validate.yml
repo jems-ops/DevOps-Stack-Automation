@@ -1,10 +1,17 @@
 ---
 ############################################################
-# STIG Control: V-206636
-# Validation placeholder – tasks to be implemented.
+# STIG Control: V-206636 Validation
 ############################################################
 
-- name: "V-206636 | Validation not yet implemented"
-  ansible.builtin.debug:
-    msg: "Validation for V-206636 is pending implementation."
-  tags: ['V-206636', 'CAT II', 'check']
+- name: "V-206636 | Verify pgaudit logging configuration"
+  become: true
+  become_user: postgres
+  command: psql -t -c "SHOW pgaudit.log;"
+  register: audit_logging
+  changed_when: false
+  tags: ['V-206636', 'CAT II', 'validate']
+
+- name: "V-206636 | Display audit configuration"
+  debug:
+    var: audit_logging.stdout
+  tags: ['V-206636', 'CAT II', 'validate']

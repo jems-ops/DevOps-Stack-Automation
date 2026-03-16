@@ -1,10 +1,21 @@
 ---
 ############################################################
-# STIG Control: V-203603
-# Validation placeholder – tasks to be implemented.
+# STIG Control: V-263603
+#
+# Validation:
+# Verify database roles are managed and disabled through
+# centralized identity management processes.
 ############################################################
 
-- name: "V-203603 | Validation not yet implemented"
+- name: "V-263603 | Check PostgreSQL roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SELECT rolname, rolvaliduntil FROM pg_roles;"
+  register: role_expiration
+  changed_when: false
+  tags: ['V-203603', 'CAT II', 'validate']
+
+- name: "V-263603 | Display role expiration settings"
   ansible.builtin.debug:
-    msg: "Validation for V-203603 is pending implementation."
-  tags: ['V-203603', 'CAT II', 'check']
+    var: role_expiration.stdout_lines
+  tags: ['V-203603', 'CAT II', 'validate']

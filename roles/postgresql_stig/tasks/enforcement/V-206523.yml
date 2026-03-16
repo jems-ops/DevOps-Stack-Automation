@@ -1,0 +1,71 @@
+############################################################
+# PostgreSQL STIG | V-206523
+# Configure DBMS to generate DoD minimum auditable events
+############################################################
+
+- name: Ensure pgaudit is enabled
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
+    line: "shared_preload_libraries = 'pgaudit'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206523
+
+- name: Configure pgaudit for DoD minimum events
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log\s*='
+    line: "pgaudit.log = 'ddl, role, write'"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206523
+
+- name: Enable log_connections
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_connections\s*='
+    line: "log_connections = on"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206523
+
+- name: Enable log_disconnections
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_disconnections\s*='
+    line: "log_disconnections = on"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206523
+
+- name: Ensure failed statements are logged
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_min_error_statement\s*='
+    line: "log_min_error_statement = error"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206523
+
+- name: Ensure log_line_prefix includes required identifiers
+  become: true
+  lineinfile:
+    path: "{{ pg_conf_file }}"
+    regexp: '^\s*#?\s*log_line_prefix\s*='
+    line: "log_line_prefix = '%m %H %p %u %d %c %h %r %a %e '"
+  notify: Restart PostgreSQL
+  tags:
+    - stig
+    - V-206523

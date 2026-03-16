@@ -1,69 +1,51 @@
 ---
 ############################################################
 # STIG Control: V-263618
-# Status: Not a Finding - PostgreSQL administrative maintenance sessions are performed through the host operating system using SSH. The database server is deployed within an isolated internal network and administrative access occurs through controlled management paths. Therefore, maintenance sessions are logically separated from standard application network traffic.
+# Status: NOT A FINDING
+#
 # Title:
 # The DBMS must protect nonlocal maintenance sessions by
 # separating the maintenance session from other network
 # sessions using logically separated communications paths.
 #
-# Severity:
-# CAT II
-#
 # Finding Details:
-# If administrative or maintenance sessions share the same
-# communication paths as regular user traffic, attackers may
-# intercept or manipulate maintenance operations. Separating
-# administrative access paths protects privileged sessions.
-#
-# PostgreSQL itself does not manage network segmentation.
-# Administrative access to the DBMS occurs through the host
-# operating system via secure shell (SSH) and controlled
-# administrative access paths.
+# If administrative sessions share the same communication
+# paths as regular database traffic, attackers may intercept
+# or manipulate privileged maintenance operations.
 #
 # Implementation in this Environment:
-# PostgreSQL maintenance access is performed through the
-# host operating system using SSH and restricted administrative
-# accounts. The database server resides within an isolated
-# internal network and administrative access is performed
-# through controlled infrastructure such as bastion or
-# management hosts.
+# PostgreSQL administrative maintenance sessions occur
+# through SSH access to the host operating system. Network
+# access to the database is restricted through pg_hba.conf
+# and approved management networks.
 #
-# Manual Remediation Steps:
+# Comment:
+# PostgreSQL itself does not enforce network segmentation.
+# Administrative access occurs through secure SSH sessions
+# to the host operating system, which is isolated from
+# standard application traffic. Infrastructure controls
+# ensure that maintenance sessions occur through
+# logically separated communication paths.
 #
-# 1. Ensure database administration occurs through SSH to
-#    the host rather than direct DB network access.
+# Manual Verification Steps:
+# 1. Verify PostgreSQL listening interfaces:
+#       psql -c "SHOW listen_addresses;"
 #
-# 2. Restrict administrative access using network controls
-#    such as firewalls, bastion hosts, or management VLANs.
+# 2. Verify PostgreSQL listening ports:
+#       ss -plnt | grep postgres
 #
-# 3. Ensure PostgreSQL listens only on approved interfaces.
+# 3. Verify pg_hba.conf restricts access to approved networks.
 #
-#    Verify:
-#    SHOW listen_addresses;
-#
-# 4. Restrict client access in pg_hba.conf to approved
-#    administrative networks.
-#
-# Verification Commands:
-#
-#    ss -plnt | grep postgres
-#    psql -c "SHOW listen_addresses;"
-#    cat $PGDATA/pg_hba.conf
-#
-# Expected Result:
-# Administrative sessions occur through secured and
-# logically separated management paths.
-#
+# 4. Confirm administrative access occurs through SSH.
 ############################################################
 
-# This control is implemented through infrastructure
-# architecture and OS access controls. No DBMS enforcement
-# action is required.
-
-# comment: PostgreSQL administrative maintenance sessions are performed through the host operating system using SSH. The database server is deployed within an isolated internal network and administrative access occurs through controlled management paths. Therefore, maintenance sessions are logically separated from standard application network traffic.
-
-- name: "V-263618 | Informational control for separated maintenance paths"
-  ansible.builtin.debug:
-    msg: "PostgreSQL maintenance access is performed through secured administrative network paths."
-  tags: ['V-263618','CAT II','check']
+- name: "V-263618 | Ensure SSH service is enabled for maintenance access"
+  become: true
+  ansible.builtin.service:
+    name: sshd
+    state: started
+    enabled: true
+  tags:
+    - V-263618
+    - CATII
+    - enforce

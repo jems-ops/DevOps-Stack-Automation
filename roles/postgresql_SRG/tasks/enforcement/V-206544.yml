@@ -1,68 +1,105 @@
 ---
 ############################################################
-# STIG V-206544
-# Enforcement - Limit privileges to change DBMS software modules
-############################################################
+# STIG Control: V-206544
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - PUBLIC cannot create functions
-# - Only approved role owns schemas
-# - Superuser restricted
-# - Critical DBMS directories protected
-# comment: CREATE privileges on the public schema have been revoked from PUBLIC. Only authorized administrative roles may modify database modules such as functions, procedures, and triggers. DBMS software directories and configuration files are restricted to the postgres account. Monitoring and access controls prevent unauthorized modification. Therefore, V-206544 is Not a Finding.
+# Title:
+# Only authorized users must have privileges to modify
+# DBMS software modules.
+#
+# Finding Details:
+# Database software modules such as stored procedures,
+# triggers, and functions can alter DBMS behavior.
+# Unauthorized modification of these modules may allow
+# privilege escalation or compromise database integrity.
+#
+# Implementation in this Environment:
+# PostgreSQL restricts module modification privileges
+# through role-based access control and operating system
+# file permissions. Only authorized administrative roles
+# are permitted to create or modify database functions,
+# procedures, and triggers.
+#
+# DBMS library directories and configuration files are
+# restricted to the postgres system account.
+#
+# Manual Verification Steps:
+#
+# 1. Verify CREATE privilege on schemas:
+#
+#       \dn+
+#
+# 2. Verify superuser accounts:
+#
+#       SELECT rolname FROM pg_roles WHERE rolsuper=true;
+#
+# 3. Verify filesystem permissions on DBMS directories.
+#
+# Comment:
+# Database module modification privileges are restricted
+# to authorized administrators. PUBLIC users cannot create
+# functions or modules, and DBMS directories are protected
+# by operating system file permissions.
 ############################################################
 
-- name: V-206544 | Revoke CREATE on public schema from PUBLIC
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Revoke CREATE from PUBLIC
+############################
+
+- name: "V-206544 | Revoke CREATE on public schema from PUBLIC"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
   changed_when: false
-  tags:
-    - stig
-    - V-206544
-    - cat2
+  tags: ['V-206544','CAT II','enforce']
 
-- name: V-206544 | Restrict DBMS library directory permissions
+
+############################
+# Restrict DBMS library directories
+############################
+
+- name: "V-206544 | Restrict DBMS library directory permissions"
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     owner: postgres
     group: postgres
-    mode: '0750'
+    mode: "0750"
     state: directory
   loop:
-    - /usr/lib64/pgsql
+    - "{{ postgresql_srg_pg_lib_dir }}"
     - "{{ postgresql_srg_data_dir }}"
-  tags:
-    - stig
-    - V-206544
-    - cat2
+  tags: ['V-206544','CAT II','enforce']
 
-- name: V-206544 | Validate superuser restriction
+
+############################
+# Verify superuser restrictions
+############################
+
+- name: "V-206544 | Check superuser roles"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  ansible.builtin.command: >
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper=true;"
   register: v206544_superusers
   changed_when: false
-  tags:
-    - stig
-    - V-206544
-    - cat2
+  tags: ['V-206544','CAT II','check']
 
-- name: V-206544 | Assert only postgres is superuser
+
+- name: "V-206544 | Assert authorized superusers only"
   ansible.builtin.assert:
     that:
-      - v206544_superusers.stdout_lines | length == 1
-      - "'postgres' in v206544_superusers.stdout"
+      - v206544_superusers.stdout_lines | difference(postgresql_srg_authorized_superusers) | length == 0
     fail_msg: >
       STIG V-206544 FAILED:
-      Unauthorized privilege to modify DBMS modules detected.
+      Unauthorized superuser detected.
     success_msg: >
-      DBMS module modification privileges restricted.
-  tags:
-    - stig
-    - V-206544
-    - cat2
+      Only authorized superusers present.
+  tags: ['V-206544','CAT II','check']

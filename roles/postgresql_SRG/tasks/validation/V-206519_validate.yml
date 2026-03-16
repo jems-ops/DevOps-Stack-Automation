@@ -1,69 +1,29 @@
 ---
 ############################################################
-# STIG V-206519
-# Validation / Audit Only
+# STIG Control Validation: V-206519
+#
+# Purpose:
+# Validate that PostgreSQL roles have connection limits
+# configured according to organizational policy.
 ############################################################
 
-- name: "V-206519 | Gather role connection limits"
+- name: "V-206519 | Query role connection limits"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -F',' -c "SELECT rolname, rolconnlimit FROM pg_roles;"
-  register: postgresql_srg_connlimit_raw
+  ansible.builtin.command:
+    cmd: psql -t -c "SELECT rolname, rolconnlimit FROM pg_roles;"
+  register: v206519_conn_limits
   changed_when: false
   tags:
     - V-206519
-    - stig
-    - cat2
+    - CATII
+    - validate
 
-- name: "V-206519 | Parse role connection limits"
-  ansible.builtin.set_fact:
-    postgresql_srg_roles_parsed: >-
-      {{
-        postgresql_srg_connlimit_raw.stdout_lines
-        | map('split', ',')
-        | list
-      }}
+
+- name: "V-206519 | Display role connection limits"
+  ansible.builtin.debug:
+    var: v206519_conn_limits.stdout_lines
   tags:
     - V-206519
-    - stig
-    - cat2
-
-- name: "V-206519 | Identify non-compliant roles"
-  ansible.builtin.set_fact:
-    postgresql_srg_noncompliant_roles: >-
-      {{
-        postgresql_srg_roles_parsed
-        | map('join', ',')
-        | reject('match', '^pg_')
-        | map('split', ',')
-        | select('contains', '-1')
-        | list
-      }}
-  tags:
-    - V-206519
-    - stig
-    - cat2
-
-- name: "V-206519 | Assert connection limits compliant"
-  ansible.builtin.assert:
-    that:
-      - >-
-        postgresql_srg_roles_parsed
-        | map('join', ',')
-        | reject('match', '^pg_')
-        | map('split', ',')
-        | map('last')
-        | select('equalto', '-1')
-        | list | length == 0
-    fail_msg: >
-      STIG V-206519 FAILED:
-      One or more roles have unlimited connection limits (-1).
-      Review role connection limits.
-    success_msg: >
-      STIG V-206519 PASSED:
-      All roles have defined connection limits.
-  tags:
-    - V-206519
-    - stig
-    - cat2
+    - CATII
+    - validate

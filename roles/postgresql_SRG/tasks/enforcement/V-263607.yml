@@ -1,7 +1,8 @@
 ---
 ############################################################
 # STIG Control: V-263607
-# Status : NOT A FINDING
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must require users to be individually authenticated
 # before granting access to shared accounts or resources.
@@ -11,26 +12,38 @@
 # traceability of user actions within the DBMS.
 #
 # Implementation in this Environment:
-# PostgreSQL enforces individual authentication through
-# unique database roles and pg_hba.conf authentication rules.
+# PostgreSQL is deployed as the backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS.
+#
+# User authentication occurs at the application layer
+# through the enterprise identity provider (Keycloak SSO).
+#
+# PostgreSQL is accessed only through application service
+# accounts rather than individual user accounts.
+#
+# Comment:
+# Since PostgreSQL does not authenticate individual users
+# in this architecture, user accountability is enforced by
+# the application and identity provider rather than the
+# DBMS. Therefore this control is not applicable to the
+# PostgreSQL deployment.
 #
 # Manual Verification Steps:
-# 1. Review pg_hba.conf authentication configuration.
-# 2. Verify shared accounts are not used for user access.
-# 3. Confirm users authenticate with unique database roles.
-# Comment:
-# PostgreSQL requires individual authentication through unique database roles and accounts. Access control is implemented using PostgreSQL role-based access control (RBAC) and authentication mechanisms defined in pg_hba.conf. Shared accounts are not used for database access. Additionally, authentication may be integrated with centralized identity management systems to ensure individual user accountability.
+#
+# 1. Verify SonarQube authentication uses Keycloak SSO.
+#
+# 2. Verify PostgreSQL roles are service accounts only:
+#
+#       SELECT rolname FROM pg_roles;
+#
+# 3. Confirm users do not authenticate directly to the DBMS.
 ############################################################
 
-- name: "V-263607 | Verify individual database roles exist"
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -t -c "SELECT rolname FROM pg_roles;"
-  register: postgres_roles
-  changed_when: false
-  tags: ['V-263607','CAT II','check']
-
-- name: "V-263607 | Display configured database roles"
+- name: "V-263607 | Individual authentication handled by application identity provider"
   ansible.builtin.debug:
-    var: postgres_roles.stdout_lines
-  tags: ['V-263607','CAT II','check']
+    msg: "DBMS does not perform user authentication; control not applicable."
+  tags:
+    - V-263607
+    - CATII
+    - enforce

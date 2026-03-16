@@ -1,0 +1,29 @@
+############################################################
+# Validation for V-206534
+############################################################
+
+- name: Generate test event
+  become: true
+  become_user: postgres
+  command: psql -c "SELECT 1;"
+  tags:
+    - audit
+    - V-206534
+
+- name: Inspect latest log entry
+  become: true
+  shell: |
+    tail -n 5 {{ pg_data_dir }}/log/*
+  register: log_sample
+  changed_when: false
+  tags:
+    - audit
+    - V-206534
+
+- name: Fail if log entry does not contain session ID
+  fail:
+    msg: "Session ID is not present in PostgreSQL logs."
+  when: "'session=' not in log_sample.stdout"
+  tags:
+    - audit
+    - V-206534

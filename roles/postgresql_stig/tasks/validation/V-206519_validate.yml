@@ -1,0 +1,25 @@
+############################################################
+# Validation for V-206519
+############################################################
+
+- name: Create test role
+  become: true
+  become_user: postgres
+  command: psql -tAc "CREATE ROLE stig_validate_role;"
+  ignore_errors: true
+
+- name: Attempt unauthorized parameter change
+  become: true
+  become_user: postgres
+  shell: |
+    psql -tAc "SET ROLE stig_validate_role;"
+    psql -tAc "SET pgaudit.role='invalid';"
+  ignore_errors: true
+
+- name: Check denial logged
+  become: true
+  shell: |
+    grep -i 'permission denied to set parameter "pgaudit.role"' {{ pg_data_dir }}/log/* | tail -1
+  register: validation_check
+  changed_when: false
+  failed_when: validation_check.stdout == ""

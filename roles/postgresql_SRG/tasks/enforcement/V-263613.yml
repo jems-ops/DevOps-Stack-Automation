@@ -1,49 +1,52 @@
 ---
 ############################################################
 # STIG Control: V-263613
-# Status: Not a Finding - Password blacklist enforcement is handled by enterprise password policy mechanisms.
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must, for password-based authentication, verify
 # that when users create or update passwords, the passwords
-# are not found on the list of commonly-used, expected, or
-# compromised passwords.
-#
-# Severity:
-# CAT II
+# are not found on the list of commonly-used, expected,
+# or compromised passwords.
 #
 # Finding Details:
-# Passwords that appear in common password dictionaries or
-# previously compromised password lists significantly weaken
-# authentication security. Systems should verify passwords
-# against such lists to prevent weak credential selection.
+# Passwords that appear in commonly-used or compromised
+# password lists weaken authentication security and may
+# allow unauthorized access.
 #
 # Implementation in this Environment:
-# PostgreSQL does not provide native functionality to check
-# passwords against commonly-used or compromised password
-# lists. Password policy enforcement is implemented through
-# enterprise identity management systems or administrative
-# security policies governing password creation.
+# PostgreSQL is deployed as the backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS and do not create or update
+# passwords within PostgreSQL.
 #
-# Manual Remediation Steps:
+# User authentication and password policy enforcement,
+# including compromised password detection, are handled by
+# the centralized identity provider (Keycloak SSO).
 #
-# 1. Implement password policies within centralized identity
-#    management systems such as LDAP, Active Directory, or
-#    PAM modules that enforce password blacklist validation.
+# Comment:
+# Because PostgreSQL does not perform password-based
+# authentication for end users in this architecture,
+# verification of commonly-used or compromised passwords
+# is not applicable at the DBMS level.
 #
-# 2. Ensure database users follow organizational password
-#    policy standards.
+# Manual Verification Steps:
 #
-# Verification Steps:
+# 1. Verify SonarQube authentication uses Keycloak SSO.
 #
-# Review organizational password policy enforcement tools.
+# 2. Verify PostgreSQL roles are application service
+#    accounts rather than individual user accounts.
 #
-# Expected Result:
-# Password creation policies prevent the use of commonly
-# used or compromised passwords.
-# comment: PostgreSQL does not natively implement password blacklist verification. Password strength and compromised password detection are enforced through organizational password policies and identity management systems. Therefore, this control is satisfied through enterprise password policy mechanisms rather than DBMS configuration.
+#       SELECT rolname FROM pg_roles;
+#
+# 3. Confirm password policies are enforced by the
+#    enterprise identity provider.
 ############################################################
 
-- name: "V-263613 | Informational control - password blacklist handled externally"
+- name: "V-263613 | Password blacklist validation handled by identity provider"
   ansible.builtin.debug:
-    msg: "Password blacklist enforcement is handled by enterprise password policy mechanisms."
-  tags: ['V-263613','CAT II','check']
+    msg: "DBMS does not perform password creation or updates for users; control not applicable."
+  tags:
+    - V-263613
+    - CATII
+    - check

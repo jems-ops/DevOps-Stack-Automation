@@ -1,10 +1,24 @@
 ---
 ############################################################
 # STIG Control: V-206639
-# Validation placeholder – tasks to be implemented.
+#
+# Title:
+# DBMS must use NIST FIPS validated cryptographic modules
+# to provision digital signatures.
+#
+# Implementation:
+# PostgreSQL relies on OpenSSL provided by RHEL. When the
+# system operates in FIPS mode, cryptographic operations
+# use FIPS validated modules.
 ############################################################
 
-- name: "V-206639 | Validation not yet implemented"
+- name: "V-206639 | Check FIPS mode"
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: fips_status
+  changed_when: false
+  tags: ['V-206639','CAT II', 'validate']
+
+- name: "V-206639 | Display FIPS status"
   ansible.builtin.debug:
-    msg: "Validation for V-206639 is pending implementation."
-  tags: ['V-206639', 'CAT II', 'check']
+    var: fips_status.stdout
+  tags: ['V-206639','CAT II', 'validate']

@@ -1,40 +1,136 @@
 ---
 ############################################################
-# STIG V-206567
-# Validation - MITM protection
+# STIG Control: V-206567
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must protect against man-in-the-middle (MITM)
+# and session hijacking attacks during authentication.
+#
+# Finding Details:
+# Authentication mechanisms that transmit credentials
+# insecurely may allow attackers to intercept credentials
+# or hijack sessions. Secure authentication protocols
+# must be used to protect database login operations.
+#
+# Implementation in this Environment:
+# PostgreSQL uses SCRAM-SHA-256 password authentication
+# to protect credentials through salted cryptographic
+# hashing.
+#
+# Network authentication methods that allow insecure
+# access (e.g., trust authentication) are not permitted
+# for remote connections.
+#
+# The database operates within an isolated internal
+# network environment where access is restricted to
+# application service accounts.
+#
+# Manual Verification Steps:
+#
+# 1. Verify password encryption method:
+#
+#       SHOW password_encryption;
+#
+# 2. Review pg_hba.conf authentication configuration:
+#
+#       cat $PGDATA/pg_hba.conf
+#
+# 3. Confirm insecure authentication methods such as
+#    trust are not used for network connections.
+#
+# Comment:
+# PostgreSQL is configured to use SCRAM-SHA-256 password
+# authentication and does not allow insecure trust
+# authentication for network connections. These controls
+# protect authentication credentials from interception
+# and prevent unauthorized session hijacking.
 ############################################################
 
-# SSL check omitted - not applicable for isolated database
-- name: V-206567 | Check password_encryption
+############################################################
+# 1. Verify global password_encryption setting
+############################################################
+
+- name: "V-206567 | Verify password_encryption is scram-sha-256"
   become: true
   become_user: postgres
-  shell: psql -t -A -c "SHOW password_encryption;"
-  register: v206567_scram
+  ansible.builtin.command: psql -t -A -c "SHOW password_encryption;"
+  register: v206567_pw_enc
   changed_when: false
+  tags: ['V-206567', 'CAT II', 'validate']
 
-- name: Assert SCRAM enabled
-  assert:
+- name: "V-206567 | Assert password_encryption = scram-sha-256"
+  ansible.builtin.assert:
     that:
-      - "'scram-sha-256' in v206567_scram.stdout"
-    fail_msg: "STIG V-206567 FAILED: SCRAM not enforced."
-    success_msg: "SCRAM enforced."
-  tags:
-    - stig
-    - V-206567
+      - "'scram-sha-256' in v206567_pw_enc.stdout"
+    fail_msg: >
+      STIG V-206567 FAILED: password_encryption is
+      '{{ v206567_pw_enc.stdout | trim }}' — must be scram-sha-256.
+    success_msg: "password_encryption = scram-sha-256 ✓"
+  tags: ['V-206567', 'CAT II', 'validate']
 
 
-- name: V-206567 | Check HBA for trust
+############################################################
+# 2. Read pg_hba.conf active (non-comment) lines
+############################################################
+
+- name: "V-206567 | Read active pg_hba.conf lines"
   become: true
-  shell: grep -Ev '^\s*#' {{ postgresql_srg_hba_file }} | grep -E '\btrust\b' || true
-  register: v206567_trust
+  ansible.builtin.shell: grep -Ev '^\s*#|^\s*$' {{ postgresql_srg_hba_file }}
+  register: v206567_hba_lines
   changed_when: false
+  tags: ['V-206567', 'CAT II', 'validate']
 
-- name: Assert no trust authentication
-  assert:
+- name: "V-206567 | Display pg_hba.conf active entries"
+  ansible.builtin.debug:
+    var: v206567_hba_lines.stdout_lines
+  tags: ['V-206567', 'CAT II', 'validate']
+
+
+############################################################
+# 3. Assert each application entry exists and uses scram-sha-256
+############################################################
+
+- name: "V-206567 | Assert application HBA entry uses scram-sha-256"
+  ansible.builtin.assert:
     that:
-      - v206567_trust.stdout == ""
-    fail_msg: "STIG V-206567 FAILED: trust authentication detected."
-    success_msg: "No trust authentication found."
-  tags:
-    - stig
-    - V-206567
+      - v206567_hba_lines.stdout_lines
+        | select('match',
+            '^\\s*' ~ item.type ~ '\\s+' ~ item.database ~
+            '\\s+' ~ item.user ~ '\\s+' ~ (item.address | regex_escape) ~
+            '\\s+scram-sha-256')
+        | list | length > 0
+    fail_msg: >
+      STIG V-206567 FAILED: pg_hba.conf is missing a scram-sha-256 entry for
+      {{ item.type }} {{ item.database }} {{ item.user }} {{ item.address }}.
+    success_msg: >
+      {{ item.type }} {{ item.database }}/{{ item.user }} @ {{ item.address }} → scram-sha-256 ✓
+  loop: "{{ postgresql_srg_hba_application_entries }}"
+  loop_control:
+    label: "{{ item.database }}/{{ item.user }}"
+  tags: ['V-206567', 'CAT II', 'validate']
+
+
+############################################################
+# 4. Assert no host/hostssl entry uses trust authentication
+############################################################
+
+- name: "V-206567 | Check for trust authentication in host entries"
+  ansible.builtin.set_fact:
+    v206567_trust_lines: >
+      {{
+        v206567_hba_lines.stdout_lines
+        | select('match', '^\\s*host.*\\btrust\\b')
+        | list
+      }}
+  tags: ['V-206567', 'CAT II', 'validate']
+
+- name: "V-206567 | Assert no trust auth for host connections"
+  ansible.builtin.assert:
+    that:
+      - v206567_trust_lines | length == 0
+    fail_msg: >
+      STIG V-206567 FAILED: trust authentication found in pg_hba.conf:
+      {{ v206567_trust_lines | join(', ') }}
+    success_msg: "No trust authentication entries in pg_hba.conf ✓"
+  tags: ['V-206567', 'CAT II', 'validate']

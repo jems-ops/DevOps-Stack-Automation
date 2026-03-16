@@ -13,9 +13,9 @@
   ansible.builtin.command: psql -t -c "SHOW log_destination;"
   register: log_destination
   changed_when: false
-  tags: ['V-203605', 'CAT II', 'check']
+  tags: ['V-203605', 'CAT II', 'validate']
 
 - name: "V-263605 | Display log destination"
   ansible.builtin.debug:
     var: log_destination.stdout
-  tags: ['V-203605', 'CAT II', 'check']
+  tags: ['V-203605', 'CAT II', 'validate']

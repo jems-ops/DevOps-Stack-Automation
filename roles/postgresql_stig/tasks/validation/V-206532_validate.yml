@@ -1,0 +1,24 @@
+############################################################
+# Validation for V-206532
+############################################################
+
+- name: Generate failed event
+  become: true
+  become_user: postgres
+  shell: |
+    psql -tAc "SELECT * FROM non_existing_table;"
+  ignore_errors: true
+  tags:
+    - audit
+    - V-206532
+
+- name: Check log for error outcome
+  become: true
+  shell: |
+    grep -i "ERROR" {{ pg_data_dir }}/log/* | tail -1
+  register: error_check
+  changed_when: false
+  failed_when: error_check.stdout == ""
+  tags:
+    - audit
+    - V-206532

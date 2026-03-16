@@ -14,7 +14,7 @@ site_backends:
     ip: "192.168.201.16"
     port: "9000"
   - server_name: "sonar.local"
-    ip: "192.168.201.11"
+    ip: "192.168.56.18"
     port: "9000"
   - server_name: "keycloak.example.com"
     ip: "192.168.201.12"

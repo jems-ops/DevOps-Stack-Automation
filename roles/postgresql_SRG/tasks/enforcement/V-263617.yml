@@ -1,23 +1,53 @@
 ---
 ############################################################
 # STIG Control: V-263617
+# Status: NOT APPLICABLE
 #
-# Status: Not Applicable
+# Title:
+# The DBMS must implement certificate status checking
+# (CRL or OCSP) when using public key infrastructure (PKI)
+# authentication.
 #
-# Justification:
-# PostgreSQL does not use PKI-based authentication in this
-# environment. Certificate validation and revocation
-# mechanisms are therefore not implemented.
+# Finding Details:
+# If certificate-based authentication is used without
+# validating certificate revocation status, compromised
+# certificates could still be accepted, allowing
+# unauthorized access to the DBMS.
 #
-# Verification Command:
+# Implementation in this Environment:
+# PostgreSQL in this environment does not implement
+# PKI-based authentication. Database authentication
+# uses SCRAM-SHA-256 credentials over trusted internal
+# network connections.
 #
-#   psql -t -c "SHOW ssl;"
+# Comment:
+# PostgreSQL SSL/TLS and client certificate authentication
+# are not enabled in this environment. Because PKI
+# authentication is not used, certificate revocation
+# validation mechanisms such as CRL or OCSP are not
+# applicable to this deployment.
 #
-# Expected:
-#   off
-# comment: PostgreSQL in this environment does not implement public key–based authentication.Authentication is performed using SCRAM-SHA-256 credentials over internal trusted network connections.Because PKI authentication is not used, certificate revocation lists (CRL) or OCSP validation mechanisms are not implemented by the DBMS.Therefore, this control is not applicable to the current PostgreSQL deployment.
+# Manual Verification Steps:
+# 1. Verify PostgreSQL SSL configuration:
+#
+#       psql -t -c "SHOW ssl;"
+#
+# 2. Confirm SSL is disabled:
+#
+#       ssl = off
+#
+# 3. Verify pg_hba.conf does not contain certificate
+#    authentication entries such as:
+#
+#       hostssl ... cert
+#
 ############################################################
-- name: "V-263617 | Informational control - PKI authentication not implemented"
+
+- name: "V-263617 | PKI authentication not implemented - control not applicable"
   ansible.builtin.debug:
-    msg: "PostgreSQL does not use PKI-based authentication in this environment. Certificate validation and revocation mechanisms are therefore not implemented."
-  tags: ['V-263617','CAT II','check']
+    msg: "PKI authentication not used; CRL/OCSP validation not applicable."
+  tags:
+    - V-263617
+    - CATII
+    - enforce
+

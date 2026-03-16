@@ -1,57 +1,74 @@
 ---
 ############################################################
-# STIG V-206538
-# Validation - Audit logs protected from unauthorized read
+# STIG Control: V-206538
+# Validation Only
+#
+# Title:
+# The DBMS must protect audit information from
+# unauthorized read access.
+#
+# Finding Details:
+# Audit logs contain sensitive security information and
+# must be protected from unauthorized read access.
+#
+# Validation Checks:
+# 1. Log directory ownership
+# 2. Log directory permissions (0700)
+# 3. Log file ownership
+# 4. Log file permissions (0600)
 ############################################################
 
-- name: V-206538 | Check log directory permissions
+
+############################################################
+# Validate Log Directory
+############################################################
+
+- name: "V-206538 | Check PostgreSQL log directory"
   become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_log_directory }}"
   register: v206538_log_dir
-  tags:
-    - stig
-    - V-206538
-    - cat2
+  tags: ['V-206538','CAT II','check']
 
-- name: V-206538 | Find log files
+
+- name: "V-206538 | Assert log directory permissions"
+  ansible.builtin.assert:
+    that:
+      - v206538_log_dir.stat.exists
+      - v206538_log_dir.stat.isdir
+      - v206538_log_dir.stat.pw_name == "postgres"
+      - v206538_log_dir.stat.mode == "0700"
+    fail_msg: >
+      STIG V-206538 FAILED:
+      PostgreSQL log directory permissions allow unauthorized read access.
+    success_msg: >
+      PostgreSQL log directory correctly restricted.
+  tags: ['V-206538','CAT II','check']
+
+
+############################################################
+# Validate Log Files
+############################################################
+
+- name: "V-206538 | Find PostgreSQL log files"
   become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_log_directory }}"
-    patterns: "*.log"
-  register: v206538_log_files
-  tags:
-    - stig
-    - V-206538
-    - cat2
+    file_type: file
+  register: v206538_logs
+  tags: ['V-206538','CAT II','check']
 
-- name: V-206538 | Validate directory protection
+
+- name: "V-206538 | Validate log file permissions"
   ansible.builtin.assert:
     that:
-      - v206538_log_dir.stat.pw_name == "postgres"
-      - v206538_log_dir.stat.gr_name == "postgres"
-      - v206538_log_dir.stat.mode | int(base=8) <= 700
+      - item.pw_name == "postgres"
+      - item.mode == "0600"
     fail_msg: >
       STIG V-206538 FAILED:
-      Log directory permissions are not properly restricted.
+      Log file {{ item.path }} allows unauthorized read access.
     success_msg: >
-      Log directory ownership and permissions are compliant.
-  tags:
-    - stig
-    - V-206538
-    - cat2
-
-- name: V-206538 | Validate log file permissions
-  ansible.builtin.assert:
-    that:
-      - v206538_log_files.files | rejectattr('mode', 'equalto', '0600') | list | length == 0
-    fail_msg: >
-      STIG V-206538 FAILED:
-      One or more log files have incorrect permissions (expected 0600).
-    success_msg: >
-      All log files are properly restricted (0600).
-  when: v206538_log_files.matched > 0
-  tags:
-    - stig
-    - V-206538
-    - cat2
+      Log file {{ item.path }} permissions are compliant.
+  loop: "{{ v206538_logs.files }}"
+  when: v206538_logs.matched > 0
+  tags: ['V-206538','CAT II','check']

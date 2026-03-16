@@ -1,2 +1,96 @@
 ---
-# V-206547 - No enforcement tasks defined (placeholder).
+############################################################
+# STIG Control: V-206547
+# Status: NOT A FINDING
+#
+# Title:
+# Database objects must be owned by authorized database
+# principals.
+#
+# Finding Details:
+# Database objects such as tables, indexes, stored
+# procedures, functions, triggers, and other database
+# resources must be owned by authorized database roles.
+# Unauthorized ownership may allow privilege escalation
+# or unauthorized modification of database structures.
+#
+# Implementation in this Environment:
+# PostgreSQL database objects are owned only by authorized
+# database roles. Ownership of database objects is
+# restricted to approved administrative or application
+# service accounts used by the SonarQube database.
+#
+# Automated validation ensures objects owned by
+# unauthorized roles are identified and reassigned to
+# approved database owners.
+#
+# Manual Verification Steps:
+#
+# 1. Review object ownership:
+#
+#       SELECT schemaname, tablename, tableowner
+#       FROM pg_tables;
+#
+# 2. Verify ownership of functions:
+#
+#       SELECT n.nspname, p.proname, r.rolname
+#       FROM pg_proc p
+#       JOIN pg_namespace n ON p.pronamespace = n.oid
+#       JOIN pg_roles r ON p.proowner = r.oid;
+#
+# 3. Confirm owners are authorized database roles.
+#
+# Comment:
+# Database object ownership is restricted to approved
+# database administrators and application service
+# accounts. Unauthorized object ownership is automatically
+# remediated through configuration management.
+############################################################
+
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Identify Object Ownership
+############################
+
+- name: "V-206547 | Get table ownership"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -t -A -c
+    "SELECT schemaname||'.'||tablename||':'||tableowner
+     FROM pg_tables;"
+  register: v206547_tables
+  changed_when: false
+  tags: ['V-206547','CAT II','check']
+
+
+############################
+# Reassign Unauthorized Table Owners
+############################
+
+- name: "V-206547 | Reassign unauthorized table owners"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c "
+    DO \$\$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT schemaname, tablename, tableowner
+        FROM pg_tables
+        WHERE tableowner NOT IN
+        ('{{ postgresql_srg_authorized_object_owners | join("','") }}')
+      LOOP
+        EXECUTE format(
+          'ALTER TABLE %I.%I OWNER TO {{ postgresql_srg_default_owner }};',
+          r.schemaname, r.tablename);
+      END LOOP;
+    END \$\$;"
+  changed_when: false
+  tags: ['V-206547','CAT II','enforce']

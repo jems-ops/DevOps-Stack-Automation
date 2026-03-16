@@ -1,56 +1,50 @@
 ---
 ############################################################
 # STIG Control: V-263615
-# Status: Not a Finding - PostgreSQL natively supports long passwords and passphrases, including spaces and printable characters, when using password-based authentication. No restrictions are imposed on printable characters, enabling users to create strong passphrases. Therefore, this control is satisfied through PostgreSQL's native password handling capabilities.
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must, for password-based authentication, allow
 # user selection of long passwords and passphrases,
-# including spaces and all printable characters.
-#
-# Severity:
-# CAT II
+# including spaces and printable characters.
 #
 # Finding Details:
-# Password-based authentication mechanisms that restrict
-# password length or disallow printable characters may
-# prevent users from creating strong passphrases. Allowing
-# long passphrases and printable characters increases
-# password entropy and improves resistance to brute-force
-# and dictionary attacks.
+# Restricting password length or printable characters may
+# prevent users from creating strong passphrases and reduce
+# password entropy.
 #
 # Implementation in this Environment:
-# PostgreSQL supports long passwords and passphrases,
-# including spaces and printable characters, when using
-# standard password authentication and SCRAM-SHA-256
-# password hashing.
+# PostgreSQL in this deployment is used solely as the
+# backend database for the SonarQube application.
+# End users do not authenticate directly to the DBMS.
 #
-# PostgreSQL does not restrict printable characters in
-# passwords and allows long passphrases by default.
+# User authentication is performed through the enterprise
+# identity provider (Keycloak SSO). PostgreSQL is accessed
+# only through application service accounts.
+#
+# Comment:
+# Since PostgreSQL does not perform password-based
+# authentication for end users, password selection
+# capabilities within the DBMS are not used in this
+# architecture. Password policies are enforced by the
+# centralized identity provider.
 #
 # Manual Verification Steps:
 #
-# 1. Connect to PostgreSQL
+# 1. Verify application authentication uses Keycloak SSO.
 #
-#    psql
+# 2. Verify PostgreSQL roles are service accounts only:
 #
-# 2. Create a test user with a long passphrase
+#       SELECT rolname FROM pg_roles;
 #
-#    CREATE ROLE test_user LOGIN PASSWORD
-#    'This is a very long passphrase with spaces !@#$%^&*()';
-#
-# 3. Confirm the user is created successfully.
-#
-# Verification Commands:
-#
-#    SELECT rolname FROM pg_roles;
-#
-# Expected Result:
-# PostgreSQL accepts long passphrases containing spaces
-# and printable characters.
-# comment: PostgreSQL supports long passwords and passphrases, including spaces and printable characters, when using password-based authentication. No restrictions are imposed on printable characters, enabling users to create strong passphrases. Therefore, this control is satisfied through PostgreSQL's native password handling capabilities.
+# 3. Confirm users do not authenticate directly to the DBMS.
 ############################################################
 
-- name: "V-263615 | Informational control - PostgreSQL supports passphrases"
+- name: "V-263615 | Password selection handled by external identity provider"
   ansible.builtin.debug:
-    msg: "PostgreSQL natively supports long passwords and passphrases including spaces and printable characters."
-  tags: ['V-263615','CAT II','check']
+    msg: "PostgreSQL does not perform password-based authentication for users; control not applicable."
+  tags:
+    - V-263615
+    - CATII
+    - enforce
+

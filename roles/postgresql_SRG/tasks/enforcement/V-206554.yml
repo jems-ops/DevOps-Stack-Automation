@@ -1,63 +1,93 @@
 ---
 ############################################################
-# STIG V-206554
-# Enforcement - Unique identification and authentication
-#✔ Require authentication for all connections
-#✔ Use SCRAM or external auth (LDAP/AD/CAC)
-#✔ Disallow trust
-#✔ Disallow peer for network users
-#✔ Prevent shared “application” logins without traceability
-#✔ Log connections
-# comment: The PostgreSQL DBMS is configured to uniquely identify and authenticate all organizational users. All network connections require SCRAM-SHA-256 authentication over SSL/TLS. Trust authentication is disabled. Each user account is uniquely assigned to an individual or service identity. Connection logging is enabled to support accountability. Therefore, V-206554 is Not a Finding.
+# STIG Control: V-206554
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must uniquely identify and authenticate
+# organizational users.
+#
+# Finding Details:
+# Unique identification and authentication ensure that
+# actions performed within the DBMS can be traced to an
+# individual user or authorized service account. Shared
+# or anonymous accounts may prevent accountability and
+# enable unauthorized access.
+#
+# Implementation in this Environment:
+# PostgreSQL serves as the backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS.
+#
+# User authentication occurs at the application layer
+# through the enterprise identity provider (Keycloak SSO),
+# which uniquely identifies each user.
+#
+# PostgreSQL access is restricted to application service
+# accounts, ensuring database actions remain traceable
+# through application-level user identity and database
+# role mapping.
+#
+# Manual Verification Steps:
+#
+# 1. Verify PostgreSQL roles:
+#
+#       SELECT rolname FROM pg_roles;
+#
+# 2. Confirm users do not authenticate directly to
+#    PostgreSQL.
+#
+# 3. Verify application authentication occurs through
+#    the enterprise identity provider (Keycloak).
+#
+# Comment:
+# Unique user identification is implemented through the
+# centralized identity provider used by the SonarQube
+# application. PostgreSQL is accessed only by application
+# service accounts, ensuring all database activity remains
+# traceable to authenticated application users.
+# The following security settings are enforced here to
+# support related STIG controls including:
+#
+#   V-206567  (secure authentication)
+#   V-206630  (log successful logins)
+#
+# These configurations ensure secure authentication
+# mechanisms and auditable database access.
 ############################################################
-
-############################
-# Enforce SCRAM encryption
-############################
 
 - name: V-206554 | Enforce SCRAM password encryption
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*password_encryption\s*='
+    regexp: '^#?password_encryption'
     line: "password_encryption = scram-sha-256"
     backup: true
-  notify: Restart PostgreSQL
+  notify: Reload PostgreSQL
   tags:
     - stig
     - V-206554
     - cat2
-
-
-############################
-# Remove trust authentication
-############################
 
 - name: V-206554 | Remove trust authentication
   become: true
-  replace:
+  ansible.builtin.replace:
     path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^\s*host\s+.*\s+trust\s*$'
-    replace: '# Removed by STIG V-206554 - trust not allowed'
-  notify: Restart PostgreSQL
+    regexp: '\btrust\b'
+    replace: 'scram-sha-256'
+  notify: Reload PostgreSQL
   tags:
     - stig
     - V-206554
     - cat2
 
-
-# hostssl entry omitted - SSL not applicable for isolated database
-############################
-# Enable connection logging
-############################
-
 - name: V-206554 | Enable log_connections
   become: true
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*log_connections\s*='
+    regexp: '^#?log_connections'
     line: "log_connections = on"
-  notify: Restart PostgreSQL
+  notify: Reload PostgreSQL
   tags:
     - stig
     - V-206554

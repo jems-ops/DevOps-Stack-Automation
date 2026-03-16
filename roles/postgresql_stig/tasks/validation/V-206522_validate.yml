@@ -1,0 +1,23 @@
+############################################################
+# PostgreSQL STIG | V-206522 Validation
+############################################################
+
+- name: Simulate application setting individual identity
+  become: true
+  become_user: postgres
+  shell: |
+    psql -c "SET application_name = 'john.doe'; SELECT 1;"
+  tags:
+    - audit
+    - V-206522
+
+- name: Check log for captured individual identity
+  become: true
+  shell: |
+    grep -i "john.doe" {{ pg_data_dir }}/log/* | tail -1
+  register: identity_check
+  changed_when: false
+  failed_when: identity_check.stdout == ""
+  tags:
+    - audit
+    - V-206522

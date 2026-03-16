@@ -1,29 +1,54 @@
 ---
 ############################################################
 # STIG Control: V-263609
-# Status : NOT A FINDINGS
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must implement multifactor authentication for
 # access to privileged and nonprivileged accounts.
 #
 # Finding Details:
-# Multifactor authentication provides an additional layer
-# of protection against credential compromise.
+# Multifactor authentication helps prevent unauthorized
+# access by requiring multiple verification factors during
+# authentication.
 #
 # Implementation in this Environment:
-# PostgreSQL authentication is integrated with enterprise
-# identity management systems that enforce multifactor
-# authentication (e.g., Keycloak / SSO / IdP).
+# PostgreSQL is deployed as the backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS.
+#
+# User authentication occurs at the application layer
+# through the enterprise identity provider (Keycloak SSO),
+# which enforces multifactor authentication.
+#
+# PostgreSQL is accessed only by application service
+# accounts and does not provide direct user authentication.
+#
+# Comment:
+# Since PostgreSQL does not authenticate end users in this
+# architecture, multifactor authentication is enforced by
+# the centralized identity provider (Keycloak) rather than
+# the DBMS. Therefore this control is not applicable to
+# the PostgreSQL deployment.
 #
 # Manual Verification Steps:
-# 1. Verify PostgreSQL authentication is integrated with
-#    centralized identity provider or SSO system.
-# 2. Confirm MFA is required for authentication.
-# Comment:
-# Multifactor authentication is enforced through the organization’s centralized identity and access management infrastructure (e.g., Keycloak / SSO / enterprise authentication services). PostgreSQL relies on the external authentication mechanism for identity verification and therefore does not directly implement MFA within the DBMS configuration.
+#
+# 1. Verify SonarQube authentication uses Keycloak SSO.
+#
+# 2. Verify PostgreSQL roles are application service
+#    accounts:
+#
+#       SELECT rolname FROM pg_roles;
+#
+# 3. Confirm users do not authenticate directly to
+#    PostgreSQL.
 ############################################################
 
-- name: "V-263609 | MFA enforced through enterprise identity provider"
+- name: "V-263609 | MFA handled by application identity provider"
   ansible.builtin.debug:
-    msg: "Multifactor authentication implemented through centralized identity provider."
-  tags: ['V-263609','CAT II','check']
+    msg: "DBMS does not perform user authentication; control not applicable."
+  tags:
+    - V-263609
+    - CATII
+    - enforce
+

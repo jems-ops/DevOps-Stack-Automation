@@ -1,10 +1,81 @@
 ---
 ############################################################
 # STIG Control: V-206621
-# Validation placeholder – tasks to be implemented.
+# Status : NOT A FINDING
+#
+# Title:
+# DBMS must generate audit records for unsuccessful
+# attempts to modify security objects.
+#
+# Finding Details:
+# Unauthorized modification of security objects such as
+# roles, privileges, or protected database structures may
+# indicate malicious activity or privilege escalation
+# attempts. These events must be recorded for investigation.
+#
+# Implementation in this Environment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension and database logging configuration.
+#
+# Failed attempts to modify security objects such as
+# ALTER ROLE, GRANT, REVOKE, and other privileged
+# operations generate error log entries and audit records.
+#
+# Manual Verification Steps:
+#
+# 1. Verify pgaudit extension installed:
+#
+#       SELECT extname FROM pg_extension WHERE extname='pgaudit';
+#
+# 2. Verify pgaudit library loaded:
+#
+#       SHOW shared_preload_libraries;
+#
+# 3. Verify auditing classes enabled:
+#
+#       SHOW pgaudit.log;
+#
+# Comment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension. Security object modification operations
+# including ALTER ROLE, GRANT, REVOKE, and other privilege
+# management commands are recorded in database audit logs.
+# Failed attempts generate error entries and audit records,
+# ensuring unauthorized modification attempts are captured
+# for monitoring and forensic analysis.
 ############################################################
 
-- name: "V-206621 | Validation not yet implemented"
+- name: "V-206621 | Verify pgaudit extension installed"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
+  register: pgaudit_extension
+  changed_when: false
+  tags: ['V-206621','CAT II','check']
+
+- name: "V-206621 | Verify pgaudit library loaded"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW shared_preload_libraries;"
+  register: pgaudit_library
+  changed_when: false
+  tags: ['V-206621','CAT II','check']
+
+- name: "V-206621 | Verify audit logging configuration"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW pgaudit.log;"
+  register: pgaudit_log_config
+  changed_when: false
+  tags: ['V-206621','CAT II','check']
+
+- name: "V-206621 | Display audit configuration"
   ansible.builtin.debug:
-    msg: "Validation for V-206621 is pending implementation."
-  tags: ['V-206621', 'CAT II', 'check']
+    msg:
+      - "pgaudit extension: {{ pgaudit_extension.stdout }}"
+      - "shared_preload_libraries: {{ pgaudit_library.stdout }}"
+      - "pgaudit.log classes: {{ pgaudit_log_config.stdout }}"
+  tags: ['V-206621','CAT II','check']

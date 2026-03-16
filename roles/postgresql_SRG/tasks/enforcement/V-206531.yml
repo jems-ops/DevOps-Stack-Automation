@@ -1,42 +1,62 @@
 ---
 ############################################################
-# STIG V-206531
-# Enforcement - Audit records must contain SOURCE info
-############################################################
+# STIG Control: V-206531
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - log_line_prefix includes %r (remote host)
-# - log_line_prefix includes %a (application name)
-# - log_hostname = on
+# Title:
+# The DBMS must include the source/origin of events in
+# audit records.
 #
-# VERIFY:
-# SHOW log_line_prefix;
-# SHOW log_hostname;
-# comment: PostgreSQL is configured with log_line_prefix including remote host (%r) and application name (%a), and log_hostname enabled. Audit records contain sufficient information to establish the source/origin of events. Therefore, V-206531 is Not a Finding.
+# Finding Details:
+# Audit records must contain information identifying the
+# source of events, including the client host and
+# application responsible for database activity.
+#
+# Implementation in this Environment:
+# PostgreSQL audit records include remote host and
+# application information through the log_line_prefix
+# configuration parameter.
+#
+# Hostname resolution is enabled to record client
+# hostnames in database audit logs.
+#
+# Manual Verification Steps:
+#
+#     SHOW log_line_prefix;
+#     SHOW log_hostname;
+#
+# Comment:
+# PostgreSQL logs contain sufficient information to
+# identify the source of database events including the
+# client host and application name.
 ############################################################
 
-- name: V-206531 | Configure log_line_prefix for source tracking
+
+############################################################
+# Ensure source information in log prefix
+############################################################
+
+- name: "V-206531 | Configure log_line_prefix for source tracking"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^log_line_prefix\s*='
-    line: "log_line_prefix = '%m %u %d %r %p %a '"
+    regexp: '^\s*#?\s*log_line_prefix\s*='
+    line: "log_line_prefix = '%m %u %d %r %p %c %a %h '"
     backup: true
   notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206531
-    - cat2
+  tags: ['V-206531','CAT II','enforce']
 
-- name: V-206531 | Enable hostname logging
+
+############################################################
+# Enable hostname logging
+############################################################
+
+- name: "V-206531 | Enable hostname logging"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^log_hostname\s*='
+    regexp: '^\s*#?\s*log_hostname\s*='
     line: "log_hostname = on"
     backup: true
   notify: Restart PostgreSQL
-  tags:
-    - stig
-    - V-206531
-    - cat2
+  tags: ['V-206531','CAT II','enforce']

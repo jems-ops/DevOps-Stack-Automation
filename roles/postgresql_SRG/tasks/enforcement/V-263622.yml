@@ -1,56 +1,47 @@
 ---
 ############################################################
 # STIG Control: V-263622
+# Status: NOT A FINDING
 #
 # Title:
 # The DBMS must compare internal system clocks with an
 # organization-defined authoritative time source.
 #
-# Severity:
-# CAT II
-#
 # Finding Details:
-# If the host system clock is not synchronized with an
-# authoritative time source, database timestamps, audit logs,
-# and transaction ordering may become inconsistent.
-#
-# PostgreSQL relies on the operating system clock; therefore
-# time synchronization must be enforced at the OS level.
+# If the DBMS system clock is not synchronized with an
+# authoritative time source, audit logs, transaction
+# timestamps, and security event correlation may become
+# inaccurate or inconsistent.
 #
 # Implementation in this Environment:
-# The RHEL 8 host synchronizes time using the chronyd service
-# with the organization-approved NTP server (Satellite).
+# PostgreSQL relies on the operating system clock for all
+# timestamps and audit records. The RHEL 8 host synchronizes
+# time using the chronyd service with the organization
+# approved NTP source (Satellite).
 #
-# Manual Remediation Steps:
+# Comment:
+# Time synchronization is implemented at the operating
+# system level using the chronyd service configured with
+# the organization-authorized Satellite NTP server.
+# PostgreSQL inherits the synchronized system clock and
+# therefore maintains accurate timestamps for database
+# operations and audit records.
 #
-# 1. Install chrony if not present
-#    sudo dnf install chrony
+# Manual Verification Steps:
+# 1. Verify chrony service is installed:
+#       rpm -q chrony
 #
-# 2. Configure NTP source
-#    sudo vi /etc/chrony.conf
+# 2. Verify NTP source configuration:
+#       grep server /etc/chrony.conf
 #
-#    server satellite iburst
+# 3. Verify system time synchronization status:
+#       timedatectl status
 #
-# 3. Ensure hostname resolves
-#    sudo vi /etc/hosts
-#
-#    <satellite_ip> satellite
-#
-# 4. Start and enable chronyd
-#    sudo systemctl enable chronyd
-#    sudo systemctl start chronyd
-#
-# 5. Force synchronization
-#    sudo chronyc makestep
-#
-# Verification Commands:
-#
-#    chronyc sources -v
-#    timedatectl status
+# 4. Confirm synchronization source:
+#       chronyc sources -v
 #
 # Expected Result:
-#    System clock synchronized: yes
-#
+#       System clock synchronized: yes
 ############################################################
 
 - name: "V-263622 | Ensure chrony package installed"
@@ -58,7 +49,11 @@
   ansible.builtin.package:
     name: chrony
     state: present
-  tags: ['V-263622','CAT II','enforce']
+  tags:
+    - V-263622
+    - CATII
+    - enforce
+
 
 - name: "V-263622 | Ensure Satellite entry exists in /etc/hosts"
   become: true
@@ -67,7 +62,11 @@
     line: "{{ postgresql_srg_ntp_server_ip }} {{ postgresql_srg_ntp_server }}"
     state: present
     create: yes
-  tags: ['V-263622','CAT II','enforce']
+  tags:
+    - V-263622
+    - CATII
+    - enforce
+
 
 - name: "V-263622 | Configure Satellite as NTP source"
   become: true
@@ -77,7 +76,11 @@
     line: "server {{ postgresql_srg_ntp_server }} iburst"
     state: present
   notify: restart chronyd
-  tags: ['V-263622','CAT II','enforce']
+  tags:
+    - V-263622
+    - CATII
+    - enforce
+
 
 - name: "V-263622 | Ensure chronyd service running"
   become: true
@@ -85,10 +88,17 @@
     name: chronyd
     state: started
     enabled: true
-  tags: ['V-263622','CAT II','enforce']
+  tags:
+    - V-263622
+    - CATII
+    - enforce
+
 
 - name: "V-263622 | Force time synchronization"
   become: true
   ansible.builtin.command: chronyc makestep
   changed_when: false
-  tags: ['V-263622','CAT II','enforce']
+  tags:
+    - V-263622
+    - CATII
+    - enforce

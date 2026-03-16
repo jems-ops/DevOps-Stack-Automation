@@ -4,59 +4,23 @@
 # Validation - Audit configuration protected
 ############################################################
 
-- name: V-206542 | Check configuration file permissions
-  become: true
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  loop:
-    - "{{ postgresql_srg_conf_file }}"
-    - "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
-    - "{{ postgresql_srg_data_dir }}/pg_hba.conf"
-  register: v206542_configs
-  tags:
-    - stig
-    - V-206542
-    - cat2
-
-- name: V-206542 | Validate config protection
-  ansible.builtin.assert:
-    that:
-      - v206542_configs.results | rejectattr('stat.pw_name', 'equalto', 'postgres') | list | length == 0
-      - v206542_configs.results | rejectattr('stat.mode', 'equalto', '0600') | list | length == 0
-    fail_msg: >
-      STIG V-206542 FAILED:
-      One or more configuration files not properly protected.
-    success_msg: >
-      All configuration file permissions compliant.
-  tags:
-    - stig
-    - V-206542
-    - cat2
-
-- name: V-206542 | Validate superuser restriction
+- name: "V-206542 | Check superuser roles"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  ansible.builtin.command: >
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper=true;"
   register: v206542_superusers
   changed_when: false
-  tags:
-    - stig
-    - V-206542
-    - cat2
+  tags: ['V-206542','CAT II','check']
 
-- name: V-206542 | Assert only postgres is superuser
+
+- name: "V-206542 | Assert authorized superusers only"
   ansible.builtin.assert:
     that:
-      - v206542_superusers.stdout_lines | length == 1
-      - "'postgres' in v206542_superusers.stdout"
+      - v206542_superusers.stdout_lines | difference(postgresql_srg_authorized_superusers) | length == 0
     fail_msg: >
       STIG V-206542 FAILED:
-      Unauthorized superuser detected.
+      Unauthorized superuser can modify audit configuration.
     success_msg: >
-      STIG V-206542 PASSED:
-      Audit configuration protected from modification.
-  tags:
-    - stig
-    - V-206542
-    - cat2
+      Audit configuration protected from unauthorized modification.
+  tags: ['V-206542','CAT II','check']

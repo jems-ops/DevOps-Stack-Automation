@@ -1,2 +1,26 @@
 ---
-# V-206547 - No validation tasks defined (placeholder).
+############################################################
+# Validation
+############################################################
+
+- name: "V-206547 | Check function ownership"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -t -A -c
+    "SELECT n.nspname||'.'||p.proname||':'||r.rolname
+     FROM pg_proc p
+     JOIN pg_namespace n ON p.pronamespace=n.oid
+     JOIN pg_roles r ON p.proowner=r.oid;"
+  register: v206547_functions
+  changed_when: false
+  tags: ['V-206547','CAT II','check']
+
+
+- name: "V-206547 | Display ownership results"
+  ansible.builtin.debug:
+    msg:
+      - "Tables: {{ v206547_tables.stdout_lines }}"
+      - "Functions: {{ v206547_functions.stdout_lines }}"
+  tags: ['V-206547','CAT II','check']

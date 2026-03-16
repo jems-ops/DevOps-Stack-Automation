@@ -1,66 +1,76 @@
 ---
 ############################################################
-# STIG V-206538
-# Enforcement - Protect audit logs from unauthorized read
-############################################################
+# STIG Control: V-206538
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - Log directory owned by postgres
-# - Directory permissions 0700
-# - Log files permissions 0600
+# Title:
+# The DBMS must protect audit information from
+# unauthorized read access.
 #
-# VERIFY:
-# ls -ld {{ postgresql_srg_log_directory }}
-# ls -l {{ postgresql_srg_log_directory }}
-# comment: PostgreSQL audit logs are stored in a dedicated directory owned by the postgres account with permissions set to 0700. Log files are restricted to 0600. Audit data is protected from unauthorized read access at the operating system level. Therefore, V-206538 is Not a Finding.
+# Finding Details:
+# Audit logs contain sensitive security information and
+# must be protected from unauthorized access to prevent
+# disclosure of system activity, user operations, or
+# security monitoring data.
+#
+# Implementation in this Environment:
+# PostgreSQL audit logs are stored in a dedicated
+# directory owned by the postgres administrative account.
+# Directory permissions are restricted to 0700 and log
+# files are restricted to 0600, ensuring only the
+# database administrator account can read the logs.
+#
+# Manual Verification Steps:
+#
+# 1. Verify directory permissions:
+#
+#       ls -ld {{ postgresql_srg_log_directory }}
+#
+# 2. Verify log file permissions:
+#
+#       ls -l {{ postgresql_srg_log_directory }}
+#
+# Comment:
+# Audit logs are protected from unauthorized read access
+# through restrictive operating system permissions.
 ############################################################
 
-- name: V-206538 | Ensure log directory ownership
+
+############################################################
+# Protect Log Directory
+############################################################
+
+- name: "V-206538 | Ensure log directory protected"
   become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_log_directory }}"
     owner: postgres
     group: postgres
-    mode: '0700'
+    mode: "0700"
     state: directory
-    recurse: false
-  tags:
-    - stig
-    - V-206538
-    - cat2
+  tags: ['V-206538','CAT II','enforce']
 
-- name: V-206538 | Secure log directory permissions
-  become: true
-  ansible.builtin.file:
-    path: "{{ postgresql_srg_log_directory }}"
-    mode: '0700'
-    state: directory
-  tags:
-    - stig
-    - V-206538
-    - cat2
 
-- name: V-206538 | Secure all log files
+############################################################
+# Protect Log Files
+############################################################
+
+- name: "V-206538 | Find PostgreSQL log files"
   become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_log_directory }}"
-    patterns: "*.log"
-  register: v206538_log_files
-  tags:
-    - stig
-    - V-206538
-    - cat2
+    file_type: file
+  register: v206538_logs
+  tags: ['V-206538','CAT II','check']
 
-- name: V-206538 | Set log file permissions to 0600
+
+- name: "V-206538 | Restrict log file permissions"
   become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
-    mode: '0600'
     owner: postgres
     group: postgres
-  loop: "{{ v206538_log_files.files }}"
-  when: v206538_log_files.matched > 0
-  tags:
-    - stig
-    - V-206538
-    - cat2
+    mode: "0600"
+  loop: "{{ v206538_logs.files }}"
+  when: v206538_logs.matched > 0
+  tags: ['V-206538','CAT II','enforce']

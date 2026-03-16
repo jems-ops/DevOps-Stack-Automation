@@ -1,63 +1,43 @@
 ---
 ############################################################
-# STIG V-206546
-# Enforcement - Ensure DBMS software in dedicated directories
-############################################################
+# STIG Control: V-206546
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - PostgreSQL binaries in dedicated directory
-# - Data directory dedicated
-# - No foreign application directories inside DBMS path
-# comment: PostgreSQL binaries are installed in a dedicated directory (/usr/pgsql-XX). The data directory is located in /var/lib/pgsql and is not shared with other applications. No third-party or non-DBMS software is located within the DBMS software library directory. Therefore, V-204546 is Not a Finding.
+# Title:
+# The DBMS software and data directories must be located
+# in dedicated directories separate from other applications.
+#
+# Finding Details:
+# DBMS software and data files must be stored in dedicated
+# directories to prevent unauthorized access, accidental
+# modification, or interference from other applications.
+#
+# Implementation in this Environment:
+# PostgreSQL binaries are installed through the operating
+# system package manager in a dedicated directory under
+# /usr/pgsql-<version>. The PostgreSQL data directory is
+# located in /var/lib/pgsql and is not shared with other
+# applications.
+#
+# Manual Verification Steps:
+#
+# 1. Verify PostgreSQL data directory:
+#
+#       SHOW data_directory;
+#
+# 2. Verify PostgreSQL binary location:
+#
+#       which postgres
+#
+# 3. Verify configuration directory location.
+#
+# Comment:
+# PostgreSQL software and data files are stored in
+# dedicated directories that are not shared with other
+# applications. Therefore, V-206546 is Not a Finding.
 ############################################################
 
-- name: V-206546 | Check PostgreSQL data directory
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "SHOW data_directory;"
-  register: v206546_data_dir
-  changed_when: false
-  tags:
-    - stig
-    - V-206546
-    - cat2
-
-- name: V-206546 | Validate data directory path
-  ansible.builtin.assert:
-    that:
-      - "'/var/lib/pgsql' in v206546_data_dir.stdout"
-    fail_msg: >
-      STIG V-206546 FAILED:
-      Data directory not in dedicated PostgreSQL path.
-    success_msg: >
-      PostgreSQL data directory is dedicated.
-  tags:
-    - stig
-    - V-206546
-    - cat2
-
-- name: V-206546 | Ensure DBMS binary directory exists
-  become: true
-  ansible.builtin.stat:
-    path: "/usr/pgsql-{{ postgresql_srg_pg_version }}"
-  register: v206546_bin
-  tags:
-    - stig
-    - V-206546
-    - cat2
-
-- name: V-206546 | Assert binary directory dedicated
-  ansible.builtin.assert:
-    that:
-      - v206546_bin.stat.exists
-      - v206546_bin.stat.isdir
-    fail_msg: >
-      STIG V-206546 FAILED:
-      PostgreSQL binaries not installed in dedicated directory.
-    success_msg: >
-      PostgreSQL binaries installed in dedicated directory.
-  tags:
-    - stig
-    - V-206546
-    - cat2
+# no enforcement tasks are required for this control as the# PostgreSQL installation is compliant with the requirement.
+# Directory locations are determined by the operating system
+# package manager and are not shared with other applications.
+# The PostgreSQL instance is dedicated to the SonarQube

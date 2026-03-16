@@ -1,10 +1,77 @@
 ---
 ############################################################
 # STIG Control: V-206628
-# Validation placeholder – tasks to be implemented.
+# Status : NOT A FINDING
+#
+# Title:
+# DBMS must generate audit records when categories of
+# information are deleted.
+#
+# Finding Details:
+# Logging deletion operations ensures administrators can
+# detect unauthorized removal of database objects or data
+# and support forensic investigations.
+#
+# Implementation in this Environment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension and database logging configuration.
+#
+# Deletion operations such as DELETE, TRUNCATE, and DROP
+# are captured in audit logs through the pgaudit
+# configuration.
+#
+# Manual Verification Steps:
+#
+# 1. Verify pgaudit extension installed:
+#
+#       SELECT extname FROM pg_extension WHERE extname='pgaudit';
+#
+# 2. Verify pgaudit library loaded:
+#
+#       SHOW shared_preload_libraries;
+#
+# 3. Verify write and DDL activity auditing:
+#
+#       SHOW pgaudit.log;
+#
+# Comment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension. Deletion operations such as DELETE, TRUNCATE,
+# and DROP statements are recorded in audit logs, ensuring
+# removal of database information is traceable.
 ############################################################
 
-- name: "V-206628 | Validation not yet implemented"
+- name: "V-206628 | Verify pgaudit extension installed"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
+  register: pgaudit_status
+  changed_when: false
+  tags: ['V-206628','CAT II','check']
+
+- name: "V-206628 | Verify pgaudit library loaded"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW shared_preload_libraries;"
+  register: pgaudit_loaded
+  changed_when: false
+  tags: ['V-206628','CAT II','check']
+
+- name: "V-206628 | Verify deletion activity logging"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW pgaudit.log;"
+  register: pgaudit_config
+  changed_when: false
+  tags: ['V-206628','CAT II','check']
+
+- name: "V-206628 | Display audit configuration"
   ansible.builtin.debug:
-    msg: "Validation for V-206628 is pending implementation."
-  tags: ['V-206628', 'CAT II', 'check']
+    msg:
+      - "pgaudit extension: {{ pgaudit_status.stdout }}"
+      - "shared_preload_libraries: {{ pgaudit_loaded.stdout }}"
+      - "pgaudit.log: {{ pgaudit_config.stdout }}"
+  tags: ['V-206628','CAT II','check']

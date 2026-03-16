@@ -1,10 +1,15 @@
 ---
 ############################################################
-# STIG Control: V-206641
-# Validation placeholder – tasks to be implemented.
+# STIG Control: V-206641 Validation
 ############################################################
 
-- name: "V-206641 | Validation not yet implemented"
+- name: "V-206641 | Check system crypto policy"
+  ansible.builtin.command: update-crypto-policies --show
+  register: crypto_policy
+  changed_when: false
+  tags: ['V-206641', 'CAT II', 'validate']
+
+- name: "V-206641 | Display crypto policy"
   ansible.builtin.debug:
-    msg: "Validation for V-206641 is pending implementation."
-  tags: ['V-206641', 'CAT II', 'check']
+    var: crypto_policy.stdout
+  tags: ['V-206641', 'CAT II', 'validate']

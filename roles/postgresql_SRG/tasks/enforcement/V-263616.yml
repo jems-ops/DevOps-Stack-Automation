@@ -1,65 +1,47 @@
 ---
 ############################################################
 # STIG Control: V-263616
-# Status: Not a Finding - PostgreSQL's native password handling capabilities, including SCRAM-SHA-256 authentication, provide strong password enforcement and assist users in selecting strong password authenticators. This control is satisfied through PostgreSQL's inherent password management features rather than additional configuration.
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must, for password-based authentication, employ
 # automated tools to assist the user in selecting strong
 # password authenticators.
 #
-# Severity:
-# CAT II
-#
 # Finding Details:
-# Weak passwords significantly increase the risk of
-# unauthorized database access. Automated password policy
-# enforcement ensures that passwords meet defined strength
-# requirements such as minimum length, complexity, and
-# resistance to dictionary attacks.
-#
-# PostgreSQL supports strong password enforcement through
-# the SCRAM-SHA-256 authentication mechanism and optional
-# password policy extensions such as passwordcheck.
+# Weak passwords increase the risk of unauthorized access.
+# This control applies when the DBMS is responsible for
+# authenticating users with passwords.
 #
 # Implementation in this Environment:
-# PostgreSQL is configured to use SCRAM-SHA-256 password
-# authentication to securely store passwords using salted
-# cryptographic hashing.
+# PostgreSQL in this deployment is used only as a backend
+# database for the SonarQube application. End users do not
+# authenticate directly to the DBMS.
 #
-# Manual Remediation Steps:
+# User authentication is performed through the application
+# layer using Keycloak SSO. PostgreSQL is accessed using
+# dedicated application service accounts.
 #
-# 1. Verify password encryption method
-#    psql -c "SHOW password_encryption;"
+# Comment:
+# Since PostgreSQL does not perform password-based
+# authentication for end users in this architecture, the
+# requirement for DBMS password strength enforcement does
+# not apply.
 #
-# 2. If necessary, configure SCRAM hashing
-#    ALTER SYSTEM SET password_encryption = 'scram-sha-256';
+# Manual Verification Steps:
 #
-# 3. Reload PostgreSQL configuration
-#    SELECT pg_reload_conf();
+# 1. Verify PostgreSQL roles:
+#       SELECT rolname FROM pg_roles;
 #
-# Verification Commands:
+# 2. Confirm users do not authenticate directly to the DBMS.
 #
-#    psql -c "SHOW password_encryption;"
-#
-# Expected Result:
-#    scram-sha-256
-# comment: PostgreSQL is configured to use SCRAM-SHA-256 password encryption, which provides salted cryptographic hashing of stored passwords and assists users in selecting strong password authenticators. Passwords are therefore protected against offline dictionary and brute-force attacks. This control is satisfied through PostgreSQL's native password handling capabilities.
+# 3. Verify application authentication uses Keycloak SSO.
 ############################################################
 
-- name: "V-263616 | Ensure SCRAM password encryption enabled"
-  become: true
-  become_user: postgres
-  ansible.builtin.command: >
-    psql -c "ALTER SYSTEM SET password_encryption='scram-sha-256';"
-  changed_when: false
-  ignore_errors: true
-  tags: ['V-263616','CAT II','enforce']
-
-
-- name: "V-263616 | Reload PostgreSQL configuration"
-  become: true
-  become_user: postgres
-  ansible.builtin.command: psql -c "SELECT pg_reload_conf();"
-  changed_when: false
-  ignore_errors: true
-  tags: ['V-263616','CAT II','enforce']
+- name: "V-263616 | Password policy handled by application identity provider"
+  ansible.builtin.debug:
+    msg: "DBMS does not perform password-based authentication for users; control not applicable."
+  tags:
+    - V-263616
+    - CATII
+    - enforce

@@ -1,54 +1,50 @@
 ---
 ############################################################
 # STIG Control: V-263614
-# Status: Not a Finding - PostgreSQL does not provide an automated account recovery mechanism. Password resets are performed by authorized administrators using controlled procedures. Users are required to immediately change their password following an administrator reset. Therefore, this control is satisfied through administrative processes rather than DBMS configuration.
+# Status: NOT APPLICABLE
+#
 # Title:
 # The DBMS must, for password-based authentication, require
 # immediate selection of a new password upon account recovery.
 #
-# Severity:
-# CAT II
-#
 # Finding Details:
-# If users continue using temporary or recovery passwords,
-# attackers may exploit weak or known credentials. Requiring
-# users to immediately select a new password after account
-# recovery ensures secure authentication credentials.
+# If temporary or recovery passwords remain in use, attackers
+# could exploit known credentials to gain unauthorized access.
+# Systems must require users to immediately change passwords
+# after account recovery.
 #
 # Implementation in this Environment:
-# PostgreSQL does not provide an automated account recovery
-# mechanism. Password resets are performed by authorized
-# database administrators using administrative procedures.
+# PostgreSQL is deployed as a backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS.
 #
-# When a password reset occurs, administrators require the
-# user to immediately change the password during the next
-# authentication event.
+# User authentication and password management, including
+# account recovery and password reset procedures, are
+# handled by the centralized identity provider (Keycloak SSO).
 #
-# Manual Administrative Procedure:
+# Comment:
+# Since PostgreSQL does not perform password-based
+# authentication or password recovery for end users,
+# the requirement for DBMS-enforced password reset upon
+# account recovery is not applicable to this deployment.
 #
-# 1. Reset password using administrator account
+# Manual Verification Steps:
 #
-#    ALTER ROLE username PASSWORD 'temporary_password';
+# 1. Verify SonarQube authentication uses Keycloak SSO.
 #
-# 2. Notify the user to change their password immediately.
+# 2. Confirm PostgreSQL roles are application service
+#    accounts rather than individual user accounts.
 #
-# 3. User updates password after login
+#       SELECT rolname FROM pg_roles;
 #
-#    ALTER ROLE username PASSWORD 'new_secure_password';
-#
-# Verification Commands:
-#
-#    SELECT rolname FROM pg_roles;
-#
-# Expected Result:
-# Password resets are performed through controlled
-# administrative procedures requiring immediate change.
-# comment:PostgreSQL does not provide a built-in account recovery mechanism. Password resets are performed by authorized administrators using controlled procedures. Users are required to immediately change their password following an administrator reset.
-# Therefore, this control is satisfied through administrative processes rather than DBMS configuration.
+# 3. Verify user password reset procedures occur in
+#    the centralized identity provider.
 ############################################################
 
-- name: "V-263614 | Informational control - password recovery handled by admin procedures"
+- name: "V-263614 | Password recovery handled by external identity provider"
   ansible.builtin.debug:
-    msg: "PostgreSQL account recovery is handled through administrative procedures requiring immediate password change."
-  tags: ['V-263614','CAT II','check']
-
+    msg: "DBMS does not perform user password recovery; control not applicable."
+  tags:
+    - V-263614
+    - CATII
+    - enforce

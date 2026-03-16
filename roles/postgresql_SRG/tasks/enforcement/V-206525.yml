@@ -1,68 +1,72 @@
 ---
 ############################################################
-# STIG V-206525
-# Enforcement - Audit Privilege / Role Retrieval
-############################################################
+# STIG Control: V-206525
+# Status: NOT A FINDING
 #
-# COMPLIANT WHEN:
-# - shared_preload_libraries contains pgaudit
-# - pgaudit.log includes read + role
-# - pgaudit.log_catalog = on
+# Title:
+# The DBMS must generate audit records when privileges
+# or roles are retrieved.
 #
-# VERIFY:
-# SHOW shared_preload_libraries;
-# SHOW pgaudit.log;
-# SHOW pgaudit.log_catalog;
+# Finding Details:
+# Retrieval of privilege or role information must be
+# logged to support detection of privilege reconnaissance
+# or unauthorized access attempts.
+#
+# Implementation in this Environment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension. Audit classes include role and read events,
+# and catalog auditing is enabled to capture access to
+# system catalogs containing privilege and role metadata.
+#
+# Manual Verification Steps:
+#
+#   SHOW shared_preload_libraries;
+#   SHOW pgaudit.log;
+#   SHOW pgaudit.log_catalog;
 #
 ############################################################
 
+
 ############################################################
-# Ensure pgaudit in shared_preload_libraries
+# Ensure pgaudit loads at startup
 ############################################################
 
-- name: V-206525 | Ensure shared_preload_libraries contains pgaudit
+- name: "V-206525 | Ensure shared_preload_libraries contains pgaudit"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^shared_preload_libraries\s*='
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
     line: "shared_preload_libraries = 'pgaudit'"
     backup: true
   notify: Restart PostgreSQL
-  tags:
-    - V-206525
-    - stig
-    - cat2
+  tags: ['V-206525','CAT II','enforce']
+
 
 ############################################################
-# Configure pgaudit classes
+# Configure pgaudit event classes
 ############################################################
 
-- name: V-206525 | Configure pgaudit log classes
+- name: "V-206525 | Configure pgaudit log classes"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^pgaudit\.log\s*='
+    regexp: '^\s*#?\s*pgaudit\.log\s*='
     line: "pgaudit.log = '{{ postgresql_srg_pgaudit_classes }}'"
     backup: true
   notify: Restart PostgreSQL
-  tags:
-    - V-206525
-    - stig
-    - cat2
+  tags: ['V-206525','CAT II','enforce']
+
 
 ############################################################
 # Enable catalog auditing
 ############################################################
 
-- name: V-206525 | Enable catalog auditing
+- name: "V-206525 | Enable catalog auditing"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^pgaudit\.log_catalog\s*='
+    regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='
     line: "pgaudit.log_catalog = {{ postgresql_srg_enable_catalog_audit }}"
     backup: true
   notify: Restart PostgreSQL
-  tags:
-    - V-206525
-    - stig
-    - cat2
+  tags: ['V-206525','CAT II','enforce']
