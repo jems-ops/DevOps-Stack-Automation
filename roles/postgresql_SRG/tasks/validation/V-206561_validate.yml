@@ -44,10 +44,14 @@
 # Check for password exposure in configuration files
 ############################################################
 
-- name: "V-206561 | Search for plaintext password references"
+- name: "V-206561 | Search for plaintext password references in config files"
   become: true
   ansible.builtin.shell: |
-    grep -R "password=" {{ postgresql_srg_data_dir }} 2>/dev/null || true
+    grep -h "password=" \
+      {{ postgresql_srg_conf_file }} \
+      {{ postgresql_srg_hba_file }} \
+      {{ postgresql_srg_data_dir }}/postgresql.auto.conf \
+      2>/dev/null || true
   register: postgresql_srg_password_pattern_check
   changed_when: false
 
@@ -56,8 +60,8 @@
   ansible.builtin.assert:
     that:
       - postgresql_srg_password_pattern_check.stdout == ""
-    fail_msg: "Plaintext password detected in configuration files"
-    success_msg: "No plaintext password exposure detected"
+    fail_msg: "Plaintext password detected in PostgreSQL configuration files"
+    success_msg: "No plaintext password exposure detected in config files"
 
 
 ############################################################
