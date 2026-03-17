@@ -3,294 +3,294 @@
 # CAT I Controls (remediate first)
 ############################################################
 - name: Enforce V-265854
-  ansible.builtin.import_tasks: V-265854.yml
+  ansible.builtin.import_tasks: CATI/V-265854.yml
   when: postgresql_srg_v265854_enabled | bool
 - name: Enforce V-233495
-  ansible.builtin.import_tasks: V-233495.yml
+  ansible.builtin.import_tasks: CATI/V-233495.yml
   when: postgresql_srg_v233495_enabled | bool
 - name: Enforce V-206520
-  ansible.builtin.import_tasks: V-206520.yml
+  ansible.builtin.import_tasks: CATI/V-206520.yml
   when: postgresql_srg_v206520_enabled | bool
 - name: Enforce V-206521
-  ansible.builtin.import_tasks: V-206521.yml
+  ansible.builtin.import_tasks: CATI/V-206521.yml
   when: postgresql_srg_v206521_enabled | bool
 - name: Enforce V-206545
-  ansible.builtin.import_tasks: V-206545.yml
+  ansible.builtin.import_tasks: CATI/V-206545.yml
   when: postgresql_srg_v206545_enabled | bool
 - name: Enforce V-206555
-  ansible.builtin.import_tasks: V-206555.yml
+  ansible.builtin.import_tasks: CATI/V-206555.yml
   when: postgresql_srg_v206555_enabled | bool
 - name: Enforce V-206556
-  ansible.builtin.import_tasks: V-206556.yml
+  ansible.builtin.import_tasks: CATI/V-206556.yml
   when: postgresql_srg_v206556_enabled | bool
 - name: Enforce V-206557
-  ansible.builtin.import_tasks: V-206557.yml
+  ansible.builtin.import_tasks: CATI/V-206557.yml
   when: postgresql_srg_v206557_enabled | bool
 - name: Enforce V-206559
-  ansible.builtin.import_tasks: V-206559.yml
+  ansible.builtin.import_tasks: CATI/V-206559.yml
   when: postgresql_srg_v206559_enabled | bool
 - name: Enforce V-206561
-  ansible.builtin.import_tasks: V-206561.yml
+  ansible.builtin.import_tasks: CATI/V-206561.yml
   when: postgresql_srg_v206561_enabled | bool
 - name: Enforce V-206562
-  ansible.builtin.import_tasks: V-206562.yml
+  ansible.builtin.import_tasks: CATI/V-206562.yml
   when: postgresql_srg_v206562_enabled | bool
 - name: Enforce V-206570
-  ansible.builtin.import_tasks: V-206570.yml
+  ansible.builtin.import_tasks: CATI/V-206570.yml
   when: postgresql_srg_v206570_enabled | bool
 - name: Enforce V-206604
-  ansible.builtin.import_tasks: V-206604.yml
+  ansible.builtin.import_tasks: CATI/V-206604.yml
   when: postgresql_srg_v206604_enabled | bool
 - name: Enforce V-206605
-  ansible.builtin.import_tasks: V-206605.yml
+  ansible.builtin.import_tasks: CATI/V-206605.yml
   when: postgresql_srg_v206605_enabled | bool
 
 ############################################################
 # CAT II Controls (remediate after CAT I)
 ############################################################
 - name: Enforce V-206519
-  ansible.builtin.import_tasks: V-206519.yml
+  ansible.builtin.import_tasks: CATII/V-206519.yml
   when: postgresql_srg_v206519_enabled | bool
 - name: Enforce V-206522
-  ansible.builtin.import_tasks: V-206522.yml
+  ansible.builtin.import_tasks: CATII/V-206522.yml
   when: postgresql_srg_v206522_enabled | bool
 - name: Enforce V-206523
-  ansible.builtin.import_tasks: V-206523.yml
+  ansible.builtin.import_tasks: CATII/V-206523.yml
   when: postgresql_srg_v206523_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206524
-  ansible.builtin.import_tasks: V-206524.yml
+  ansible.builtin.import_tasks: CATII/V-206524.yml
   when: postgresql_srg_v206524_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206525
-  ansible.builtin.import_tasks: V-206525.yml
+  ansible.builtin.import_tasks: CATII/V-206525.yml
   when: postgresql_srg_v206525_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206526
-  ansible.builtin.import_tasks: V-206526.yml
+  ansible.builtin.import_tasks: CATII/V-206526.yml
   when: postgresql_srg_v206526_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206527
-  ansible.builtin.import_tasks: V-206527.yml
+  ansible.builtin.import_tasks: CATII/V-206527.yml
   when: postgresql_srg_v206527_enabled | bool
 - name: Enforce V-206528
-  ansible.builtin.import_tasks: V-206528.yml
+  ansible.builtin.import_tasks: CATII/V-206528.yml
   when: postgresql_srg_v206528_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206529
-  ansible.builtin.import_tasks: V-206529.yml
+  ansible.builtin.import_tasks: CATII/V-206529.yml
   when: postgresql_srg_v206529_enabled | bool
 - name: Enforce V-206530
-  ansible.builtin.import_tasks: V-206530.yml
+  ansible.builtin.import_tasks: CATII/V-206530.yml
   when: postgresql_srg_v206530_enabled | bool
 - name: Enforce V-206531
-  ansible.builtin.import_tasks: V-206531.yml
+  ansible.builtin.import_tasks: CATII/V-206531.yml
   when: postgresql_srg_v206531_enabled | bool
 - name: Enforce V-206532
-  ansible.builtin.import_tasks: V-206532.yml
+  ansible.builtin.import_tasks: CATII/V-206532.yml
   when: postgresql_srg_v206532_enabled | bool
 - name: Enforce V-206533
-  ansible.builtin.import_tasks: V-206533.yml
+  ansible.builtin.import_tasks: CATII/V-206533.yml
   when: postgresql_srg_v206533_enabled | bool
 - name: Enforce V-206534
-  ansible.builtin.import_tasks: V-206534.yml
+  ansible.builtin.import_tasks: CATII/V-206534.yml
   when: postgresql_srg_v206534_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206537
-  ansible.builtin.import_tasks: V-206537.yml
+  ansible.builtin.import_tasks: CATII/V-206537.yml
   when: postgresql_srg_v206537_enabled | bool
 - name: Enforce V-206538
-  ansible.builtin.import_tasks: V-206538.yml
+  ansible.builtin.import_tasks: CATII/V-206538.yml
   when: postgresql_srg_v206538_enabled | bool
 - name: Enforce V-206539
-  ansible.builtin.import_tasks: V-206539.yml
+  ansible.builtin.import_tasks: CATII/V-206539.yml
   when: postgresql_srg_v206539_enabled | bool
 - name: Enforce V-206540
-  ansible.builtin.import_tasks: V-206540.yml
+  ansible.builtin.import_tasks: CATII/V-206540.yml
   when: postgresql_srg_v206540_enabled | bool
 - name: Enforce V-206541
-  ansible.builtin.import_tasks: V-206541.yml
+  ansible.builtin.import_tasks: CATII/V-206541.yml
   when: postgresql_srg_v206541_enabled | bool
 - name: Enforce V-206542
-  ansible.builtin.import_tasks: V-206542.yml
+  ansible.builtin.import_tasks: CATII/V-206542.yml
   when: postgresql_srg_v206542_enabled | bool
 - name: Enforce V-206543
-  ansible.builtin.import_tasks: V-206543.yml
+  ansible.builtin.import_tasks: CATII/V-206543.yml
   when: postgresql_srg_v206543_enabled | bool and postgresql_srg_pgaudit_enabled | bool
 - name: Enforce V-206544
-  ansible.builtin.import_tasks: V-206544.yml
+  ansible.builtin.import_tasks: CATII/V-206544.yml
   when: postgresql_srg_v206544_enabled | bool
 - name: Enforce V-206546
-  ansible.builtin.import_tasks: V-206546.yml
+  ansible.builtin.import_tasks: CATII/V-206546.yml
   when: postgresql_srg_v206546_enabled | bool
 - name: Enforce V-206548
-  ansible.builtin.import_tasks: V-206548.yml
+  ansible.builtin.import_tasks: CATII/V-206548.yml
   when: postgresql_srg_v206548_enabled | bool
 - name: Enforce V-206549
-  ansible.builtin.import_tasks: V-206549.yml
+  ansible.builtin.import_tasks: CATII/V-206549.yml
   when: postgresql_srg_v206549_enabled | bool
 - name: Enforce V-206550
-  ansible.builtin.import_tasks: V-206550.yml
+  ansible.builtin.import_tasks: CATII/V-206550.yml
   when: postgresql_srg_v206550_enabled | bool
 - name: Enforce V-206551
-  ansible.builtin.import_tasks: V-206551.yml
+  ansible.builtin.import_tasks: CATII/V-206551.yml
   when: postgresql_srg_v206551_enabled | bool
 - name: Enforce V-206552
-  ansible.builtin.import_tasks: V-206552.yml
+  ansible.builtin.import_tasks: CATII/V-206552.yml
   when: postgresql_srg_v206552_enabled | bool
 - name: Enforce V-206553
-  ansible.builtin.import_tasks: V-206553.yml
+  ansible.builtin.import_tasks: CATII/V-206553.yml
   when: postgresql_srg_v206553_enabled | bool
 - name: Enforce V-206554
-  ansible.builtin.import_tasks: V-206554.yml
+  ansible.builtin.import_tasks: CATII/V-206554.yml
   when: postgresql_srg_v206554_enabled | bool
 - name: Enforce V-206565
-  ansible.builtin.import_tasks: V-206565.yml
+  ansible.builtin.import_tasks: CATII/V-206565.yml
   when: postgresql_srg_v206565_enabled | bool
 - name: Enforce V-206566
-  ansible.builtin.import_tasks: V-206566.yml
+  ansible.builtin.import_tasks: CATII/V-206566.yml
   when: postgresql_srg_v206566_enabled | bool
 - name: Enforce V-206567
-  ansible.builtin.import_tasks: V-206567.yml
+  ansible.builtin.import_tasks: CATII/V-206567.yml
   when: postgresql_srg_v206567_enabled | bool
 - name: Enforce V-206580
-  ansible.builtin.import_tasks: V-206580.yml
+  ansible.builtin.import_tasks: CATII/V-206580.yml
   when: postgresql_srg_v206580_enabled | bool
 - name: Enforce V-206600
-  ansible.builtin.import_tasks: V-206600.yml
+  ansible.builtin.import_tasks: CATII/V-206600.yml
   when: postgresql_srg_v206600_enabled | bool
 - name: Enforce V-206611
-  ansible.builtin.import_tasks: V-206611.yml
+  ansible.builtin.import_tasks: CATII/V-206611.yml
   when: postgresql_srg_v206611_enabled | bool
 - name: Enforce V-263606
-  ansible.builtin.import_tasks: V-263606.yml
+  ansible.builtin.import_tasks: CATII/V-263606.yml
   when: postgresql_srg_v263606_enabled | bool
 - name: Enforce V-263607
-  ansible.builtin.import_tasks: V-263607.yml
+  ansible.builtin.import_tasks: CATII/V-263607.yml
   when: postgresql_srg_v263607_enabled | bool
 - name: Enforce V-263608
-  ansible.builtin.import_tasks: V-263608.yml
+  ansible.builtin.import_tasks: CATII/V-263608.yml
   when: postgresql_srg_v263608_enabled | bool
 - name: Enforce V-263609
-  ansible.builtin.import_tasks: V-263609.yml
+  ansible.builtin.import_tasks: CATII/V-263609.yml
   when: postgresql_srg_v263609_enabled | bool
 - name: Enforce V-263610
-  ansible.builtin.import_tasks: V-263610.yml
+  ansible.builtin.import_tasks: CATII/V-263610.yml
   when: postgresql_srg_v263610_enabled | bool
 - name: Enforce V-263611
-  ansible.builtin.import_tasks: V-263611.yml
+  ansible.builtin.import_tasks: CATII/V-263611.yml
   when: postgresql_srg_v263611_enabled | bool
 - name: Enforce V-263612
-  ansible.builtin.import_tasks: V-263612.yml
+  ansible.builtin.import_tasks: CATII/V-263612.yml
   when: postgresql_srg_v263612_enabled | bool
 - name: Enforce V-263613
-  ansible.builtin.import_tasks: V-263613.yml
+  ansible.builtin.import_tasks: CATII/V-263613.yml
   when: postgresql_srg_v263613_enabled | bool
 - name: Enforce V-263614
-  ansible.builtin.import_tasks: V-263614.yml
+  ansible.builtin.import_tasks: CATII/V-263614.yml
   when: postgresql_srg_v263614_enabled | bool
 - name: Enforce V-263615
-  ansible.builtin.import_tasks: V-263615.yml
+  ansible.builtin.import_tasks: CATII/V-263615.yml
   when: postgresql_srg_v263615_enabled | bool
 - name: Enforce V-263616
-  ansible.builtin.import_tasks: V-263616.yml
+  ansible.builtin.import_tasks: CATII/V-263616.yml
   when: postgresql_srg_v263616_enabled | bool
 - name: Enforce V-263617
-  ansible.builtin.import_tasks: V-263617.yml
+  ansible.builtin.import_tasks: CATII/V-263617.yml
   when: postgresql_srg_v263617_enabled | bool
 - name: Enforce V-263618
-  ansible.builtin.import_tasks: V-263618.yml
+  ansible.builtin.import_tasks: CATII/V-263618.yml
   when: postgresql_srg_v263618_enabled | bool
 - name: Enforce V-263619
-  ansible.builtin.import_tasks: V-263619.yml
+  ansible.builtin.import_tasks: CATII/V-263619.yml
   when: postgresql_srg_v263619_enabled | bool
 - name: Enforce V-263620
-  ansible.builtin.import_tasks: V-263620.yml
+  ansible.builtin.import_tasks: CATII/V-263620.yml
   when: postgresql_srg_v263620_enabled | bool
 - name: Enforce V-263621
-  ansible.builtin.import_tasks: V-263621.yml
+  ansible.builtin.import_tasks: CATII/V-263621.yml
   when: postgresql_srg_v263621_enabled | bool
 - name: Enforce V-263622
-  ansible.builtin.import_tasks: V-263622.yml
+  ansible.builtin.import_tasks: CATII/V-263622.yml
   when: postgresql_srg_v263622_enabled | bool
 
 - name: Enforce V-203602
-  ansible.builtin.import_tasks: V-203602.yml
+  ansible.builtin.import_tasks: CATII/V-203602.yml
   when: postgresql_srg_v203602_enabled | bool
 - name: Enforce V-203603
-  ansible.builtin.import_tasks: V-203603.yml
+  ansible.builtin.import_tasks: CATII/V-203603.yml
   when: postgresql_srg_v203603_enabled | bool
 - name: Enforce V-203604
-  ansible.builtin.import_tasks: V-203604.yml
+  ansible.builtin.import_tasks: CATII/V-203604.yml
   when: postgresql_srg_v203604_enabled | bool
 - name: Enforce V-203605
-  ansible.builtin.import_tasks: V-203605.yml
+  ansible.builtin.import_tasks: CATII/V-203605.yml
   when: postgresql_srg_v203605_enabled | bool
 - name: Enforce V-206620
-  ansible.builtin.import_tasks: V-206620.yml
+  ansible.builtin.import_tasks: CATII/V-206620.yml
   when: postgresql_srg_v206620_enabled | bool
 - name: Enforce V-206621
-  ansible.builtin.import_tasks: V-206621.yml
+  ansible.builtin.import_tasks: CATII/V-206621.yml
   when: postgresql_srg_v206621_enabled | bool
 - name: Enforce V-206622
-  ansible.builtin.import_tasks: V-206622.yml
+  ansible.builtin.import_tasks: CATII/V-206622.yml
   when: postgresql_srg_v206622_enabled | bool
 - name: Enforce V-206623
-  ansible.builtin.import_tasks: V-206623.yml
+  ansible.builtin.import_tasks: CATII/V-206623.yml
   when: postgresql_srg_v206623_enabled | bool
 - name: Enforce V-206624
-  ansible.builtin.import_tasks: V-206624.yml
+  ansible.builtin.import_tasks: CATII/V-206624.yml
   when: postgresql_srg_v206624_enabled | bool
 - name: Enforce V-206625
-  ansible.builtin.import_tasks: V-206625.yml
+  ansible.builtin.import_tasks: CATII/V-206625.yml
   when: postgresql_srg_v206625_enabled | bool
 - name: Enforce V-206626
-  ansible.builtin.import_tasks: V-206626.yml
+  ansible.builtin.import_tasks: CATII/V-206626.yml
   when: postgresql_srg_v206626_enabled | bool
 - name: Enforce V-206627
-  ansible.builtin.import_tasks: V-206627.yml
+  ansible.builtin.import_tasks: CATII/V-206627.yml
   when: postgresql_srg_v206627_enabled | bool
 - name: Enforce V-206628
-  ansible.builtin.import_tasks: V-206628.yml
+  ansible.builtin.import_tasks: CATII/V-206628.yml
   when: postgresql_srg_v206628_enabled | bool
 - name: Enforce V-206629
-  ansible.builtin.import_tasks: V-206629.yml
+  ansible.builtin.import_tasks: CATII/V-206629.yml
   when: postgresql_srg_v206629_enabled | bool
 - name: Enforce V-206630
-  ansible.builtin.import_tasks: V-206630.yml
+  ansible.builtin.import_tasks: CATII/V-206630.yml
   when: postgresql_srg_v206630_enabled | bool
 - name: Enforce V-206631
-  ansible.builtin.import_tasks: V-206631.yml
+  ansible.builtin.import_tasks: CATII/V-206631.yml
   when: postgresql_srg_v206631_enabled | bool
 - name: Enforce V-206632
-  ansible.builtin.import_tasks: V-206632.yml
+  ansible.builtin.import_tasks: CATII/V-206632.yml
   when: postgresql_srg_v206632_enabled | bool
 - name: Enforce V-206633
-  ansible.builtin.import_tasks: V-206633.yml
+  ansible.builtin.import_tasks: CATII/V-206633.yml
   when: postgresql_srg_v206633_enabled | bool
 - name: Enforce V-206634
-  ansible.builtin.import_tasks: V-206634.yml
+  ansible.builtin.import_tasks: CATII/V-206634.yml
   when: postgresql_srg_v206634_enabled | bool
 - name: Enforce V-206635
-  ansible.builtin.import_tasks: V-206635.yml
+  ansible.builtin.import_tasks: CATII/V-206635.yml
   when: postgresql_srg_v206635_enabled | bool
 - name: Enforce V-206636
-  ansible.builtin.import_tasks: V-206636.yml
+  ansible.builtin.import_tasks: CATII/V-206636.yml
   when: postgresql_srg_v206636_enabled | bool
 - name: Enforce V-206637
-  ansible.builtin.import_tasks: V-206637.yml
+  ansible.builtin.import_tasks: CATII/V-206637.yml
   when: postgresql_srg_v206637_enabled | bool
 - name: Enforce V-206638
-  ansible.builtin.import_tasks: V-206638.yml
+  ansible.builtin.import_tasks: CATII/V-206638.yml
   when: postgresql_srg_v206638_enabled | bool
 - name: Enforce V-206639
-  ansible.builtin.import_tasks: V-206639.yml
+  ansible.builtin.import_tasks: CATII/V-206639.yml
   when: postgresql_srg_v206639_enabled | bool
 - name: Enforce V-206640
-  ansible.builtin.import_tasks: V-206640.yml
+  ansible.builtin.import_tasks: CATII/V-206640.yml
   when: postgresql_srg_v206640_enabled | bool
 - name: Enforce V-206641
-  ansible.builtin.import_tasks: V-206641.yml
+  ansible.builtin.import_tasks: CATII/V-206641.yml
   when: postgresql_srg_v206641_enabled | bool
 - name: Enforce V-206642
-  ansible.builtin.import_tasks: V-206642.yml
+  ansible.builtin.import_tasks: CATII/V-206642.yml
   when: postgresql_srg_v206642_enabled | bool
 - name: Enforce V-206643
-  ansible.builtin.import_tasks: V-206643.yml
+  ansible.builtin.import_tasks: CATII/V-206643.yml
   when: postgresql_srg_v206643_enabled | bool
 
 ############################################################
@@ -299,5 +299,5 @@
 # to 0640). V-206542 is intentionally re-run last.
 ############################################################
 - name: Re-enforce V-206542 | Final file permission hardening
-  ansible.builtin.import_tasks: V-206542.yml
+  ansible.builtin.import_tasks: CATII/V-206542.yml
   when: postgresql_srg_v206542_enabled | bool
