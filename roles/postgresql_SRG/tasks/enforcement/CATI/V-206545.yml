@@ -19,11 +19,11 @@
 #
 # Implementation in this Environment:
 #
-#   • postgres OS account is non-interactive
-#   • Direct SSH login is restricted
-#   • Access is granted only via sudo through DBA group
-#   • auditd tracks execution of PostgreSQL binaries
-#   • auditd monitors access to PostgreSQL data directory
+#   • postgres OS account is configured with a non-interactive shell
+#   • Direct SSH login is restricted and not permitted
+#   • Access is controlled via sudo and limited to an authorized DBA group
+#   • auditd enforces accountability by tracking execution of PostgreSQL binaries
+#   • auditd monitors access to the PostgreSQL data directory
 #
 # Manual Verification Steps:
 #
@@ -39,10 +39,12 @@
 #   4. Verify audit rules:
 #        auditctl -l | grep postgres
 #
-# Comment:
-# The PostgreSQL installation account is restricted to
-# authorized administrators, cannot be used for direct login,
-# and all usage is auditable. Therefore, V-206545 is Not a Finding.
+# Summary:
+# The PostgreSQL installation account is restricted to authorized
+# administrators, cannot be used for direct login, and all activity
+# is controlled via sudo and fully audited. Access is centrally
+# managed and accountability is enforced.
+# Therefore, V-206545 is NOT A FINDING.
 ############################################################
 
 ############################################################
@@ -53,7 +55,7 @@
   become: true
   ansible.builtin.user:
     name: "{{ postgresql_srg_install_os_account }}"
-    shell: "{{ postgresql_srg_secure_shell | default('/bin/bash') }}"
+    shell: "{{ postgresql_srg_secure_shell | default('/sbin/nologin') }}"
   when: postgresql_srg_enforce_nologin | default(false)
   tags: ['V-206545','CAT-I','enforce','postgres','stig']
 

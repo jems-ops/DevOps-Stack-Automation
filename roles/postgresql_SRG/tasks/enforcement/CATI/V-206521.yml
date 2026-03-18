@@ -14,11 +14,40 @@
 # - ONLY restrict application schemas
 # - ENFORCE default privileges (critical)
 #
-# Comment:
-# PUBLIC access is restricted on application schemas only.
-# System schemas remain accessible as required by PostgreSQL.
-# Default privileges are hardened and RBAC enforced.
-# Therefore, V-206521 is Not a Finding.
+# Implementation / Justification:
+# Least privilege is enforced in this PostgreSQL environment:
+#
+#   • PUBLIC privileges are revoked from application schemas
+#   • System schemas remain accessible as required by PostgreSQL
+#   • CREATE privileges are removed from PUBLIC at database level
+#   • Default privileges are hardened to prevent future exposure
+#   • RBAC is implemented via a controlled readonly role
+#   • Access is limited to authorized roles only
+#
+# Manual Verification Steps:
+#
+#   1. Verify PUBLIC CREATE privilege on database:
+#        SELECT has_database_privilege('public','<db>','CREATE');
+#
+#   2. Verify schema-level privileges:
+#        SELECT nspname FROM pg_namespace
+#        WHERE has_schema_privilege('public', oid, 'CREATE');
+#
+#   3. Verify default privileges:
+#        SELECT * FROM pg_default_acl;
+#
+#   4. Verify PUBLIC table access:
+#        SELECT * FROM information_schema.role_table_grants
+#        WHERE grantee = 'public';
+#
+#   5. Verify RBAC role:
+#        SELECT rolname FROM pg_roles WHERE rolname='<readonly_role>';
+#
+# Summary:
+# PUBLIC access is restricted to prevent unauthorized privilege escalation.
+# Default privileges are hardened to secure both current and future objects.
+# RBAC is enforced for controlled access to database objects.
+# Therefore, least privilege is fully enforced and V-206521 is NOT A FINDING.
 ############################################################
 
 ############################################################
