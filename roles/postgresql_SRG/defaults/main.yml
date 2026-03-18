@@ -152,95 +152,95 @@ postgresql_srg_v206605_enabled: true
 postgresql_srg_v265854_enabled: true
 postgresql_srg_v233495_enabled: true
 
-# --- CAT II Controls ---
-postgresql_srg_v206519_enabled: true
-postgresql_srg_v206522_enabled: true
-postgresql_srg_v206523_enabled: true
-postgresql_srg_v206524_enabled: true
-postgresql_srg_v206525_enabled: true
-postgresql_srg_v206526_enabled: true
-postgresql_srg_v206527_enabled: true
-postgresql_srg_v206528_enabled: true
-postgresql_srg_v206529_enabled: true
-postgresql_srg_v206530_enabled: true
-postgresql_srg_v206531_enabled: true
-postgresql_srg_v206532_enabled: true
-postgresql_srg_v206533_enabled: true
-postgresql_srg_v206534_enabled: true
-postgresql_srg_v206537_enabled: true
-postgresql_srg_v206538_enabled: true
-postgresql_srg_v206539_enabled: true
-postgresql_srg_v206540_enabled: true
-postgresql_srg_v206541_enabled: true
-postgresql_srg_v206542_enabled: true
-postgresql_srg_v206543_enabled: true
-postgresql_srg_v206544_enabled: true
-postgresql_srg_v206546_enabled: true
-postgresql_srg_v206547_enabled: true
-postgresql_srg_v206548_enabled: true
-postgresql_srg_v206549_enabled: true
-postgresql_srg_v206550_enabled: true
-postgresql_srg_v206551_enabled: true
-postgresql_srg_v206552_enabled: true
-postgresql_srg_v206553_enabled: true
-postgresql_srg_v206554_enabled: true
-postgresql_srg_v206565_enabled: true
-postgresql_srg_v206566_enabled: true
-postgresql_srg_v206567_enabled: true # no ssl enforcement in this role, but idle timeouts can help mitigate risk of idle sessions
-postgresql_srg_v206580_enabled: true
-postgresql_srg_v206600_enabled: true
-postgresql_srg_v206611_enabled: true
+# --- CAT II Controls (disabled - work in progress) ---
+postgresql_srg_v206519_enabled: false
+postgresql_srg_v206522_enabled: false
+postgresql_srg_v206523_enabled: false
+postgresql_srg_v206524_enabled: false
+postgresql_srg_v206525_enabled: false
+postgresql_srg_v206526_enabled: false
+postgresql_srg_v206527_enabled: false
+postgresql_srg_v206528_enabled: false
+postgresql_srg_v206529_enabled: false
+postgresql_srg_v206530_enabled: false
+postgresql_srg_v206531_enabled: false
+postgresql_srg_v206532_enabled: false
+postgresql_srg_v206533_enabled: false
+postgresql_srg_v206534_enabled: false
+postgresql_srg_v206537_enabled: false
+postgresql_srg_v206538_enabled: false
+postgresql_srg_v206539_enabled: false
+postgresql_srg_v206540_enabled: false
+postgresql_srg_v206541_enabled: false
+postgresql_srg_v206542_enabled: false
+postgresql_srg_v206543_enabled: false
+postgresql_srg_v206544_enabled: false
+postgresql_srg_v206546_enabled: false
+postgresql_srg_v206547_enabled: false
+postgresql_srg_v206548_enabled: false
+postgresql_srg_v206549_enabled: false
+postgresql_srg_v206550_enabled: false
+postgresql_srg_v206551_enabled: false
+postgresql_srg_v206552_enabled: false
+postgresql_srg_v206553_enabled: false
+postgresql_srg_v206554_enabled: false
+postgresql_srg_v206565_enabled: false
+postgresql_srg_v206566_enabled: false
+postgresql_srg_v206567_enabled: false
+postgresql_srg_v206580_enabled: false
+postgresql_srg_v206600_enabled: false
+postgresql_srg_v206611_enabled: false
 
 # --- New CAT II Controls (V-203602 – V-203605) ---
-postgresql_srg_v203602_enabled: true
-postgresql_srg_v203603_enabled: true
-postgresql_srg_v203604_enabled: true
-postgresql_srg_v203605_enabled: true
+postgresql_srg_v203602_enabled: false
+postgresql_srg_v203603_enabled: false
+postgresql_srg_v203604_enabled: false
+postgresql_srg_v203605_enabled: false
 
 # --- New CAT II Controls (V-206620 – V-206643) ---
-postgresql_srg_v206620_enabled: true
-postgresql_srg_v206621_enabled: true
-postgresql_srg_v206622_enabled: true
-postgresql_srg_v206623_enabled: true
-postgresql_srg_v206624_enabled: true
-postgresql_srg_v206625_enabled: true
-postgresql_srg_v206626_enabled: true
-postgresql_srg_v206627_enabled: true
-postgresql_srg_v206628_enabled: true
-postgresql_srg_v206629_enabled: true
-postgresql_srg_v206630_enabled: true
-postgresql_srg_v206631_enabled: true
-postgresql_srg_v206632_enabled: true
-postgresql_srg_v206633_enabled: true
-postgresql_srg_v206634_enabled: true
-postgresql_srg_v206635_enabled: true
-postgresql_srg_v206636_enabled: true
-postgresql_srg_v206637_enabled: true
-postgresql_srg_v206638_enabled: true
-postgresql_srg_v206639_enabled: true
-postgresql_srg_v206640_enabled: true
-postgresql_srg_v206641_enabled: true
-postgresql_srg_v206642_enabled: true
-postgresql_srg_v206643_enabled: true
+postgresql_srg_v206620_enabled: false
+postgresql_srg_v206621_enabled: false
+postgresql_srg_v206622_enabled: false
+postgresql_srg_v206623_enabled: false
+postgresql_srg_v206624_enabled: false
+postgresql_srg_v206625_enabled: false
+postgresql_srg_v206626_enabled: false
+postgresql_srg_v206627_enabled: false
+postgresql_srg_v206628_enabled: false
+postgresql_srg_v206629_enabled: false
+postgresql_srg_v206630_enabled: false
+postgresql_srg_v206631_enabled: false
+postgresql_srg_v206632_enabled: false
+postgresql_srg_v206633_enabled: false
+postgresql_srg_v206634_enabled: false
+postgresql_srg_v206635_enabled: false
+postgresql_srg_v206636_enabled: false
+postgresql_srg_v206637_enabled: false
+postgresql_srg_v206638_enabled: false
+postgresql_srg_v206639_enabled: false
+postgresql_srg_v206640_enabled: false
+postgresql_srg_v206641_enabled: false
+postgresql_srg_v206642_enabled: false
+postgresql_srg_v206643_enabled: false
 
 # --- New CAT II Controls (V-263606 – V-263622) ---
-postgresql_srg_v263606_enabled: true
-postgresql_srg_v263607_enabled: true
-postgresql_srg_v263608_enabled: true
-postgresql_srg_v263609_enabled: true
-postgresql_srg_v263610_enabled: true
-postgresql_srg_v263611_enabled: true
-postgresql_srg_v263612_enabled: true
-postgresql_srg_v263613_enabled: true
-postgresql_srg_v263614_enabled: true
-postgresql_srg_v263615_enabled: true
-postgresql_srg_v263616_enabled: true
+postgresql_srg_v263606_enabled: false
+postgresql_srg_v263607_enabled: false
+postgresql_srg_v263608_enabled: false
+postgresql_srg_v263609_enabled: false
+postgresql_srg_v263610_enabled: false
+postgresql_srg_v263611_enabled: false
+postgresql_srg_v263612_enabled: false
+postgresql_srg_v263613_enabled: false
+postgresql_srg_v263614_enabled: false
+postgresql_srg_v263615_enabled: false
+postgresql_srg_v263616_enabled: false
 postgresql_srg_v263617_enabled: false  # Not Applicable – PKI/cert revocation not used
-postgresql_srg_v263618_enabled: true
+postgresql_srg_v263618_enabled: false
 postgresql_srg_v263619_enabled: false  # Not Applicable – SSL/TLS not enabled
 postgresql_srg_v263620_enabled: false  # Not Applicable – no TLS key files in this deployment
-postgresql_srg_v263621_enabled: true
-postgresql_srg_v263622_enabled: true
+postgresql_srg_v263621_enabled: false
+postgresql_srg_v263622_enabled: false
 
 ############################################################
 # V-206519 Settings
