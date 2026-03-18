@@ -8,18 +8,44 @@
 #
 # Finding Details:
 # Passwords must not be transmitted in clear text. Weak
-# authentication methods (trust, password, md5) must not be used.
+# authentication methods (e.g., trust, password, md5) are
+# susceptible to interception and compromise and must not be used.
+# Secure mechanisms such as SCRAM-SHA-256 or equivalent must be enforced.
 #
-# Implementation:
-# - PostgreSQL restricted to localhost
-# - SCRAM authentication enforced
-# - No external network exposure
+# Implementation in this Environment:
 #
-# Comment:
-# PostgreSQL is configured for localhost-only communication.
-# SCRAM-SHA-256 is enforced for all host connections and peer
-# authentication is used for local administrative access.
-# Therefore, V-206557 is Not a Finding.
+#   • PostgreSQL is restricted to localhost-only communication
+#   • No external network exposure exists
+#   • SCRAM-SHA-256 is enforced for all host-based authentication
+#   • Peer authentication is used for local administrative access
+#   • Insecure authentication methods (trust, md5, password) are not used
+#
+# Manual Verification Steps:
+#
+#   1. Verify password encryption method:
+#        SHOW password_encryption;
+#
+#   2. Verify authentication configuration:
+#        cat {{ postgresql_srg_hba_file }}
+#
+#   3. Check for insecure methods (ignore commented lines):
+#        awk '!/^\s*#/ && NF {print}' {{ postgresql_srg_hba_file }} \
+#        | grep -E 'trust|md5|password'
+#
+#   4. Verify SCRAM is enforced:
+#        awk '!/^\s*#/ && /host/ {print}' {{ postgresql_srg_hba_file }}
+#
+#   5. Verify localhost-only binding:
+#        SHOW listen_addresses;
+#
+# Summary:
+# PostgreSQL enforces SCRAM-SHA-256 for all host connections
+# and uses peer authentication for local access. The database
+# is restricted to localhost and does not allow external
+# connections, eliminating exposure to network-based password
+# interception. No insecure authentication methods are in use.
+# Therefore, passwords are protected during transmission and
+# V-206557 is NOT A FINDING.
 ############################################################
 
 

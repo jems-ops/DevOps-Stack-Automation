@@ -6,22 +6,40 @@
 # Title:
 # The DBMS must not display authentication secrets.
 #
-# Comment:
-# PostgreSQL prevents exposure of authentication secrets via:
-# - Secure .pgpass permissions
-# - Restricted configuration file access
-# - Controlled logging (DDL only)
-# Therefore, V-206561 is Not a Finding.
-
-# Fixing Strategy:
-# - Secure .pgpass files (without breaking ownership)
-# - Restrict logging
-# - Secure config files
-############################################################
-
-
-############################################################
-# Secure .pgpass files (SAFE)
+# Finding Details:
+# Authentication secrets (e.g., passwords, credentials) must
+# not be exposed in configuration files, logs, or output.
+# Exposure of such data can lead to unauthorized access and
+# compromise of the DBMS.
+#
+# Implementation in this Environment:
+#
+#   • .pgpass files are restricted to mode 0600
+#   • PostgreSQL configuration files are restricted to 0600
+#   • Access to configuration files is limited to postgres user
+#   • SQL logging is restricted to DDL only (no credential logging)
+#   • DBMS scope is limited to PostgreSQL directories only
+#
+# Manual Verification Steps:
+#
+#   1. Verify .pgpass permissions:
+#        find {{ postgresql_srg_data_dir }} /home /root -name .pgpass -exec ls -l {} \;
+#
+#   2. Verify logging configuration:
+#        SHOW log_statement;
+#
+#   3. Verify configuration file permissions:
+#        ls -l {{ postgresql_srg_conf_file }}
+#        ls -l {{ postgresql_srg_hba_file }}
+#
+#   4. Search for plaintext passwords:
+#        grep -Rin "password=" {{ postgresql_srg_data_dir }} {{ postgresql_srg_conf_file }} {{ postgresql_srg_hba_file }}
+#
+# Summary:
+# Authentication secrets are not exposed within PostgreSQL.
+# Sensitive files are protected with restrictive permissions,
+# and logging is configured to prevent credential disclosure.
+# Therefore, V-206561 is NOT A FINDING.
 ############################################################
 
 - name: "V-206561 | Find .pgpass files"
