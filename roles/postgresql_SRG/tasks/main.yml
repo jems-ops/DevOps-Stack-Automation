@@ -25,3 +25,9 @@
   when: postgresql_srg_validation_enabled | bool
   tags:
     - validation
+
+- name: PostgreSQL SRG | Post-STIG Health Check
+  ansible.builtin.include_tasks: post_stig_healthcheck.yml
+  when: postgresql_srg_post_healthcheck_enabled | bool
+  tags:
+    - healthcheck

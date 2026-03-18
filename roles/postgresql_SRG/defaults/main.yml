@@ -12,6 +12,15 @@
 # Enable/disable major role phases
 postgresql_srg_enforcement_enabled: true
 postgresql_srg_validation_enabled: true
+postgresql_srg_post_healthcheck_enabled: true
+
+############################################################
+# Post-STIG Health Check Settings
+############################################################
+postgresql_srg_sonarqube_service_name: sonarqube
+postgresql_srg_sonarqube_url: "https://sonar.local"
+postgresql_srg_sonarqube_validate_certs: false    # set true if using a trusted CA cert
+postgresql_srg_sonarqube_healthcheck_timeout: 30  # seconds
 
 # PostgreSQL instance targeting
 postgresql_srg_postgres_user: postgres

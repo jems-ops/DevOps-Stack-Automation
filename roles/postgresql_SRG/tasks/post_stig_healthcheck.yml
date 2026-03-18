@@ -1,0 +1,119 @@
+---
+############################################################
+# Post-STIG Health Check
+# Runs at the end of every STIG run to confirm that the
+# STIG hardening did not break PostgreSQL or SonarQube.
+#
+# Checks:
+#   1. PostgreSQL systemd service is active/running
+#   2. SonarQube systemd service is active/running
+#   3. SonarQube web UI responds and reports status=UP
+############################################################
+
+# ----------------------------------------------------------
+# 1. PostgreSQL service
+# ----------------------------------------------------------
+- name: "Post-STIG Health | Check PostgreSQL service is active"
+  ansible.builtin.systemd:
+    name: "{{ postgresql_srg_service_name }}"
+  register: _pg_service
+  changed_when: false
+  tags:
+    - healthcheck
+    - healthcheck_postgresql
+
+- name: "Post-STIG Health | Assert PostgreSQL service is running"
+  ansible.builtin.assert:
+    that:
+      - _pg_service.status.ActiveState == 'active'
+      - _pg_service.status.SubState == 'running'
+    success_msg: "PostgreSQL ({{ postgresql_srg_service_name }}) is active and running."
+    fail_msg: >-
+      PostgreSQL ({{ postgresql_srg_service_name }}) is NOT running!
+      ActiveState={{ _pg_service.status.ActiveState }}
+      SubState={{ _pg_service.status.SubState }}
+  tags:
+    - healthcheck
+    - healthcheck_postgresql
+
+# ----------------------------------------------------------
+# 2. SonarQube service
+# ----------------------------------------------------------
+- name: "Post-STIG Health | Check SonarQube service is active"
+  ansible.builtin.systemd:
+    name: "{{ postgresql_srg_sonarqube_service_name }}"
+  register: _sonar_service
+  changed_when: false
+  tags:
+    - healthcheck
+    - healthcheck_sonarqube
+
+- name: "Post-STIG Health | Assert SonarQube service is running"
+  ansible.builtin.assert:
+    that:
+      - _sonar_service.status.ActiveState == 'active'
+      - _sonar_service.status.SubState == 'running'
+    success_msg: "SonarQube ({{ postgresql_srg_sonarqube_service_name }}) is active and running."
+    fail_msg: >-
+      SonarQube ({{ postgresql_srg_sonarqube_service_name }}) is NOT running!
+      ActiveState={{ _sonar_service.status.ActiveState }}
+      SubState={{ _sonar_service.status.SubState }}
+  tags:
+    - healthcheck
+    - healthcheck_sonarqube
+
+# ----------------------------------------------------------
+# 3. SonarQube web health check via /api/system/status
+# ----------------------------------------------------------
+- name: "Post-STIG Health | Query SonarQube web API"
+  ansible.builtin.uri:
+    url: "{{ postgresql_srg_sonarqube_url }}/api/system/status"
+    method: GET
+    validate_certs: "{{ postgresql_srg_sonarqube_validate_certs }}"
+    status_code: 200
+    timeout: "{{ postgresql_srg_sonarqube_healthcheck_timeout }}"
+  register: _sonar_web
+  changed_when: false
+  failed_when: false        # handle assertion below for cleaner output
+  tags:
+    - healthcheck
+    - healthcheck_sonarqube_web
+
+- name: "Post-STIG Health | Assert SonarQube web API returned status=UP"
+  ansible.builtin.assert:
+    that:
+      - _sonar_web.status == 200
+      - _sonar_web.json is defined
+      - _sonar_web.json.status == 'UP'
+    success_msg: >-
+      SonarQube web endpoint {{ postgresql_srg_sonarqube_url }} is healthy
+      (status={{ _sonar_web.json.status | default('N/A') }}).
+    fail_msg: >-
+      SonarQube web endpoint {{ postgresql_srg_sonarqube_url }} is NOT healthy!
+      HTTP {{ _sonar_web.status | default('N/A') }}
+      status={{ _sonar_web.json.status | default('N/A') }}
+      version={{ _sonar_web.json.version | default('N/A') }}
+  tags:
+    - healthcheck
+    - healthcheck_sonarqube_web
+
+# ----------------------------------------------------------
+# 4. Summary report
+# ----------------------------------------------------------
+- name: "Post-STIG Health | Summary"
+  ansible.builtin.debug:
+    msg:
+      - "============================================"
+      - " Post-STIG Health Check Summary"
+      - "============================================"
+      - "PostgreSQL ({{ postgresql_srg_service_name }})"
+      - "  Service state : {{ _pg_service.status.ActiveState }} / {{ _pg_service.status.SubState }}"
+      - "SonarQube ({{ postgresql_srg_sonarqube_service_name }})"
+      - "  Service state : {{ _sonar_service.status.ActiveState }} / {{ _sonar_service.status.SubState }}"
+      - "SonarQube Web   : {{ postgresql_srg_sonarqube_url }}"
+      - "  HTTP status   : {{ _sonar_web.status | default('N/A') }}"
+      - "  App status    : {{ _sonar_web.json.status | default('N/A') }}"
+      - "  Version       : {{ _sonar_web.json.version | default('N/A') }}"
+      - "============================================"
+  tags:
+    - healthcheck
