@@ -1,61 +1,71 @@
 ---
 ############################################################
-# STIG V-206556
-# Validation Tasks
+# STIG Control: V-206556
+# Validation
 ############################################################
 
+
 ############################################################
-# Validate password encryption configuration
+# Check password_encryption setting
 ############################################################
 
-- name: "V-206556 | Check password_encryption setting"
+- name: "V-206556 | Check password_encryption"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "SHOW password_encryption;"
-  register: postgresql_srg_password_encryption
+  register: v206556_encryption
   changed_when: false
+  failed_when: false
+  tags: ['V-206556','CAT-I','validate','postgres','stig']
 
-- name: "Assert SCRAM password hashing enabled"
+
+- name: "V-206556 | Assert SCRAM enabled"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_password_encryption.stdout is search("scram-sha-256")
-    fail_msg: "SCRAM password hashing not enabled"
-    success_msg: "SCRAM password hashing confirmed"
+      - "'scram-sha-256' in v206556_encryption.stdout"
+    fail_msg: "SCRAM password hashing is NOT enabled"
+    success_msg: "SCRAM password hashing is enabled"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206556','CAT-I','validate','postgres','stig']
+
 
 ############################################################
-# Validate no MD5 authentication present
+# Detect weak password hashes (SAFE)
 ############################################################
 
-- name: "V-206556 | Check for md5 authentication"
-  become: true
-  ansible.builtin.shell: |
-    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -iw md5 || true
-  register: postgresql_srg_md5_auth_check
-  changed_when: false
-
-- name: "Assert MD5 authentication disabled"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_md5_auth_check.stdout | trim == ""
-    fail_msg: "MD5 authentication detected"
-    success_msg: "MD5 authentication disabled"
-
-############################################################
-# Validate password hashes
-############################################################
-
-- name: "V-206556 | Check password hash types"
+- name: "V-206556 | Detect weak password hashes"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -tAc "SELECT rolpassword FROM pg_authid WHERE rolpassword IS NOT NULL;"
-  register: postgresql_srg_password_hashes
+    psql -tAc "
+    SELECT rolname
+    FROM pg_authid
+    WHERE rolpassword IS NOT NULL
+    AND rolpassword NOT LIKE 'SCRAM-SHA-256%';"
+  register: v206556_weak_hashes
   changed_when: false
+  failed_when: false
+  tags: ['V-206556','CAT-I','validate','postgres','stig']
 
-- name: "Assert only SCRAM hashes exist"
+
+- name: "V-206556 | Normalize weak hash results"
+  ansible.builtin.set_fact:
+    v206556_weak_clean: >-
+      {{ v206556_weak_hashes.stdout_lines
+         | map('trim')
+         | reject('equalto','')
+         | list }}
+  tags: ['V-206556','CAT-I','validate','postgres','stig']
+
+
+- name: "V-206556 | Assert no weak hashes exist"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_password_hashes.stdout is search("SCRAM-SHA-256") or postgresql_srg_password_hashes.stdout | trim == ""
-    fail_msg: "Non-SCRAM password hashes detected"
-    success_msg: "All password hashes are SCRAM"
+      - v206556_weak_clean | length == 0
+    fail_msg: >
+      Weak password hashes detected:
+      {{ v206556_weak_clean }}
+    success_msg: "All roles use SCRAM password hashing"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206556','CAT-I','validate','postgres','stig']

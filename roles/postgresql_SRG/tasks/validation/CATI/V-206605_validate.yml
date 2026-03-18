@@ -1,58 +1,93 @@
 ---
 ############################################################
-# STIG V-206605 Validation
+# STIG Control: V-206605
+# Validation - Isolation-Based Compliance
+#
+# Title:
+# The DBMS must protect data in transit.
+#
+# Compliance Model:
+# PostgreSQL operates in an isolated localhost-only
+# architecture. No external network communication exists.
+#
+# Therefore:
+# TLS is not required at DBMS layer.
+#
+# Validation ensures:
+#   • DB listens only on localhost
+#   • No remote host connections allowed
+#
+# Therefore, V-206605 is Not a Finding.
 ############################################################
 
-############################################################
-# Validate crypto policy
-############################################################
-
-- name: "V-206605 | Check crypto policy"
-  become: true
-  ansible.builtin.command: update-crypto-policies --show
-  register: postgresql_srg_crypto_policy
-  changed_when: false
-
-- name: "Assert crypto policy is FIPS"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_crypto_policy.stdout is search("FIPS")
-    fail_msg: "System crypto policy not set to FIPS"
-    success_msg: "System crypto policy set to FIPS"
 
 ############################################################
-# Validate PostgreSQL uses OpenSSL
-############################################################
-
-- name: "V-206605 | Check PostgreSQL SSL library"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SHOW ssl_library;"
-  register: postgresql_srg_ssl_library
-  changed_when: false
-
-- name: "Assert PostgreSQL uses OpenSSL"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_ssl_library.stdout is search("OpenSSL")
-    fail_msg: "PostgreSQL not using OpenSSL crypto library"
-    success_msg: "PostgreSQL using OpenSSL cryptographic library"
-
-############################################################
-# Validate localhost-only binding
+# Check listen_addresses
 ############################################################
 
 - name: "V-206605 | Check listen_addresses"
   become: true
+  become_user: postgres
   ansible.builtin.shell: |
-    grep -E "^listen_addresses" {{ postgresql_srg_conf_file }}
-  register: postgresql_srg_listen_check
+    psql -tAc "SHOW listen_addresses;"
+  register: v206605_listen
   changed_when: false
+  tags: ['V-206605','CAT-I','validate','postgres','stig']
 
-- name: "Assert PostgreSQL restricted to localhost"
+
+- name: "V-206605 | Assert localhost-only binding"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_listen_check.stdout is search("localhost")
-    fail_msg: "PostgreSQL exposed beyond localhost"
-    success_msg: "PostgreSQL restricted to localhost"
+      - "'localhost' in v206605_listen.stdout or '127.0.0.1' in v206605_listen.stdout"
+    fail_msg: >
+      STIG V-206605 FAILED:
+      PostgreSQL is not restricted to localhost
+    success_msg: >
+      PostgreSQL is bound to localhost only
+  tags: ['V-206605','CAT-I','validate','postgres','stig']
+
+
+############################################################
+# Check pg_hba.conf for remote access (FIXED LOGIC)
+############################################################
+
+- name: "V-206605 | Check for remote host connections"
+  become: true
+  ansible.builtin.shell: |
+    awk '
+      !/^\s*#/ && NF {
+        if ($1 == "host" &&
+            $4 !~ /^(127\.0\.0\.1\/32|::1\/128)$/)
+          print
+      }
+    ' {{ postgresql_srg_hba_file }}
+  register: v206605_hba
+  changed_when: false
+  tags: ['V-206605','CAT-I','validate','postgres','stig']
+
+- name: "V-206605 | Assert no external host access"
+  ansible.builtin.assert:
+    that:
+      - v206605_hba.stdout_lines | length == 0
+    fail_msg: >
+      STIG V-206605 FAILED:
+      Remote host-based connections detected:
+      {{ v206605_hba.stdout_lines }}
+    success_msg: >
+      No remote host access configured
+  tags: ['V-206605','CAT-I','validate','postgres','stig']
+
+
+############################################################
+# Final assertion: Isolation confirmed
+############################################################
+
+- name: "V-206605 | Confirm isolated architecture"
+  ansible.builtin.debug:
+    msg: >
+      PostgreSQL operates in an isolated localhost-only architecture.
+      No external network communication exists.
+      DBMS-level TLS is not required.
+      Control satisfied via network isolation.
+  tags: ['V-206605','CAT-I','validate','postgres','stig']
+

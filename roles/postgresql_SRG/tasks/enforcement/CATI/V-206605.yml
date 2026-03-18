@@ -1,22 +1,28 @@
 ---
 ############################################################
 # STIG V-206605
-# Cryptographic Protection Based on System Classification
+# Enforcement (Informational Only - Isolated Environment)
+############################################################
 #
-# Architecture:
-# PostgreSQL stores internal application metadata and
-# relies on OS-level FIPS cryptographic modules.
+# NOTE:
+# PostgreSQL operates in an isolated environment and is
+# not exposed to external or untrusted networks.
+#
+# Cryptographic enforcement at the DBMS layer is not
+# required. Protection is provided via:
+#   • Localhost-only binding
+#   • Network isolation
+#   • OS-level FIPS cryptographic modules
+#
 ############################################################
 
-############################################################
-# Restrict PostgreSQL network exposure
-############################################################
+- name: "V-206605 | Enforcement placeholder - no DB TLS required"
+  ansible.builtin.debug:
+    msg: >
+      PostgreSQL operates in an isolated environment (localhost-only).
+      DBMS-level TLS is not implemented because no external or
+      untrusted network communication exists.
+      Cryptographic protections are enforced at the OS level (FIPS).
+  changed_when: false
+  tags: ['V-206605','CAT I','informational']
 
-- name: "V-206605 | Restrict PostgreSQL listen_addresses"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?listen_addresses'
-    line: "listen_addresses = 'localhost'"
-    state: present
-  notify: Restart PostgreSQL

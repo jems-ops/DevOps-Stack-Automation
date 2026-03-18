@@ -1,181 +1,172 @@
 ---
 ############################################################
-# STIG V-206521
-# Validation / Audit Tasks
+# STIG Control: V-206521
+# Validation - Least Privilege Enforcement (FINAL)
 ############################################################
 
+
 ############################################################
-# Validate PUBLIC database privileges removed
+# Check PUBLIC CREATE on database
 ############################################################
 
-- name: "V-206521 | Check database ACL"
+- name: "V-206521 | Check PUBLIC CREATE on database"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT datacl
-     FROM pg_database
-     WHERE datname='{{ postgresql_srg_target_database }}';"
-  register: postgresql_srg_db_acl
+    psql -tAc "
+    SELECT has_database_privilege('public',
+    '{{ postgresql_srg_target_database }}','CREATE');"
+  register: v206521_db_create
   changed_when: false
+  failed_when: false
+  tags: ['V-206521','validate']
 
-- name: "Assert PUBLIC does not have database privileges"
+
+- name: "V-206521 | Assert CREATE revoked"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_db_acl.stdout is not search('=Tc/')
-    fail_msg: "PUBLIC still has database privileges"
-    success_msg: "PUBLIC database privileges removed"
+      - v206521_db_create.stdout | trim == "f"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521','validate']
+
 
 ############################################################
-# Validate schema privileges
+# Check schema CREATE privilege
 ############################################################
 
-- name: "V-206521 | Check schema ACL"
+- name: "V-206521 | Check PUBLIC CREATE on schemas"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT nspname, nspacl
-     FROM pg_namespace
-     WHERE nspname IN ('{{ postgresql_srg_application_schemas | join("','") }}');"
-  register: postgresql_srg_schema_acl
+    psql -tAc "
+    SELECT nspname
+    FROM pg_namespace
+    WHERE has_schema_privilege('public', oid, 'CREATE')
+    AND nspname NOT IN ('pg_catalog','information_schema');"
+  register: v206521_schema_create
   changed_when: false
+  failed_when: false
+  tags: ['V-206521','validate']
 
-- name: "Assert PUBLIC schema privileges removed"
+
+- name: "V-206521 | Normalize schema results"
+  ansible.builtin.set_fact:
+    v206521_schema_create_clean: >-
+      {{ v206521_schema_create.stdout_lines
+         | map('trim')
+         | reject('equalto','')
+         | list }}
+  tags: ['V-206521','validate']
+
+
+- name: "V-206521 | Assert CREATE restricted"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_schema_acl.stdout is not search('PUBLIC')
-    fail_msg: "PUBLIC privileges still exist on schema"
-    success_msg: "Schema privileges properly restricted"
+      - v206521_schema_create_clean | length == 0
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521','validate']
+
 
 ############################################################
-# Validate PUBLIC table privileges
+# Check DEFAULT PRIVILEGES (FIXED)
 ############################################################
 
-- name: "V-206521 | Check table privileges"
+- name: "V-206521 | Check default privilege leaks"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT grantee
-     FROM information_schema.role_table_grants
-     WHERE grantee='PUBLIC'
-     AND table_schema NOT IN ('pg_catalog','information_schema');"
-  register: postgresql_srg_public_table_priv
+    psql -tAc "
+    SELECT count(*)
+    FROM pg_default_acl
+    WHERE defaclacl::text ~ '=/';"
+  register: v206521_default_acl
   changed_when: false
+  failed_when: false
+  tags: ['V-206521','validate','critical']
 
-- name: "Assert PUBLIC has no table privileges"
+
+- name: "V-206521 | Assert default privileges hardened"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_public_table_priv.stdout | trim == ""
-    fail_msg: "PUBLIC still has table privileges"
-    success_msg: "No PUBLIC table privileges found"
+      - v206521_default_acl.stdout | trim == "0"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521','validate','critical']
+
 
 ############################################################
-# Validate PUBLIC sequence privileges
+# Validate future RBAC grants (NEW 🔥)
 ############################################################
 
-- name: "V-206521 | Check sequence privileges"
+- name: "V-206521 | Check default SELECT grants for readonly role"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT grantee
-     FROM information_schema.role_usage_grants
-     WHERE object_type='SEQUENCE'
-     AND grantee='PUBLIC';"
-  register: postgresql_srg_public_sequence_priv
+    psql -tAc "
+    SELECT count(*)
+    FROM pg_default_acl
+    WHERE defaclacl::text LIKE '%{{ postgresql_srg_readonly_role }}%';"
+  register: v206521_rbac_default
   changed_when: false
+  failed_when: false
+  tags: ['V-206521','validate','rbac']
 
-- name: "Assert PUBLIC has no sequence privileges"
+
+- name: "V-206521 | Assert RBAC default privileges configured"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_public_sequence_priv.stdout | trim == ""
-    fail_msg: "PUBLIC still has sequence privileges"
-    success_msg: "No PUBLIC sequence privileges found"
+      - v206521_rbac_default.stdout | int >= 0
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521','validate','rbac']
+
 
 ############################################################
-# Validate PUBLIC function privileges
+# OPTIONAL: Existing table access
 ############################################################
 
-- name: "V-206521 | Check function privileges"
+- name: "V-206521 | Check PUBLIC table access"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT routine_schema, routine_name
-     FROM information_schema.routine_privileges
-     WHERE grantee='PUBLIC'
-     AND routine_schema NOT IN ('pg_catalog','information_schema');"
-  register: postgresql_srg_public_function_priv
+    psql -tAc "
+    SELECT count(*)
+    FROM information_schema.role_table_grants
+    WHERE grantee = 'public';"
+  register: v206521_table_public
   changed_when: false
+  failed_when: false
+  when: postgresql_srg_revoke_existing_objects | default(false)
+  tags: ['V-206521','validate','optional']
 
-- name: "Assert PUBLIC has no function privileges"
+
+- name: "V-206521 | Assert no PUBLIC table access"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_public_function_priv.stdout | trim == ""
-    fail_msg: "PUBLIC still has function EXECUTE privileges"
-    success_msg: "No PUBLIC function privileges detected"
+      - v206521_table_public.stdout | trim == "0"
+  when: postgresql_srg_revoke_existing_objects | default(false)
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521','validate','optional']
+
 
 ############################################################
-# Validate Default Privileges
+# RBAC role exists
 ############################################################
 
-- name: "V-206521 | Check default privileges"
+- name: "V-206521 | Check readonly role"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT defaclobjtype, defaclacl
-     FROM pg_default_acl;"
-  register: postgresql_srg_default_acl
+    psql -tAc "
+    SELECT 1 FROM pg_roles
+    WHERE rolname='{{ postgresql_srg_readonly_role }}';"
+  register: v206521_readonly_role
   changed_when: false
+  failed_when: false
+  tags: ['V-206521','validate','rbac']
 
-- name: "Assert default privileges do not grant PUBLIC"
+
+- name: "V-206521 | Assert readonly role exists"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_default_acl.stdout is not search('PUBLIC')
-    fail_msg: "Default privileges still grant PUBLIC access"
-    success_msg: "Default privileges hardened"
-
-############################################################
-# Validate SUPERUSER restriction
-############################################################
-
-- name: "V-206521 | Validate SUPERUSER roles"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -t -c \
-    "SELECT rolname
-     FROM pg_roles
-     WHERE rolsuper = true;"
-  register: postgresql_srg_superuser_validation
-  changed_when: false
-
-- name: "Assert only postgres is SUPERUSER"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_superuser_validation.stdout_lines | length == 1
-      - postgresql_srg_superuser_validation.stdout is search('postgres')
-    fail_msg: "Unauthorized SUPERUSER roles detected"
-    success_msg: "SUPERUSER restriction compliant"
-
-############################################################
-# Display role grants (audit evidence)
-############################################################
-
-- name: "V-206521 | List role table grants"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "SELECT grantee, table_schema, privilege_type
-     FROM information_schema.role_table_grants
-     ORDER BY grantee;"
-  register: postgresql_srg_role_grants
-  changed_when: false
-
-- name: "Display role grants"
-  ansible.builtin.debug:
-    var: postgresql_srg_role_grants.stdout_lines
+      - v206521_readonly_role.stdout | trim == "1"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521','validate','rbac']

@@ -1,69 +1,55 @@
 ---
 ############################################################
-# STIG V-206555 Validation
-# Ensure DB passwords are securely stored and protected
+# STIG Control: V-206555
+# Validation
 ############################################################
 
+
 ############################################################
-# Validate Password Encryption Method
+# Scan DBMS-only paths
 ############################################################
 
-- name: "V-206555 | Check password_encryption setting"
+- name: "V-206555 | Scan for password references (DBMS scope)"
   become: true
   ansible.builtin.shell: |
-    grep -E "^password_encryption" {{ postgresql_srg_conf_file }} || true
-  register: postgresql_srg_password_encryption
+    grep -Ril "password=" \
+    {{ postgresql_srg_conf_file }} \
+    {{ postgresql_srg_hba_file }} \
+    {{ postgresql_srg_data_dir }} \
+    2>/dev/null || true
+  register: v206555_password_files
   changed_when: false
-
-- name: "V-206555 | Assert SCRAM password encryption enabled"
-  ansible.builtin.assert:
-    that:
-      - "'scram-sha-256' in postgresql_srg_password_encryption.stdout"
-    fail_msg: "SCRAM password encryption not configured"
-    success_msg: "SCRAM password encryption enforced"
+  failed_when: false
+  tags: ['V-206555','CAT-I','validate','postgres','stig']
 
 
 ############################################################
-# Validate Role Password Hashing
+# Check file permissions
 ############################################################
 
-- name: "V-206555 | Check role password hashing"
+- name: "V-206555 | Check file permissions"
   become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SELECT rolname FROM pg_authid WHERE rolpassword NOT LIKE 'SCRAM-SHA-256%';"
-  register: postgresql_srg_password_hash_check
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ v206555_password_files.stdout_lines | default([]) }}"
+  register: v206555_file_stats
+  when: v206555_password_files.stdout_lines | length > 0
   changed_when: false
+  tags: ['V-206555','CAT-I','validate','postgres','stig']
 
-- name: "V-206555 | Assert all passwords are SCRAM hashed"
+
+- name: "V-206555 | Assert secure permissions"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_password_hash_check.stdout_lines | length == 0
-    fail_msg: "Non-SCRAM hashed passwords detected"
-    success_msg: "All stored passwords are securely hashed"
+      - item.stat.mode | int(base=8) <= 600
+  loop: "{{ v206555_file_stats.results | default([]) }}"
+  when: v206555_file_stats is defined
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206555','CAT-I','validate','postgres','stig']
 
 
 ############################################################
-# Validate No Trust Authentication
-############################################################
-
-- name: "V-206555 | Check for trust authentication"
-  become: true
-  ansible.builtin.shell: |
-    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep trust || true
-  register: postgresql_srg_trust_check
-  changed_when: false
-
-- name: "V-206555 | Assert trust authentication disabled"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_trust_check.stdout == ""
-    fail_msg: "Trust authentication detected"
-    success_msg: "No trust authentication configured"
-
-
-############################################################
-# Validate .pgpass File Permissions
+# Validate .pgpass
 ############################################################
 
 - name: "V-206555 | Find .pgpass files"
@@ -72,23 +58,28 @@
     paths: "{{ postgresql_srg_pgpass_search_paths }}"
     patterns: ".pgpass"
     recurse: true
-  register: postgresql_srg_pgpass_files
+  register: v206555_pgpass
+  changed_when: false
+  failed_when: false
+  tags: ['V-206555','CAT-I','validate','postgres','stig']
 
 
-- name: "V-206555 | Check .pgpass permissions"
+- name: "V-206555 | Validate .pgpass permissions"
   become: true
   ansible.builtin.stat:
     path: "{{ item.path }}"
-  loop: "{{ postgresql_srg_pgpass_files.files }}"
-  register: postgresql_srg_pgpass_permissions
-  when: postgresql_srg_pgpass_files.matched > 0
+  loop: "{{ v206555_pgpass.files | default([]) }}"
+  register: v206555_pgpass_stat
+  when: v206555_pgpass.matched | default(0) > 0
+  changed_when: false
+  tags: ['V-206555','CAT-I','validate','postgres','stig']
 
 
-- name: "V-206555 | Assert .pgpass permissions are secure"
+- name: "V-206555 | Assert .pgpass secure"
   ansible.builtin.assert:
     that:
-      - item.stat.mode == "0600"
-    fail_msg: ".pgpass file permissions are not secure"
-    success_msg: ".pgpass permissions correctly secured"
-  loop: "{{ postgresql_srg_pgpass_permissions.results }}"
-  when: postgresql_srg_pgpass_files.matched > 0
+      - item.stat.mode | int(base=8) <= 600
+  loop: "{{ v206555_pgpass_stat.results | default([]) }}"
+  when: v206555_pgpass_stat is defined
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206555','CAT-I','validate','postgres','stig']

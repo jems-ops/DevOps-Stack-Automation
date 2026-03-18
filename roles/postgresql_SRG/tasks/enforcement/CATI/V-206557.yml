@@ -1,93 +1,90 @@
 ---
 ############################################################
-# STIG V-206557 Enforcement
-# Ensure Passwords Are Protected During Transmission
-# Architecture Note
-# SonarQube and PostgreSQL run on the same host.
-# Therefore database communication occurs over localhost only.
-# SCRAM authentication protects stored credentials.
-# No password transmission occurs across a network boundary.
+# STIG Control: V-206557
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must protect passwords during transmission.
+#
+# Finding Details:
+# Passwords must not be transmitted in clear text. Weak
+# authentication methods (trust, password, md5) must not be used.
+#
+# Implementation:
+# - PostgreSQL restricted to localhost
+# - SCRAM authentication enforced
+# - No external network exposure
+#
+# Comment:
+# PostgreSQL is configured for localhost-only communication.
+# SCRAM-SHA-256 is enforced for all host connections and peer
+# authentication is used for local administrative access.
+# Therefore, V-206557 is Not a Finding.
 ############################################################
 
+
 ############################################################
-# Restrict PostgreSQL to Localhost
+# Enforce SCRAM password encryption (DB level)
 ############################################################
 
-- name: "V-206557 | Restrict PostgreSQL listen_addresses to localhost"
+- name: "V-206557 | Ensure SCRAM password encryption"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?listen_addresses'
-    line: "listen_addresses = 'localhost'"
-    state: present
-  notify: Restart PostgreSQL
-
-
-############################################################
-# Ensure SCRAM Encryption for Passwords
-############################################################
-
-- name: "V-206557 | Ensure password_encryption is SCRAM"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?password_encryption'
+    regexp: '^\s*#?\s*password_encryption\s*='
     line: "password_encryption = scram-sha-256"
-    state: present
+    backup: true
   notify: Restart PostgreSQL
+  tags: ['V-206557','CAT-I','enforce','postgres','stig']
 
 
 ############################################################
-# Remove Insecure Authentication Methods
+# Enforce SCRAM for localhost connections (SAFE)
 ############################################################
 
-- name: "V-206557 | Remove insecure authentication methods"
-  become: true
-  ansible.builtin.replace:
-    path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^\s*(host|local).*\s(trust|password|md5)\s*$'
-    replace: ''
-  notify: Reload PostgreSQL
-
-
-############################################################
-# Ensure Peer Authentication for postgres admin
-############################################################
-
-- name: "V-206557 | Ensure postgres peer authentication"
+- name: "V-206557 | Enforce SCRAM for IPv4 localhost"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^local\s+all\s+postgres'
-    line: "local   all   postgres   peer"
-    state: present
-    insertafter: BOF
+    regexp: '^host\s+all\s+all\s+127\.0\.0\.1/32'
+    line: "host    all    all    127.0.0.1/32    scram-sha-256"
   notify: Reload PostgreSQL
+  tags: ['V-206557','CAT-I','enforce','postgres','stig']
 
 
-############################################################
-# Ensure SCRAM Authentication for SonarQube
-############################################################
-
-- name: "V-206557 | Ensure SonarQube SCRAM authentication"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_hba_file }}"
-    regexp: '^host\s+sonarqube\s+sonar'
-    line: "host    sonarqube    sonar    127.0.0.1/32    scram-sha-256"
-    state: present
-  notify: Reload PostgreSQL
-
-
-############################################################
-# Ensure IPv6 localhost access uses SCRAM
-############################################################
-
-- name: "V-206557 | Ensure IPv6 localhost SCRAM authentication"
+- name: "V-206557 | Enforce SCRAM for IPv6 localhost"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_hba_file }}"
     regexp: '^host\s+all\s+all\s+::1/128'
     line: "host    all    all    ::1/128    scram-sha-256"
-    state: present
   notify: Reload PostgreSQL
+  tags: ['V-206557','CAT-I','enforce','postgres','stig']
+
+
+############################################################
+# Ensure secure admin access (SAFE)
+############################################################
+
+- name: "V-206557 | Ensure postgres uses peer"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_hba_file }}"
+    regexp: '^local\s+all\s+postgres'
+    line: "local   all   postgres   peer"
+    insertafter: BOF
+  notify: Reload PostgreSQL
+  tags: ['V-206557','CAT-I','enforce','postgres','stig']
+
+
+############################################################
+# Informational only (DO NOT DELETE LINES)
+############################################################
+
+- name: "V-206557 | Informational - review insecure methods"
+  ansible.builtin.debug:
+    msg: >
+      Ensure no 'trust', 'md5', or 'password' methods are used
+      in pg_hba.conf unless documented and approved.
+  changed_when: false
+  tags: ['V-206557','CAT-I','enforce','postgres','stig','manual']

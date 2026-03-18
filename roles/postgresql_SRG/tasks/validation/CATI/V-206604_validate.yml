@@ -1,58 +1,96 @@
 ---
 ############################################################
-# STIG V-206604 Validation
+# STIG V-206604
+# Validation - Verify Isolation and No Sensitive Exposure
 ############################################################
 
 ############################################################
-# Validate localhost binding
+# Validate listen_addresses
 ############################################################
 
 - name: "V-206604 | Check listen_addresses"
   become: true
+  become_user: postgres
   ansible.builtin.shell: |
-    grep -E "^listen_addresses" {{ postgresql_srg_conf_file }}
-  register: postgresql_srg_listen_check
+    psql -t -A -c "SHOW listen_addresses;"
+  register: v206604_listen
   changed_when: false
+  tags: ['V-206604','CAT-I','validate','postgres','stig']
 
-- name: "Assert PostgreSQL restricted to localhost"
+- name: "V-206604 | Assert localhost-only binding"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_listen_check.stdout is search("localhost")
-    fail_msg: "PostgreSQL listening on non-local interfaces"
-    success_msg: "PostgreSQL restricted to localhost"
+      - v206604_listen.stdout | trim in ['localhost','127.0.0.1']
+    fail_msg: >
+      STIG V-206604 FAILED:
+      PostgreSQL is exposed beyond localhost.
+    success_msg: >
+      PostgreSQL restricted to localhost.
+  tags: ['V-206604','CAT-I','validate','postgres','stig']
+
 
 ############################################################
-# Validate no external host entries
+# Validate pg_hba.conf has no remote access
 ############################################################
 
-- name: "V-206604 | Check pg_hba.conf for external networks"
+- name: "V-206604 | Check pg_hba.conf for remote entries"
   become: true
   ansible.builtin.shell: |
-    grep -v '^\s*#' {{ postgresql_srg_hba_file }} | grep -E "0\.0\.0\.0\/0|\/0" || true
-  register: postgresql_srg_external_access
+    grep -Ev '^\s*#|^\s*$' {{ postgresql_srg_hba_file }} | grep -E 'host\s+'
+  register: v206604_hba
   changed_when: false
-
-- name: "Assert no external database access"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_external_access.stdout | trim == ""
-    fail_msg: "External database access detected"
-    success_msg: "Database access restricted to internal network"
+  failed_when: false
+  tags: ['V-206604','CAT-I','validate','postgres','stig']
 
 ############################################################
-# Validate database port exposure
+# Check for external host access (FIXED)
 ############################################################
 
-- name: "V-206604 | Check PostgreSQL listening ports"
+- name: "V-206604 | Check pg_hba.conf for external access (active lines only)"
   become: true
   ansible.builtin.shell: |
-    ss -tulnp | grep 5432 || true
-  register: postgresql_srg_port_check
+    awk '
+      !/^\s*#/ && NF {
+        if ($1 == "host" &&
+            $4 !~ /^(127\.0\.0\.1\/32|::1\/128)$/)
+          print
+      }
+    ' {{ postgresql_srg_hba_file }}
+  register: v206604_hba
   changed_when: false
 
-- name: "Assert PostgreSQL not exposed externally"
+
+- name: "V-206604 | Assert no external host access"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_port_check.stdout is search("127.0.0.1")
-    fail_msg: "PostgreSQL port exposed externally"
-    success_msg: "PostgreSQL restricted to localhost"
+      - v206604_hba.stdout_lines | length == 0
+    fail_msg: >
+      STIG V-206604 FAILED:
+      External host access detected:
+      {{ v206604_hba.stdout_lines }}
+    success_msg: >
+      PostgreSQL is restricted to localhost access only
+
+
+############################################################
+# Validate network exposure
+############################################################
+
+- name: "V-206604 | Check listening ports"
+  become: true
+  ansible.builtin.shell: |
+    ss -lntp | grep 5432 || true
+  register: v206604_ports
+  changed_when: false
+  tags: ['V-206604','CAT-I','validate','postgres','stig']
+
+- name: "V-206604 | Assert localhost-only listening"
+  ansible.builtin.assert:
+    that:
+      - "'127.0.0.1:5432' in v206604_ports.stdout or '[::1]:5432' in v206604_ports.stdout"
+    fail_msg: >
+      STIG V-206604 FAILED:
+      PostgreSQL listening on external interface.
+    success_msg: >
+      PostgreSQL listening only on localhost.
+  tags: ['V-206604','CAT-I','validate','postgres','stig']

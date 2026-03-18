@@ -7,6 +7,10 @@
   ansible.builtin.include_tasks: auto-detect.yml
   when: postgresql_srg_auto_detect | bool
 
+- name: PostgreSQL SRG | Common tasks
+  ansible.builtin.include_tasks: common/normalize.yml
+  when: postgresql_srg_auto_detect | bool
+
 - name: PostgreSQL SRG | Load Enforcement Tasks
   ansible.builtin.import_tasks: enforcement/main.yml
   when: postgresql_srg_enforcement_enabled | bool

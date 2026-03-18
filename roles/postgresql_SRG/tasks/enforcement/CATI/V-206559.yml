@@ -1,51 +1,71 @@
----
 ############################################################
-# STIG V-206559
-# Protect DBMS PKI Private Keys
+# STIG Control: V-206559
+# Status: NOT APPLICABLE
 #
-# Architecture Decision:
-# PostgreSQL instance does not manage DBMS PKI private keys.
-# TLS termination handled externally or disabled in isolated
-# architecture.
-# Compliance achieved through:
-# V-206559
-# Status: NOT A FINDING
-
-# PostgreSQL instance does not manage DBMS PKI private keys.
-# TLS termination is handled externally and the system
-# operates using OS-provided FIPS validated cryptographic modules.
+# Title:
+# The DBMS must protect PKI private keys.
+#
+# Finding Details:
+# DBMS-managed PKI private keys must be protected using
+# FIPS-validated cryptographic modules and restricted access.
+#
+# Implementation in this Environment:
+# PostgreSQL instance does not manage or use DBMS-level
+# PKI private keys.
+#
+#   • SSL/TLS is not enabled at the PostgreSQL layer
+#   • No server.key actively used by DBMS
+#   • Cryptographic controls handled at OS level (RHEL FIPS)
+#   • System operates in isolated/internal architecture
+#
+# Therefore, this control is Not Applicable.
+#
+# Validation Approach:
+# Verify absence of DBMS-managed private keys and confirm
+# system-level cryptographic controls.
+# Fix strategy:
+# - Informational (primary)
+# - Enforce only if key exists
 ############################################################
 
+
 ############################################################
-# Detect PostgreSQL private key
+# Check for server.key
 ############################################################
 
-- name: "V-206559 | Check for PostgreSQL private key"
+- name: "V-206559 | Check for server.key"
   become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
-  register: postgresql_srg_server_key
+  register: v206559_key
+  changed_when: false
+  tags: ['V-206559','CAT-II','enforce','postgres','stig']
+
 
 ############################################################
-# Restrict permissions if key exists
+# Enforce permissions if key exists
 ############################################################
 
-- name: "V-206559 | Restrict server.key permissions"
+- name: "V-206559 | Secure server.key permissions"
   become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/server.key"
     owner: postgres
     group: postgres
     mode: "0600"
-  when: postgresql_srg_server_key.stat.exists
+  when: v206559_key.stat.exists
+  tags: ['V-206559','CAT-II','enforce','postgres','stig']
+
 
 ############################################################
-# Verify OpenSSL FIPS mode
+# Informational output
 ############################################################
 
-- name: "V-206559 | Verify OpenSSL FIPS mode"
-  become: true
-  ansible.builtin.shell: |
-    openssl list -providers | grep -i fips || true
-  register: postgresql_srg_fips_check
+- name: "V-206559 | Informational - Not Applicable"
+  ansible.builtin.debug:
+    msg: >
+      PostgreSQL server.key not present.
+      Control V-206559 is Not Applicable in this environment.
+  when: not v206559_key.stat.exists
   changed_when: false
+  tags: ['V-206559','CAT-II','enforce','postgres','stig']

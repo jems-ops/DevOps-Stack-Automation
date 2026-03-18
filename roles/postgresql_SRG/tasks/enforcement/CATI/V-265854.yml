@@ -1,51 +1,22 @@
 ---
 ############################################################
-# STIG V-265854 Enforcement
-# Ensure Supported PostgreSQL Version
+# STIG Control: V-265854
+# Status: NOT A FINDING (if validated)
+#
+# Title:
+# The DBMS must be a supported version.
+#
+# Enforcement Strategy:
+# This control requires manual upgrade procedures.
+# No automatic remediation is performed.
 ############################################################
 
-############################################################
-# Gather PostgreSQL Server Version
-############################################################
-
-- name: "V-265854 | Gather PostgreSQL server version"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SHOW server_version;"
-  register: postgresql_srg_version
-  changed_when: false
-
-############################################################
-# Extract Major Version
-############################################################
-
-- name: "V-265854 | Extract PostgreSQL major version"
-  ansible.builtin.set_fact:
-    postgresql_srg_major_version: "{{ (postgresql_srg_version.stdout | regex_search('^([0-9]+)', '\\1'))[0] }}"
-
-############################################################
-# Define Supported Versions
-############################################################
-
-- name: "V-265854 | Define supported PostgreSQL versions"
-  ansible.builtin.set_fact:
-    postgresql_srg_supported_versions:
-      - "16"
-      - "15"
-
-############################################################
-# Fail if Unsupported Version
-############################################################
-
-- name: "V-265854 | Fail if unsupported PostgreSQL version detected"
-  ansible.builtin.fail:
+- name: "V-265854 | Informational - manual upgrade required"
+  ansible.builtin.debug:
     msg: >
-      Unsupported PostgreSQL version detected: {{ postgresql_srg_major_version }}.
-      Supported versions: {{ postgresql_srg_supported_versions }}
-  when: postgresql_srg_major_version not in postgresql_srg_supported_versions
-
-- name: "V-265854 | Gather PostgreSQL package version"
-  become: true
-  ansible.builtin.package_facts:
-    manager: auto
+      PostgreSQL must run a vendor-supported version.
+      This role does not perform upgrades.
+      If unsupported, use approved upgrade procedures
+      (pg_upgrade or logical migration).
+  changed_when: false
+  tags: ['V-265854','CAT-II','enforce','postgres','stig','manual']

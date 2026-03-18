@@ -1,58 +1,80 @@
 ---
 ############################################################
-# STIG V-265854 Validation
-# Ensure Supported DBMS Version
+# STIG Control: V-265854
+# Validation
+#
+# Objective:
+# Ensure PostgreSQL version is vendor-supported
 ############################################################
 
+
 ############################################################
-# Gather PostgreSQL Server Version
+# Gather PostgreSQL version (SAFE)
 ############################################################
 
-- name: "V-265854 | Get PostgreSQL server version"
+- name: "V-265854 | Gather PostgreSQL server version"
   become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "SHOW server_version;"
-  register: postgresql_srg_server_version
+  register: postgresql_srg_version
   changed_when: false
   failed_when: false
+  tags: ['V-265854','CAT-I','validate','postgres','stig','version']
+
 
 ############################################################
-# Extract Major Version
+# Normalize version output
 ############################################################
 
-- name: "V-265854 | Extract PostgreSQL major version"
+- name: "V-265854 | Normalize version"
   ansible.builtin.set_fact:
-    postgresql_srg_major_version: "{{ (postgresql_srg_server_version.stdout | regex_search('^([0-9]+)', '\\1'))[0] }}"
+    postgresql_srg_version_clean: "{{ postgresql_srg_version.stdout | default('') | trim }}"
+  tags: ['V-265854','CAT-I','validate','postgres','stig']
+
 
 ############################################################
-# Define Supported Versions
+# Extract major version (SAFE)
 ############################################################
 
-- name: "V-265854 | Define supported PostgreSQL versions"
+- name: "V-265854 | Extract major version"
   ansible.builtin.set_fact:
-    postgresql_srg_supported_versions:
-      - "16"
-      - "15"
+    postgresql_srg_major_version: >-
+      {{
+        (postgresql_srg_version_clean | regex_search('^([0-9]+)'))
+        if postgresql_srg_version_clean != '' else 'unknown'
+      }}
+  tags: ['V-265854','CAT-I','validate','postgres','stig']
+
 
 ############################################################
-# Display Version Information
+# Define supported versions (OVERRIDABLE)
 ############################################################
 
-- name: "V-265854 | Display detected PostgreSQL version"
-  ansible.builtin.debug:
-    msg:
-      - "Detected PostgreSQL version: {{ postgresql_srg_server_version.stdout }}"
-      - "Detected major version: {{ postgresql_srg_major_version }}"
-      - "Supported versions: {{ postgresql_srg_supported_versions }}"
+- name: "V-265854 | Define supported versions"
+  ansible.builtin.set_fact:
+    postgresql_srg_supported_versions: >-
+      {{
+        postgresql_srg_supported_versions
+        | default(['16','15'])
+      }}
+  tags: ['V-265854','CAT-I','validate','postgres','stig']
+
 
 ############################################################
-# Validate Supported Version
+# Assert version is supported
 ############################################################
 
-- name: "V-265854 | Assert PostgreSQL version supported"
+- name: "V-265854 | Assert supported PostgreSQL version"
   ansible.builtin.assert:
     that:
+      - postgresql_srg_major_version != 'unknown'
       - postgresql_srg_major_version in postgresql_srg_supported_versions
-    fail_msg: "Unsupported PostgreSQL version detected: {{ postgresql_srg_major_version }}"
-    success_msg: "PostgreSQL version is supported"
+    fail_msg: >
+      STIG V-265854 FAILED:
+      Unsupported or undetected PostgreSQL version: {{ postgresql_srg_version_clean }}.
+      Supported versions: {{ postgresql_srg_supported_versions }}.
+    success_msg: >
+      PostgreSQL version {{ postgresql_srg_version_clean }} is supported.
+  tags: ['V-265854','CAT-I','validate','postgres','stig','critical']
+

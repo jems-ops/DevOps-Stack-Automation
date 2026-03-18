@@ -25,8 +25,9 @@
   ansible.builtin.command: service auditd restart
   changed_when: true
 
-- name: restart chronyd
+- name: Restart Chronyd
   become: true
   ansible.builtin.systemd:
     name: chronyd
     state: restarted
+

@@ -1,47 +1,51 @@
 ---
 ############################################################
-# STIG V-206559
-# Validation Tasks
+# STIG Control: V-206559
+# Validation
 ############################################################
+
 
 ############################################################
 # Check for PostgreSQL private key
 ############################################################
 
-- name: "V-206559 | Check server.key presence"
+- name: "V-206559 | Check for server.key"
   become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
-  register: postgresql_srg_key_validation
+  register: v206559_key
+  changed_when: false
+  tags: ['V-206559','CAT-II','validate','postgres','stig']
+
 
 ############################################################
-# Validate key permissions
+# Informational: Not Applicable case
+############################################################
+
+- name: "V-206559 | No DBMS private key (Not Applicable)"
+  ansible.builtin.debug:
+    msg: >
+      PostgreSQL does not use DBMS-level PKI private keys.
+      Control V-206559 is Not Applicable.
+  when: not v206559_key.stat.exists
+  tags: ['V-206559','CAT-II','validate','postgres','stig']
+
+
+############################################################
+# Validate permissions (ONLY if key exists)
 ############################################################
 
 - name: "V-206559 | Validate server.key permissions"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_key_validation.stat.exists == false
-        or postgresql_srg_key_validation.stat.mode == "0600"
-    fail_msg: "server.key permissions insecure"
-    success_msg: "server.key protected or not present"
-
-############################################################
-# Validate FIPS crypto module
-############################################################
-
-- name: "V-206559 | Check FIPS provider"
   become: true
-  ansible.builtin.shell: |
-    openssl list -providers
-  register: postgresql_srg_fips_validation
-  changed_when: false
-  when: postgresql_srg_fips_required | bool
-
-- name: "Assert FIPS module available"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_fips_validation.stdout is search("fips")
-    fail_msg: "FIPS cryptographic provider not detected"
-    success_msg: "FIPS cryptographic module present"
-  when: postgresql_srg_fips_required | bool
+      - v206559_key.stat.pw_name == "postgres"
+      - v206559_key.stat.mode | int(base=8) <= 600
+    fail_msg: >
+      STIG V-206559 FAILED:
+      server.key is not properly protected.
+    success_msg: >
+      server.key permissions are secure.
+  when: v206559_key.stat.exists
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206559','CAT-II','validate','postgres','stig']

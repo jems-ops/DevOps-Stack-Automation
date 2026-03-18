@@ -1,76 +1,76 @@
 ---
 ############################################################
-# STIG V-206561 Enforcement
-# Prevent Display of Authentication Secrets
+# STIG Control: V-206561
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must not display authentication secrets.
+#
+# Comment:
+# PostgreSQL prevents exposure of authentication secrets via:
+# - Secure .pgpass permissions
+# - Restricted configuration file access
+# - Controlled logging (DDL only)
+# Therefore, V-206561 is Not a Finding.
+
+# Fixing Strategy:
+# - Secure .pgpass files (without breaking ownership)
+# - Restrict logging
+# - Secure config files
 ############################################################
 
+
 ############################################################
-# Secure .pgpass Files
+# Secure .pgpass files (SAFE)
 ############################################################
 
 - name: "V-206561 | Find .pgpass files"
   become: true
   ansible.builtin.find:
     paths:
-      - /var/lib/pgsql
+      - "{{ postgresql_srg_data_dir }}"
       - /home
       - /root
     patterns: ".pgpass"
     recurse: true
-  register: postgresql_srg_pgpass_files
+  register: v206561_pgpass
+  failed_when: false
+  changed_when: false
+  tags: ['V-206561','CAT-I','enforce','postgres','stig']
 
 
 - name: "V-206561 | Enforce secure permissions on .pgpass"
   become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
-    owner: postgres
-    group: postgres
-    mode: '0600'
-  loop: "{{ postgresql_srg_pgpass_files.files }}"
-  when: postgresql_srg_pgpass_files.matched > 0
+    mode: "0600"
+  loop: "{{ v206561_pgpass.files | default([]) }}"
+  when:
+    - v206561_pgpass is defined
+    - v206561_pgpass.matched | default(0) > 0
+  tags: ['V-206561','CAT-I','enforce','postgres','stig']
 
 
 ############################################################
-# Prevent Password Logging
+# Restrict SQL logging
 ############################################################
 
-- name: "V-206561 | Disable logging of sensitive statements"
+- name: "V-206561 | Restrict SQL logging"
   become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?log_statement'
+    regexp: '^\s*#?\s*log_statement\s*='
     line: "log_statement = 'ddl'"
+    backup: true
   notify: Restart PostgreSQL
+  tags: ['V-206561','CAT-I','enforce','postgres','stig']
 
 
 ############################################################
-# Prevent Password Exposure in Logs
+# Secure configuration files
 ############################################################
 
-- name: "V-206561 | Ensure log_connections enabled"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?log_connections'
-    line: "log_connections = on"
-  notify: Restart PostgreSQL
-
-
-- name: "V-206561 | Ensure log_disconnections enabled"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?log_disconnections'
-    line: "log_disconnections = on"
-  notify: Restart PostgreSQL
-
-
-############################################################
-# Restrict Access to PostgreSQL Configuration Files
-############################################################
-
-- name: "V-206561 | Secure PostgreSQL configuration permissions"
+- name: "V-206561 | Secure PostgreSQL configuration files"
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
@@ -80,3 +80,4 @@
   loop:
     - "{{ postgresql_srg_conf_file }}"
     - "{{ postgresql_srg_hba_file }}"
+  tags: ['V-206561','CAT-I','enforce','postgres','stig']

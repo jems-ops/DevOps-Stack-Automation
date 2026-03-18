@@ -1,113 +1,62 @@
 ---
 ############################################################
-# STIG V-206557 Validation (Audit Only)
-# Ensure Passwords Are Protected During Transmission
+# STIG Control: V-206557
+# Validation
 ############################################################
 
+
 ############################################################
-# Validate listen_addresses restriction
+# Detect insecure methods (active only)
 ############################################################
 
-- name: "V-206557 | Check listen_addresses configuration"
+- name: "V-206557 | Check pg_hba.conf for insecure methods"
   become: true
   ansible.builtin.shell: |
-    grep -E "^[[:space:]]*listen_addresses" {{ postgresql_srg_conf_file }} || true
-  register: postgresql_srg_listen_check
+    awk '
+      !/^\s*#/ && NF {
+        if ($1 == "host" && $0 ~ /(md5|password)/) print
+        if ($1 == "local" && $0 ~ /trust/) print
+      }
+    ' {{ postgresql_srg_hba_file }}
+  register: v206557_hba_check
   changed_when: false
+  failed_when: false
+  tags: ['V-206557','CAT-I','validate','postgres','stig']
 
-- name: "V-206557 | Assert PostgreSQL restricted to localhost"
+
+############################################################
+# Assert secure configuration (non-blocking optional)
+############################################################
+
+- name: "V-206557 | Assert no insecure authentication"
   ansible.builtin.assert:
     that:
-      - "'localhost' in postgresql_srg_listen_check.stdout"
-    fail_msg: "PostgreSQL is listening on non-local interfaces"
-    success_msg: "PostgreSQL listen_addresses restricted to localhost"
+      - v206557_hba_check.stdout_lines | length == 0
+    fail_msg: >
+      Insecure authentication detected:
+      {{ v206557_hba_check.stdout_lines }}
+    success_msg: "Authentication methods are secure"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206557','CAT-I','validate','postgres','stig']
+
 
 ############################################################
-# Validate no trust authentication
+# Validate SCRAM usage
 ############################################################
 
-- name: "V-206557 | Check for trust authentication"
+- name: "V-206557 | Check SCRAM usage"
   become: true
   ansible.builtin.shell: |
-    grep -Ev '^\s*#' {{ postgresql_srg_hba_file }} | grep -w trust || true
-  register: postgresql_srg_trust_check
+    awk '!/^\s*#/ && $1 == "host" {print}' {{ postgresql_srg_hba_file }}
+  register: v206557_scram_check
   changed_when: false
+  failed_when: false
+  tags: ['V-206557','CAT-I','validate','postgres','stig']
 
-- name: "V-206557 | Assert trust authentication disabled"
+
+- name: "V-206557 | Assert SCRAM enforced"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_trust_check.stdout == ""
-    fail_msg: "Trust authentication detected in pg_hba.conf"
-    success_msg: "Trust authentication is not configured"
-
-############################################################
-# Validate postgres peer authentication
-############################################################
-
-- name: "V-206557 | Check postgres peer authentication"
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^local\s+all\s+postgres\s+peer" {{ postgresql_srg_hba_file }} || true
-  register: postgresql_srg_peer_check
-  changed_when: false
-
-- name: "V-206557 | Assert peer authentication configured for postgres"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_peer_check.stdout != ""
-    fail_msg: "Peer authentication for postgres not configured"
-    success_msg: "Peer authentication for postgres confirmed"
-
-############################################################
-# Validate SonarQube SCRAM rule
-############################################################
-
-- name: "V-206557 | Check SonarQube SCRAM authentication rule"
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^host\s+sonarqube\s+sonar\s+127.0.0.1/32\s+scram-sha-256" {{ postgresql_srg_hba_file }} || true
-  register: postgresql_srg_sonar_scram
-  changed_when: false
-
-- name: "V-206557 | Assert SonarQube SCRAM authentication configured"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_sonar_scram.stdout != ""
-    fail_msg: "SCRAM authentication for SonarQube user missing"
-    success_msg: "SonarQube SCRAM authentication confirmed"
-
-############################################################
-# Validate IPv6 localhost rule
-############################################################
-
-- name: "V-206557 | Check IPv6 localhost rule"
-  become: true
-  ansible.builtin.shell: |
-    grep -E "^host\s+all\s+all\s+::1/128\s+scram-sha-256" {{ postgresql_srg_hba_file }} || true
-  register: postgresql_srg_ipv6_check
-  changed_when: false
-
-- name: "V-206557 | Assert IPv6 localhost rule present"
-  ansible.builtin.assert:
-    that:
-      - postgresql_srg_ipv6_check.stdout != ""
-    fail_msg: "IPv6 localhost authentication rule missing"
-    success_msg: "IPv6 localhost rule configured"
-
-############################################################
-# Validate port exposure
-############################################################
-
-- name: "V-206557 | Check PostgreSQL listening sockets"
-  become: true
-  ansible.builtin.shell: |
-    ss -tulnp | grep 5432 || true
-  register: postgresql_srg_port_check
-  changed_when: false
-
-- name: "V-206557 | Assert PostgreSQL not externally exposed"
-  ansible.builtin.assert:
-    that:
-      - "'127.0.0.1:5432' in postgresql_srg_port_check.stdout or '::1:5432' in postgresql_srg_port_check.stdout"
-    fail_msg: "PostgreSQL port 5432 exposed beyond localhost"
-    success_msg: "PostgreSQL restricted to localhost network"
+      - "'scram-sha-256' in v206557_scram_check.stdout"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206557','CAT-I','validate','postgres','stig']

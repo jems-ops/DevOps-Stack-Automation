@@ -34,6 +34,23 @@ postgresql_srg_candidate_services:
   - postgresql-15
   - postgres
 
+postgresql_srg_pgpass_search_paths:
+  - /var/lib/pgsql
+  - /home
+  - /root
+
+postgresql_srg_application_schemas:
+  - public
+
+postgresql_srg_revoke_existing_objects: false
+
+postgresql_srg_readonly_role: readonly
+
+postgresql_srg_scope_paths:
+  - "{{ postgresql_srg_conf_file }}"
+  - "{{ postgresql_srg_hba_file }}"
+  - "{{ postgresql_srg_data_dir }}"
+
 postgresql_srg_data_dir_map:
   postgresql: /var/lib/pgsql/data
   postgresql-16: /var/lib/pgsql/16/data
@@ -45,11 +62,12 @@ postgresql_srg_data_dir_map:
 ############################################################
 
 # pgaudit (many SRG controls assume it is available)
-postgresql_srg_pgaudit_enabled: false
+postgresql_srg_pgaudit_enabled: true
 postgresql_srg_pgaudit_package: "pgaudit_{{ postgresql_srg_pg_version }}"
 
 # FIPS mode (disable in lab environments where FIPS is not available)
-postgresql_srg_fips_required: false
+postgresql_srg_fips_required: true
+postgresql_srg_enforce_strict: true
 
 # SELinux enforcement (set to false if SELinux is not available)
 postgresql_srg_selinux_required: true
@@ -100,6 +118,9 @@ postgresql_srg_pgpass_search_paths:
   - /home
   - /var/lib/pgsql
 
+postgresql_srg_supported_versions:
+  - "16"
+  - "15"
 ############################################################
 # V-206545 — Installation Account Control
 ############################################################
@@ -286,9 +307,9 @@ postgresql_srg_allowed_packages:
 postgresql_srg_allowed_databases:
   - postgres
   - sonarqube       # SonarQube
-  # - bitbucket     # Atlassian Bitbucket
-  # - confluence    # Atlassian Confluence
-  # - satellite     # Red Hat Satellite
+  - bitbucket     # Atlassian Bitbucket
+  - confluence    # Atlassian Confluence
+  - satellite     # Red Hat Satellite
 
 # Safety guard: set to true ONLY after confirming postgresql_srg_allowed_databases
 # is complete. When false, unauthorized databases are reported but NOT dropped.
