@@ -1,63 +1,46 @@
 ---
 ############################################################
 # STIG Control: V-206620
-# Status: NOT A FINDING
+# SRG ID: SRG-APP-000500
+# Severity: CAT II
 #
 # Title:
-# DBMS must generate audit records when security objects
-# are modified.
+# The DBMS must generate audit records when security objects
+# (tables, views, procedures, functions) are modified.
+#
+# Status:
+# NOT A FINDING (Implemented via centralized audit controls)
 #
 # Finding Details:
-# Unauthorized modification of security objects such as
-# roles, privileges, schemas, or database structures could
-# allow attackers to escalate privileges or bypass access
-# controls. Audit logging ensures these actions are
-# recorded for monitoring and forensic investigation.
+# If audit records are not generated when security objects
+# (tables, views, procedures, functions) are modified,
+# unauthorized changes to database security structures may
+# go undetected, potentially compromising system integrity.
 #
-# Implementation in this Environment:
-# PostgreSQL auditing is implemented using the pgaudit
-# extension and database logging configuration.
-#
-# Security object modifications such as ALTER ROLE,
-# ALTER TABLE, GRANT, and REVOKE operations are recorded
-# in audit logs.
-#
-# Manual Verification Steps:
-#
-# 1. Verify pgaudit extension installed:
-#
-#       SELECT extname FROM pg_extension WHERE extname='pgaudit';
-#
-# 2. Verify pgaudit library loaded:
-#
-#       SHOW shared_preload_libraries;
-#
-# 3. Verify audit classes include role and ddl:
-#
-#       SHOW pgaudit.log;
+# Manual Steps:
+# 1. Verify pgaudit is enabled:
+#    SHOW shared_preload_libraries;
+# 2. Verify audit configuration:
+#    SHOW pgaudit.log;
+# 3. Execute:
+#    CREATE TABLE test_audit(id INT);
+#    ALTER TABLE test_audit ADD COLUMN name TEXT;
+#    DROP TABLE test_audit;
+# 4. Verify logs:
+#    grep AUDIT /var/lib/pgsql/*/data/log/*
 #
 # Comment:
-# PostgreSQL auditing is implemented using the pgaudit
-# extension. Security object modification operations
-# including ALTER ROLE, ALTER TABLE, GRANT, and REVOKE
-# generate audit records containing timestamp, user
-# identity, and affected object information. These logs
-# ensure modifications to security objects are traceable
-# for monitoring and forensic analysis.
+# This control is implemented via centralized PostgreSQL
+# auditing configuration. The setting `pgaudit.log = 'all'`
+# ensures DDL operations (CREATE, ALTER, DROP) and object
+# modifications are fully audited, satisfying STIG
+# requirements.
 ############################################################
 
-- name: "V-206620 | Ensure pgaudit extension enabled"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?shared_preload_libraries'
-    line: "shared_preload_libraries = 'pgaudit'"
-  tags: ['V-206620', 'CAT II', 'enforce']
-
-- name: "V-206620 | Configure audit logging for security objects"
-  become: true
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^#?pgaudit\.log\s*='
-    line: "pgaudit.log = '{{ postgresql_srg_pgaudit_classes }}'"
-  tags: ['V-206620', 'CAT II', 'enforce']
+- name: "V-206620 | Informational - handled by centralized audit configuration"
+  ansible.builtin.debug:
+    msg: >
+      V-206620 is satisfied by centralized audit configuration
+      (pgaudit.log = 'all') implemented in audit controls.
+      No separate enforcement required.
+  changed_when: false

@@ -1,81 +1,79 @@
 ---
 ############################################################
-# STIG Control: V-206622
-# SRG ID: SRG-APP-000502
-# Severity: CAT II
+# STIG Control: V-206614
+# Validation (Audit Only)
 #
 # Title:
 # The DBMS must generate audit records when categories of
-# information are modified.
+# information are accessed.
 #
-# Status:
-# NOT A FINDING (if validated)
-#
-# Finding Details:
-# If audit records are not generated for UPDATE/DELETE
-# operations, modifications to categorized information
-# may go undetected.
-#
-# Manual Steps:
-# 1. SHOW shared_preload_libraries;
-# 2. SHOW pgaudit.log;
-# 3. Execute UPDATE/DELETE test
-# 4. Verify audit logs
-#
-# Comment:
-# PostgreSQL with pgaudit.log='all' ensures all WRITE
-# operations are audited, including modifications to
-# categorized data.
+# Validation Purpose:
+# Verify that PostgreSQL is configured to generate audit
+# records for READ, WRITE, DDL, ROLE, and FUNCTION actions.
 ############################################################
 
 ############################################################
-# 1️⃣ Check pgaudit loaded
+# 1️⃣ Check pgaudit is installed
 ############################################################
 
-- name: "V-206622 | Check shared_preload_libraries"
+- name: "V-206614 | Check pgaudit package installed"
+  ansible.builtin.package_facts:
+
+- name: "V-206614 | Assert pgaudit package present"
+  ansible.builtin.assert:
+    that:
+      - "'pgaudit' in ansible_facts.packages"
+    fail_msg: "pgaudit package is NOT installed"
+    success_msg: "pgaudit package is installed"
+
+############################################################
+# 2️⃣ Check pgaudit is loaded
+############################################################
+
+- name: "V-206614 | Check shared_preload_libraries"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW shared_preload_libraries;"
   register: pgaudit_lib
 
-- name: "V-206622 | Assert pgaudit enabled"
+- name: "V-206614 | Assert pgaudit loaded"
   ansible.builtin.assert:
     that:
       - "'pgaudit' in pgaudit_lib.stdout"
-    fail_msg: "pgaudit is NOT enabled"
-    success_msg: "pgaudit is enabled"
+    fail_msg: "pgaudit is NOT loaded in shared_preload_libraries"
+    success_msg: "pgaudit is loaded"
 
 ############################################################
-# 2️⃣ Validate audit config
+# 3️⃣ Validate audit configuration
 ############################################################
 
-- name: "V-206622 | Check pgaudit.log"
+- name: "V-206614 | Check pgaudit.log setting"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW pgaudit.log;"
   register: pgaudit_log
 
-- name: "V-206622 | Assert WRITE auditing enabled"
+- name: "V-206614 | Assert full audit coverage"
   ansible.builtin.assert:
     that:
-      - "'all' in pgaudit_log.stdout or 'write' in pgaudit_log.stdout"
-    fail_msg: "WRITE operations are NOT audited"
-    success_msg: "WRITE operations are audited"
+      - "'all' in pgaudit_log.stdout or ('read' in pgaudit_log.stdout and 'write' in pgaudit_log.stdout)"
+    fail_msg: "pgaudit.log does NOT provide full audit coverage"
+    success_msg: "pgaudit.log provides full audit coverage"
 
 ############################################################
-# 3️⃣ Check logging collector
+# 4️⃣ Check logging collector enabled
 ############################################################
 
-- name: "V-206622 | Check logging_collector"
+- name: "V-206614 | Check logging_collector"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW logging_collector;"
   register: logging_collector
 
-- name: "V-206622 | Assert logging enabled"
+- name: "V-206614 | Assert logging collector enabled"
   ansible.builtin.assert:
     that:
       - "'on' in logging_collector.stdout"
@@ -83,29 +81,29 @@
     success_msg: "logging_collector is ON"
 
 ############################################################
-# 4️⃣ Verify audit logs exist
+# 5️⃣ Verify audit logs are being generated
 ############################################################
 
-- name: "V-206622 | Check audit log entries"
+- name: "V-206614 | Search for audit log entries"
   become: true
   ansible.builtin.shell: >
     grep -i "AUDIT" {{ postgresql_srg_log_dir | default('/var/lib/pgsql') }}/*/data/log/* 2>/dev/null | tail -n 5
   register: audit_logs
   ignore_errors: true
 
-- name: "V-206622 | Warn if no logs found"
+- name: "V-206614 | Warn if no audit logs found"
   ansible.builtin.debug:
-    msg: "No audit logs found — run UPDATE/DELETE test"
+    msg: "No recent AUDIT logs found — generate test queries (SELECT/INSERT/UPDATE/DELETE)"
   when: audit_logs.stdout_lines | length == 0
 
 ############################################################
-# 5️⃣ Final assertion
+# 6️⃣ Final compliance assertion
 ############################################################
 
-- name: "V-206622 | Final compliance check"
+- name: "V-206614 | Final compliance check"
   ansible.builtin.assert:
     that:
       - "'pgaudit' in pgaudit_lib.stdout"
       - "'on' in logging_collector.stdout"
-    fail_msg: "System is NOT compliant with V-206622"
-    success_msg: "System is compliant with V-206622"
+    fail_msg: "Audit configuration is NOT compliant with V-206614"
+    success_msg: "System is compliant with V-206614"

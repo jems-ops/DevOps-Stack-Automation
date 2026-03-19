@@ -1,0 +1,77 @@
+---
+############################################################
+# STIG Control: V-263603
+# SRG ID: SRG-APP-000705
+# STIG ID: SRG-APP-000705-DB-000110
+# Severity: CAT II
+#
+# Title:
+# The DBMS must disable accounts when the accounts are no
+# longer associated to a user.
+#
+# Status:
+# NOT A FINDING (with compensating controls)
+#
+# Finding Details:
+# PostgreSQL does not natively disable accounts automatically
+# when users are no longer associated with the system.
+# Without compensating controls, orphaned or unauthorized
+# accounts may remain active and pose a security risk.
+#
+# Manual Procedure:
+# 1. List all login-enabled roles:
+#    SELECT rolname FROM pg_roles WHERE rolcanlogin = true;
+# 2. Compare against approved account inventory.
+# 3. Identify unauthorized or orphaned accounts.
+# 4. Verify they are disabled:
+#    ALTER ROLE <username> NOLOGIN;
+#
+# Implementation Summary:
+# This control is enforced using Ansible automation that:
+# - Retrieves all login-enabled roles
+# - Compares them to an approved user list
+# - Disables unauthorized accounts using NOLOGIN
+#
+# Comment:
+# PostgreSQL lacks native account lifecycle enforcement.
+# A compensating control using Ansible ensures that
+# unauthorized or orphaned accounts are automatically
+# disabled, maintaining compliance with SRG requirements.
+############################################################
+
+############################################################
+# 1️⃣ Get all login-enabled roles
+############################################################
+
+- name: "V-263603 | Get all login-enabled roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+  register: pg_login_roles
+
+############################################################
+# 2️⃣ Define approved users (baseline allowlist)
+############################################################
+
+- name: "V-263603 | Define approved users"
+  ansible.builtin.set_fact:
+    postgresql_srg_approved_users:
+      - postgres
+      - sonar
+      - bitbucketuser
+
+############################################################
+# 3️⃣ Disable unauthorized/orphaned accounts
+############################################################
+
+- name: "V-263603 | Disable unauthorized/orphaned users"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -c "ALTER ROLE {{ item }} NOLOGIN;"
+  loop: "{{ pg_login_roles.stdout_lines }}"
+  when:
+    - item is defined
+    - item | trim != ""
+    - item not in postgresql_srg_approved_users

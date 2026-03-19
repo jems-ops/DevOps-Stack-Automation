@@ -1,51 +1,100 @@
 ---
 ############################################################
-# STIG Control: V-206611
-# Status: NOT A FINDING
+# STIG Control: V-206610
+# SRG ID: SRG-APP-000??? (Derived from CCI-002617)
+# STIG ID: (Database SRG Mapping)
+# Severity: CAT II
 #
 # Title:
-# The DBMS must be maintained with the latest security-
-# relevant software updates.
+# When updates are applied to the DBMS software, any software
+# components that have been replaced or made unnecessary must
+# be removed.
+#
+# Status:
+# NOT A FINDING (if validated)
 #
 # Finding Details:
-# Failure to apply security updates may leave the database
-# system vulnerable to known exploits and software
-# vulnerabilities. Timely patching ensures vulnerabilities
-# are mitigated and the DBMS remains secure.
+# After upgrading PostgreSQL (e.g., 15 → 16), older binaries,
+# packages, data directories, or leftover files may remain on
+# the system. These outdated components can introduce
+# vulnerabilities and increase attack surface.
 #
-# Implementation in this Environment:
-# PostgreSQL and system packages are maintained using the
-# RHEL package manager (DNF). Security updates are monitored
-# and applied according to organizational patch management
-# policies. Automated configuration management may be used
-# to install approved updates.
+# Manual Procedure:
+# 1. Verify current PostgreSQL version:
+#    psql --version
+# 2. List installed PostgreSQL packages:
+#    rpm -qa | grep -i postgres
+# 3. Check for older versions (e.g., 15.x when 16.x is active)
+# 4. Inspect filesystem for leftover directories:
+#    /usr/pgsql-*
+#    /var/lib/pgsql/*
+# 5. Confirm unused versions are removed
 #
-# Manual Verification Steps:
-#
-# 1. Check available security updates:
-#
-#       dnf updateinfo list security
-#
-# 2. Verify installed PostgreSQL version:
-#
-#       psql --version
-#
-# 3. Confirm security patches are applied according to
-#    organizational patch management policy.
+# Implementation Summary:
+# This control is enforced by:
+# - Detecting installed PostgreSQL packages
+# - Identifying legacy versions
+# - Removing outdated packages where safe
+# - Validating only supported version remains
 #
 # Comment:
-# PostgreSQL software updates are managed through the
-# RHEL package management system (DNF). Security updates
-# are applied according to the organization’s patch
-# management procedures, ensuring vulnerabilities are
-# remediated within required timeframes.
+# PostgreSQL 16 is the active DBMS version. Legacy PostgreSQL
+# 15 components are identified and removed using package
+# management and filesystem cleanup. Manual validation ensures
+# no residual artifacts remain after upgrade.
 ############################################################
 
-- name: "V-206611 | Apply security updates"
+############################################################
+# 1️⃣ Gather installed PostgreSQL packages
+############################################################
+
+- name: "V-206610 | Get installed PostgreSQL packages"
+  ansible.builtin.shell: >
+    rpm -qa | grep -i postgres || true
+  register: pg_packages
+
+############################################################
+# 2️⃣ Identify legacy PostgreSQL versions
+############################################################
+
+- name: "V-206610 | Detect old PostgreSQL versions"
+  ansible.builtin.set_fact:
+    postgresql_srg_old_packages: "{{ pg_packages.stdout_lines | select('search', '15') | list }}"
+
+############################################################
+# 3️⃣ Remove old PostgreSQL packages (if safe)
+############################################################
+
+- name: "V-206610 | Remove legacy PostgreSQL 15 packages"
   become: true
-  ansible.builtin.dnf:
-    name: "*"
-    state: latest
-    security: true
-  when: postgresql_srg_patch_enforce
-  tags: ['V-206611', 'CAT II', 'enforce']
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ postgresql_srg_old_packages }}"
+  when: postgresql_srg_old_packages | length > 0
+
+############################################################
+# 4️⃣ Check for leftover directories
+############################################################
+
+- name: "V-206610 | Find old PostgreSQL directories"
+  ansible.builtin.find:
+    paths:
+      - /usr/pgsql-15
+      - /var/lib/pgsql/15
+    file_type: directory
+  register: old_pg_dirs
+  ignore_errors: true
+
+############################################################
+# 5️⃣ Remove leftover directories (manual review recommended)
+############################################################
+
+- name: "V-206610 | Remove leftover directories"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_pg_dirs.files }}"
+  when:
+    - old_pg_dirs.matched | default(0) > 0

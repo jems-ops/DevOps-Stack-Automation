@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG V-263603 Validation
+############################################################
+
+- name: "V-263603 | Get login-enabled roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+  register: pg_login_roles
+
+- name: "V-263603 | Define approved users"
+  ansible.builtin.set_fact:
+    postgresql_srg_approved_users:
+      - postgres
+      - sonar
+      - bitbucketuser
+
+- name: "V-263603 | Check for unauthorized active users"
+  ansible.builtin.set_fact:
+    unauthorized_users: "{{ pg_login_roles.stdout_lines | difference(postgresql_srg_approved_users) }}"
+
+- name: "V-263603 | Assert compliance"
+  ansible.builtin.assert:
+    that:
+      - unauthorized_users | length == 0
+    fail_msg: "Unauthorized DB accounts with LOGIN detected: {{ unauthorized_users }}"
+    success_msg: "All DB accounts are authorized or properly disabled"

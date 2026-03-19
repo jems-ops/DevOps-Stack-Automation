@@ -1,0 +1,109 @@
+---
+############################################################
+# STIG Control: V-263602
+# SRG ID: SRG-APP-000700
+# STIG ID: SRG-APP-000700-DB-000100
+# Severity: CAT II
+#
+# Title:
+# The DBMS must disable accounts when the accounts have expired.
+#
+# Status:
+# NOT A FINDING (if properly configured and enforced)
+#
+# Finding Details:
+# PostgreSQL supports account expiration via the VALID UNTIL
+# attribute on roles. Accounts without expiration may remain
+# active indefinitely, increasing the risk of unauthorized access.
+#
+# Manual Procedure:
+# 1. SELECT rolname, rolvaliduntil FROM pg_roles;
+# 2. Identify roles with rolvaliduntil IS NULL or 'infinity'
+# 3. Verify expired accounts cannot authenticate
+#
+# Implementation Summary:
+# - VALID UNTIL enforced for all non-exempt roles
+# - Expired accounts automatically denied login
+# - Optional NOLOGIN enforcement for defense-in-depth
+#
+# Comment:
+# PostgreSQL enforces expiration natively via VALID UNTIL.
+# This playbook ensures all applicable accounts have expiration
+# configured and disables expired accounts as an additional control.
+############################################################
+
+############################################################
+# 1️⃣ Define exempt/system accounts
+############################################################
+
+- name: "V-263602 | Define exempt accounts"
+  ansible.builtin.set_fact:
+    postgresql_srg_expiration_exempt_users:
+      - postgres
+
+############################################################
+# 2️⃣ Get roles WITHOUT expiration
+############################################################
+
+- name: "V-263602 | Get roles without expiration"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -A -c
+    "SELECT rolname FROM pg_roles
+     WHERE rolvaliduntil IS NULL OR rolvaliduntil = 'infinity';"
+  register: roles_no_expiration
+
+############################################################
+# 3️⃣ Enforce expiration on non-compliant roles
+############################################################
+
+- name: "V-263602 | Enforce expiration (90 days)"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -c "ALTER ROLE {{ item }} VALID UNTIL NOW() + INTERVAL '90 days';"
+  loop: "{{ roles_no_expiration.stdout_lines }}"
+  when:
+    - item | trim != ""
+    - item not in postgresql_srg_expiration_exempt_users
+
+############################################################
+# 4️⃣ Get already expired accounts
+############################################################
+
+- name: "V-263602 | Get expired roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -A -c
+    "SELECT rolname FROM pg_roles
+     WHERE rolvaliduntil IS NOT NULL
+     AND rolvaliduntil < NOW();"
+  register: expired_roles
+
+############################################################
+# 5️⃣ Disable expired accounts (defense-in-depth)
+############################################################
+
+- name: "V-263602 | Disable expired accounts"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -c "ALTER ROLE {{ item }} NOLOGIN;"
+  loop: "{{ expired_roles.stdout_lines }}"
+  when:
+    - item | trim != ""
+    - item not in postgresql_srg_expiration_exempt_users
+  ignore_errors: true
+
+############################################################
+# 6️⃣ Informational summary
+############################################################
+
+- name: "V-263602 | Summary"
+  ansible.builtin.debug:
+    msg: >
+      Enforced expiration on non-compliant roles and disabled
+      expired accounts where applicable.
+  changed_when: false

@@ -1,0 +1,43 @@
+---
+############################################################
+# STIG Control: V-206618
+# SRG ID: SRG-APP-000499
+# Severity: CAT II
+#
+# Title:
+# The DBMS must generate audit records when privileges/
+# permissions/role memberships are modified.
+#
+# Status:
+# NOT A FINDING (Implemented via centralized audit controls)
+#
+# Finding Details:
+# If audit records are not generated when privileges,
+# permissions, or role memberships are modified (e.g.,
+# GRANT, REVOKE, role membership changes), unauthorized
+# privilege escalation or restriction may go undetected.
+#
+# Manual Steps:
+# 1. Verify pgaudit is enabled:
+#    SHOW shared_preload_libraries;
+# 2. Verify audit configuration:
+#    SHOW pgaudit.log;
+# 3. Execute:
+#    GRANT / REVOKE / ALTER ROLE
+# 4. Verify logs:
+#    grep AUDIT /var/lib/pgsql/*/data/log/*
+#
+# Comment:
+# This control is implemented through centralized audit
+# configuration (see V-206611 / V-206612 / V-206614).
+# The setting `pgaudit.log = 'all'` ensures all privilege
+# modifications (GRANT, REVOKE, role changes) are logged.
+############################################################
+
+- name: "V-206618 | Informational - handled by centralized audit configuration"
+  ansible.builtin.debug:
+    msg: >
+      V-206618 is satisfied by centralized audit configuration
+      (pgaudit.log = 'all') implemented in audit controls.
+      No separate enforcement required.
+  changed_when: false

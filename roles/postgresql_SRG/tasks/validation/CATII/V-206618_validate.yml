@@ -1,44 +1,21 @@
 ---
 ############################################################
-# STIG Control: V-206620
-# SRG ID: SRG-APP-000500
-# Severity: CAT II
-#
-# Title:
-# The DBMS must generate audit records when security objects
-# are modified.
-#
-# Status:
-# NOT A FINDING (if validated)
-#
-# Finding Details:
-# If audit records are not generated for DDL operations
-# (CREATE, ALTER, DROP), modifications to security objects
-# may not be tracked.
-#
-# Manual Steps:
-# 1. SHOW shared_preload_libraries;
-# 2. SHOW pgaudit.log;
-# 3. Run DDL test commands
-# 4. Verify audit logs
-#
-# Comment:
-# PostgreSQL with pgaudit.log='all' ensures all DDL and
-# object modification activity is logged.
+# STIG Control: V-206618
+# Validation (Audit Only)
 ############################################################
 
 ############################################################
-# 1️⃣ Check pgaudit loaded
+# 1️⃣ Check pgaudit is loaded
 ############################################################
 
-- name: "V-206620 | Check shared_preload_libraries"
+- name: "V-206618 | Check shared_preload_libraries"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW shared_preload_libraries;"
   register: pgaudit_lib
 
-- name: "V-206620 | Assert pgaudit enabled"
+- name: "V-206618 | Assert pgaudit enabled"
   ansible.builtin.assert:
     that:
       - "'pgaudit' in pgaudit_lib.stdout"
@@ -46,35 +23,35 @@
     success_msg: "pgaudit is enabled"
 
 ############################################################
-# 2️⃣ Validate audit config
+# 2️⃣ Validate audit configuration
 ############################################################
 
-- name: "V-206620 | Check pgaudit.log"
+- name: "V-206618 | Check pgaudit.log"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW pgaudit.log;"
   register: pgaudit_log
 
-- name: "V-206620 | Assert DDL auditing enabled"
+- name: "V-206618 | Assert privilege auditing"
   ansible.builtin.assert:
     that:
-      - "'all' in pgaudit_log.stdout or 'ddl' in pgaudit_log.stdout"
-    fail_msg: "DDL operations are NOT audited"
-    success_msg: "DDL operations are audited"
+      - "'all' in pgaudit_log.stdout or 'role' in pgaudit_log.stdout"
+    fail_msg: "Audit logging does NOT cover privilege changes"
+    success_msg: "Audit logging covers privilege changes"
 
 ############################################################
 # 3️⃣ Check logging collector
 ############################################################
 
-- name: "V-206620 | Check logging_collector"
+- name: "V-206618 | Check logging_collector"
   become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW logging_collector;"
   register: logging_collector
 
-- name: "V-206620 | Assert logging enabled"
+- name: "V-206618 | Assert logging enabled"
   ansible.builtin.assert:
     that:
       - "'on' in logging_collector.stdout"
@@ -82,29 +59,29 @@
     success_msg: "logging_collector is ON"
 
 ############################################################
-# 4️⃣ Verify audit logs exist
+# 4️⃣ Check for audit logs
 ############################################################
 
-- name: "V-206620 | Check audit log entries"
+- name: "V-206618 | Check for audit entries"
   become: true
   ansible.builtin.shell: >
     grep -i "AUDIT" {{ postgresql_srg_log_dir | default('/var/lib/pgsql') }}/*/data/log/* 2>/dev/null | tail -n 5
   register: audit_logs
   ignore_errors: true
 
-- name: "V-206620 | Warn if no logs found"
+- name: "V-206618 | Warn if no logs found"
   ansible.builtin.debug:
-    msg: "No audit logs found — run DDL test"
+    msg: "No audit logs found — run GRANT/REVOKE test"
   when: audit_logs.stdout_lines | length == 0
 
 ############################################################
 # 5️⃣ Final assertion
 ############################################################
 
-- name: "V-206620 | Final compliance check"
+- name: "V-206618 | Final compliance check"
   ansible.builtin.assert:
     that:
       - "'pgaudit' in pgaudit_lib.stdout"
       - "'on' in logging_collector.stdout"
-    fail_msg: "System is NOT compliant with V-206620"
-    success_msg: "System is compliant with V-206620"
+    fail_msg: "System is NOT compliant with V-206618"
+    success_msg: "System is compliant with V-206618"

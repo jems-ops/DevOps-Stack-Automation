@@ -1,0 +1,104 @@
+---
+############################################################
+# STIG Control: V-206614
+# SRG ID: SRG-APP-000496
+# Severity: CAT II
+#
+# Title:
+# The DBMS must generate audit records when categories of
+# information (e.g., classification levels/security levels)
+# are accessed.
+#
+# Status:
+# NOT A FINDING (if properly configured)
+#
+# Finding Details:
+# If audit records are not generated when categories of
+# information are accessed, to include reads, creations,
+# modifications, and deletions, unauthorized access to
+# protected data may go undetected. Failure to generate
+# these audit records constitutes a finding.
+#
+# Manual Procedure:
+# 1. Review DBMS documentation to verify audit capability.
+# 2. Verify pgaudit is enabled:
+#    SHOW shared_preload_libraries;
+# 3. Verify audit configuration:
+#    SHOW pgaudit.log;
+# 4. Execute test queries:
+#    SELECT, INSERT, UPDATE, DELETE
+# 5. Verify audit logs are generated:
+#    grep AUDIT /var/lib/pgsql/*/data/log/*
+#
+# Implementation Summary:
+# PostgreSQL is configured with the pgaudit extension to
+# generate audit records when categories of information
+# are accessed. The configuration ensures logging of:
+#   - READ operations (SELECT)
+#   - WRITE operations (INSERT, UPDATE, DELETE)
+#   - DDL operations (CREATE, ALTER, DROP)
+#   - ROLE and FUNCTION execution
+#
+# Comment:
+# pgaudit.log = 'all' enables comprehensive auditing in
+# PostgreSQL, ensuring audit records are generated for all
+# categories of information access, including reads,
+# creations, modifications, and deletions. This satisfies
+# the STIG requirement.
+############################################################
+
+############################################################
+# 1️⃣ Ensure pgaudit installed
+############################################################
+
+- name: "V-206614 | Ensure pgaudit installed"
+  become: true
+  ansible.builtin.package:
+    name: pgaudit
+    state: present
+
+############################################################
+# 2️⃣ Enable pgaudit
+############################################################
+
+- name: "V-206614 | Enable pgaudit library"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_postgresql_conf }}"
+    regexp: '^shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+    create: yes
+
+############################################################
+# 3️⃣ Configure full audit coverage
+############################################################
+
+- name: "V-206614 | Configure audit logging"
+  become: true
+  ansible.builtin.blockinfile:
+    path: "{{ postgresql_srg_postgresql_conf }}"
+    block: |
+      pgaudit.log = 'all'
+      pgaudit.log_parameter = on
+      pgaudit.log_catalog = off
+
+############################################################
+# 4️⃣ Ensure logging collector enabled
+############################################################
+
+- name: "V-206614 | Enable logging collector"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_postgresql_conf }}"
+    regexp: '^logging_collector'
+    line: "logging_collector = on"
+
+############################################################
+# 5️⃣ Restart PostgreSQL
+############################################################
+
+- name: "V-206614 | Restart PostgreSQL"
+  become: true
+  ansible.builtin.service:
+    name: "{{ postgresql_srg_service_name }}"
+    state: restarted

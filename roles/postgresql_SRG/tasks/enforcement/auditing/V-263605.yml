@@ -1,0 +1,73 @@
+---
+############################################################
+# STIG Control: V-263605
+# CCI: CCI-003831
+# SRG ID: SRG-APP-000516-DB-000318
+# Severity: CAT II
+#
+# Title:
+# The DBMS must alert organization-defined personnel or roles
+# upon detection of unauthorized access, modification, or
+# deletion of audit information.
+#
+# Description:
+# This control ensures that audit events related to unauthorized
+# access or tampering are detected and alerts are generated to
+# notify security personnel. PostgreSQL provides logging
+# capabilities, and external SIEM tools (e.g., Wazuh) are used
+# to generate alerts.
+#
+# Implementation Summary:
+# - Enable PostgreSQL logging for authentication and DDL events
+# - Enable pgAudit for enhanced auditing
+# - Ensure logs are written to a secure directory
+# - Logs are monitored by Wazuh for alerting
+#
+# Dependencies:
+# - PostgreSQL 16
+# - pgAudit extension installed and configured
+# - Wazuh agent configured on host
+#
+# Notes:
+# PostgreSQL does not natively alert. Alerting is achieved via
+# Wazuh monitoring PostgreSQL log files.
+############################################################
+
+############################################################
+# STIG V-263605 Enforcement
+############################################################
+
+- name: "Ensure PostgreSQL logging is enabled"
+  become: true
+  lineinfile:
+    path: "{{ postgresql_conf }}"
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+  loop:
+    - { key: "logging_collector", value: "on" }
+    - { key: "log_connections", value: "on" }
+    - { key: "log_disconnections", value: "on" }
+    - { key: "log_statement", value: "'ddl'" }
+    - { key: "log_directory", value: "'log'" }
+
+- name: "Ensure pgAudit is configured"
+  become: true
+  lineinfile:
+    path: "{{ postgresql_conf }}"
+    regexp: "^pgaudit.log"
+    line: "pgaudit.log = 'all'"
+
+- name: "Ensure log directory exists"
+  become: true
+  file:
+    path: "/var/lib/pgsql/data/log"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0700'
+
+- name: "Restart PostgreSQL"
+  become: true
+  service:
+    name: "{{ postgresql_service }}"
+    state: restarted

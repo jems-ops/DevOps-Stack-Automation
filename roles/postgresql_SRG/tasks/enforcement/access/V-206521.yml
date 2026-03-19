@@ -97,7 +97,7 @@
     type: schema
     objs: "{{ item }}"
     roles: PUBLIC
-    privs: CREATE, USAGE
+    privs: CREATE,USAGE
     state: absent
   loop: "{{ postgresql_srg_effective_schemas }}"
   when: postgresql_srg_effective_schemas | length > 0
@@ -171,7 +171,7 @@
   become_user: postgres
   community.postgresql.postgresql_user:
     name: "{{ postgresql_srg_readonly_role }}"
-    role_attr_flags: "NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOLOGIN"
+    role_attr_flags: "NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOLOGIN"
     state: present
   tags: ['V-206521', 'rbac']
 

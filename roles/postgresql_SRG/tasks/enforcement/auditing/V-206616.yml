@@ -1,0 +1,100 @@
+---
+############################################################
+# STIG Control: V-206616
+# SRG ID: SRG-APP-000499
+# Severity: CAT II
+#
+# Title:
+# The DBMS must generate audit records when privileges/
+# permissions/role memberships are added.
+#
+# Status:
+# NOT A FINDING (if properly configured)
+#
+# Finding Details:
+# If audit records are not generated when privileges,
+# permissions, or role memberships are added, unauthorized
+# privilege escalation may go undetected. Failure to track
+# GRANT operations and role changes constitutes a finding.
+#
+# Manual Procedure:
+# 1. Verify pgaudit is enabled:
+#    SHOW shared_preload_libraries;
+# 2. Verify audit configuration:
+#    SHOW pgaudit.log;
+# 3. Execute privilege change:
+#    CREATE ROLE testuser;
+#    GRANT SELECT ON pg_tables TO testuser;
+#    GRANT testuser TO postgres;
+# 4. Verify audit logs:
+#    grep AUDIT /var/lib/pgsql/*/data/log/*
+#
+# Implementation Summary:
+# PostgreSQL is configured with the pgaudit extension to
+# generate audit records for privilege and role changes.
+# The configuration ensures logging of:
+#   - GRANT and REVOKE statements
+#   - ROLE membership changes
+#   - Privilege assignments on database objects
+#
+# Comment:
+# pgaudit.log = 'role, ddl' (or 'all') ensures that all
+# privilege and role membership changes (GRANT/REVOKE)
+# are captured in audit logs, satisfying this requirement.
+############################################################
+
+############################################################
+# 1️⃣ Ensure pgaudit installed
+############################################################
+
+- name: "V-206616 | Ensure pgaudit installed"
+  become: true
+  ansible.builtin.package:
+    name: pgaudit
+    state: present
+
+############################################################
+# 2️⃣ Enable pgaudit
+############################################################
+
+- name: "V-206616 | Enable pgaudit library"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_postgresql_conf }}"
+    regexp: '^shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+    create: yes
+
+############################################################
+# 3️⃣ Configure audit for privilege changes
+############################################################
+
+- name: "V-206616 | Configure privilege audit logging"
+  become: true
+  ansible.builtin.blockinfile:
+    path: "{{ postgresql_srg_postgresql_conf }}"
+    block: |
+      pgaudit.log = 'role, ddl'
+      pgaudit.log_parameter = on
+      pgaudit.log_catalog = off
+
+############################################################
+# 4️⃣ Ensure logging collector enabled
+############################################################
+
+- name: "V-206616 | Enable logging collector"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_postgresql_conf }}"
+    regexp: '^logging_collector'
+    line: "logging_collector = on"
+
+############################################################
+# 5️⃣ Restart PostgreSQL
+############################################################
+
+- name: "V-206616 | Restart PostgreSQL"
+  become: true
+  ansible.builtin.service:
+    name: "{{ postgresql_srg_service_name }}"
+    state: restarted

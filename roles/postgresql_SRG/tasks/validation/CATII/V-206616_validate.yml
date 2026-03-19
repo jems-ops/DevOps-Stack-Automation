@@ -1,0 +1,91 @@
+---
+############################################################
+# STIG Control: V-206616
+# Validation (Audit Only)
+############################################################
+
+############################################################
+# 1️⃣ Check pgaudit is loaded
+############################################################
+
+- name: "V-206616 | Check shared_preload_libraries"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW shared_preload_libraries;"
+  register: pgaudit_lib
+
+- name: "V-206616 | Assert pgaudit is enabled"
+  ansible.builtin.assert:
+    that:
+      - "'pgaudit' in pgaudit_lib.stdout"
+    fail_msg: "pgaudit is NOT enabled in shared_preload_libraries"
+    success_msg: "pgaudit is enabled"
+
+############################################################
+# 2️⃣ Check audit configuration
+############################################################
+
+- name: "V-206616 | Check pgaudit.log setting"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW pgaudit.log;"
+  register: pgaudit_log
+
+- name: "V-206616 | Validate audit coverage"
+  ansible.builtin.assert:
+    that:
+      - "'role' in pgaudit_log.stdout or 'all' in pgaudit_log.stdout"
+    fail_msg: "pgaudit.log does NOT include ROLE or ALL (required for privilege auditing)"
+    success_msg: "pgaudit.log properly configured for privilege auditing"
+
+############################################################
+# 3️⃣ Check logging collector
+############################################################
+
+- name: "V-206616 | Check logging_collector"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW logging_collector;"
+  register: logging_collector
+
+- name: "V-206616 | Assert logging collector enabled"
+  ansible.builtin.assert:
+    that:
+      - "'on' in logging_collector.stdout"
+    fail_msg: "logging_collector is OFF"
+    success_msg: "logging_collector is ON"
+
+############################################################
+# 4️⃣ Check PostgreSQL log directory exists
+############################################################
+
+- name: "V-206616 | Check log directory"
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_log_dir | default('/var/lib/pgsql') }}"
+  register: log_dir
+
+- name: "V-206616 | Assert log directory exists"
+  ansible.builtin.assert:
+    that:
+      - log_dir.stat.exists
+    fail_msg: "PostgreSQL log directory not found"
+    success_msg: "Log directory exists"
+
+############################################################
+# 5️⃣ (Optional) Check recent audit entries exist
+############################################################
+
+- name: "V-206616 | Search for AUDIT entries"
+  become: true
+  ansible.builtin.shell: >
+    grep -i "AUDIT" {{ postgresql_srg_log_dir | default('/var/lib/pgsql') }}/*/data/log/* 2>/dev/null | tail -n 5
+  register: audit_logs
+  ignore_errors: true
+
+- name: "V-206616 | Warn if no audit logs found"
+  ansible.builtin.debug:
+    msg: "No recent AUDIT logs found — generate test activity if needed"
+  when: audit_logs.stdout_lines | length == 0
