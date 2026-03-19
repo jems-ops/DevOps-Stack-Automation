@@ -1,0 +1,167 @@
+---
+############################################################
+# Category: Access Control
+# Auth, RBAC, sessions, passwords, privileges
+############################################################
+
+# --- CAT I ---
+- name: "Access | V-206520"
+  ansible.builtin.import_tasks: V-206520.yml
+  when: postgresql_srg_v206520_enabled | bool
+  tags: [enforce, access, CATI, V-206520]
+
+- name: "Access | V-206521"
+  ansible.builtin.import_tasks: V-206521.yml
+  when: postgresql_srg_v206521_enabled | bool
+  tags: [enforce, access, CATI, V-206521]
+
+- name: "Access | V-206545"
+  ansible.builtin.import_tasks: V-206545.yml
+  when: postgresql_srg_v206545_enabled | bool
+  tags: [enforce, access, CATI, V-206545]
+
+- name: "Access | V-206555"
+  ansible.builtin.import_tasks: V-206555.yml
+  when: postgresql_srg_v206555_enabled | bool
+  tags: [enforce, access, CATI, V-206555]
+
+- name: "Access | V-206556"
+  ansible.builtin.import_tasks: V-206556.yml
+  when: postgresql_srg_v206556_enabled | bool
+  tags: [enforce, access, CATI, V-206556]
+
+- name: "Access | V-206557"
+  ansible.builtin.import_tasks: V-206557.yml
+  when: postgresql_srg_v206557_enabled | bool
+  tags: [enforce, access, CATI, V-206557]
+
+- name: "Access | V-206559"
+  ansible.builtin.import_tasks: V-206559.yml
+  when: postgresql_srg_v206559_enabled | bool
+  tags: [enforce, access, CATI, V-206559]
+
+- name: "Access | V-206561"
+  ansible.builtin.import_tasks: V-206561.yml
+  when: postgresql_srg_v206561_enabled | bool
+  tags: [enforce, access, CATI, V-206561]
+
+# --- CAT II ---
+- name: "Access | V-206519"
+  ansible.builtin.import_tasks: V-206519.yml
+  when: postgresql_srg_v206519_enabled | bool
+  tags: [enforce, access, CATII, V-206519]
+
+- name: "Access | V-206544"
+  ansible.builtin.import_tasks: V-206544.yml
+  when: postgresql_srg_v206544_enabled | bool
+  tags: [enforce, access, CATII, V-206544]
+
+- name: "Access | V-206547"
+  ansible.builtin.import_tasks: V-206547.yml
+  when: postgresql_srg_v206547_enabled | bool
+  tags: [enforce, access, CATII, V-206547]
+
+- name: "Access | V-206548"
+  ansible.builtin.import_tasks: V-206548.yml
+  when: postgresql_srg_v206548_enabled | bool
+  tags: [enforce, access, CATII, V-206548]
+
+- name: "Access | V-206554"
+  ansible.builtin.import_tasks: V-206554.yml
+  when: postgresql_srg_v206554_enabled | bool
+  tags: [enforce, access, CATII, V-206554]
+
+- name: "Access | V-206565"
+  ansible.builtin.import_tasks: V-206565.yml
+  when: postgresql_srg_v206565_enabled | bool
+  tags: [enforce, access, CATII, V-206565]
+
+- name: "Access | V-206566"
+  ansible.builtin.import_tasks: V-206566.yml
+  when: postgresql_srg_v206566_enabled | bool
+  tags: [enforce, access, CATII, V-206566]
+
+- name: "Access | V-206567"
+  ansible.builtin.import_tasks: V-206567.yml
+  when: postgresql_srg_v206567_enabled | bool
+  tags: [enforce, access, CATII, V-206567]
+
+- name: "Access | V-206580"
+  ansible.builtin.import_tasks: V-206580.yml
+  when: postgresql_srg_v206580_enabled | bool
+  tags: [enforce, access, CATII, V-206580]
+
+- name: "Access | V-206600"
+  ansible.builtin.import_tasks: V-206600.yml
+  when: postgresql_srg_v206600_enabled | bool
+  tags: [enforce, access, CATII, V-206600]
+
+- name: "Access | V-203602"
+  ansible.builtin.import_tasks: V-203602.yml
+  when: postgresql_srg_v203602_enabled | bool
+  tags: [enforce, access, CATII, V-203602]
+
+- name: "Access | V-203603"
+  ansible.builtin.import_tasks: V-203603.yml
+  when: postgresql_srg_v203603_enabled | bool
+  tags: [enforce, access, CATII, V-203603]
+
+- name: "Access | V-263607"
+  ansible.builtin.import_tasks: V-263607.yml
+  when: postgresql_srg_v263607_enabled | bool
+  tags: [enforce, access, CATII, V-263607]
+
+- name: "Access | V-263608"
+  ansible.builtin.import_tasks: V-263608.yml
+  when: postgresql_srg_v263608_enabled | bool
+  tags: [enforce, access, CATII, V-263608]
+
+- name: "Access | V-263609"
+  ansible.builtin.import_tasks: V-263609.yml
+  when: postgresql_srg_v263609_enabled | bool
+  tags: [enforce, access, CATII, V-263609]
+
+- name: "Access | V-263610"
+  ansible.builtin.import_tasks: V-263610.yml
+  when: postgresql_srg_v263610_enabled | bool
+  tags: [enforce, access, CATII, V-263610]
+
+- name: "Access | V-263611"
+  ansible.builtin.import_tasks: V-263611.yml
+  when: postgresql_srg_v263611_enabled | bool
+  tags: [enforce, access, CATII, V-263611]
+
+- name: "Access | V-263612"
+  ansible.builtin.import_tasks: V-263612.yml
+  when: postgresql_srg_v263612_enabled | bool
+  tags: [enforce, access, CATII, V-263612]
+
+- name: "Access | V-263613"
+  ansible.builtin.import_tasks: V-263613.yml
+  when: postgresql_srg_v263613_enabled | bool
+  tags: [enforce, access, CATII, V-263613]
+
+- name: "Access | V-263614"
+  ansible.builtin.import_tasks: V-263614.yml
+  when: postgresql_srg_v263614_enabled | bool
+  tags: [enforce, access, CATII, V-263614]
+
+- name: "Access | V-263615"
+  ansible.builtin.import_tasks: V-263615.yml
+  when: postgresql_srg_v263615_enabled | bool
+  tags: [enforce, access, CATII, V-263615]
+
+- name: "Access | V-263616"
+  ansible.builtin.import_tasks: V-263616.yml
+  when: postgresql_srg_v263616_enabled | bool
+  tags: [enforce, access, CATII, V-263616]
+
+- name: "Access | V-263617"
+  ansible.builtin.import_tasks: V-263617.yml
+  when: postgresql_srg_v263617_enabled | bool
+  tags: [enforce, access, CATII, V-263617]
+
+- name: "Access | V-263618"
+  ansible.builtin.import_tasks: V-263618.yml
+  when: postgresql_srg_v263618_enabled | bool
+  tags: [enforce, access, CATII, V-263618]

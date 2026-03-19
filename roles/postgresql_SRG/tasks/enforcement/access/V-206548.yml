@@ -1,0 +1,120 @@
+---
+############################################################
+# STIG Control: V-206548
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must restrict database structure modification
+# privileges to authorized users.
+#
+# Finding Details:
+# Database structure modifications such as CREATE, ALTER,
+# and DROP operations can affect database integrity and
+# security. These privileges must be restricted to
+# authorized administrative roles to prevent unauthorized
+# schema changes.
+#
+# Implementation in this Environment:
+# PostgreSQL restricts database structure modification
+# privileges through role-based access control. A dedicated
+# DDL administrative role is used to manage schema
+# modifications, and CREATE privileges on the public schema
+# are revoked from PUBLIC users.
+#
+# Only authorized administrators are permitted membership
+# in the DDL role.
+#
+# Manual Verification Steps:
+#
+# 1. Verify CREATE privilege on public schema:
+#
+#       \dn+ public
+#
+# 2. Verify members of DDL role:
+#
+#       SELECT r.rolname
+#       FROM pg_auth_members m
+#       JOIN pg_roles r ON m.member = r.oid
+#       WHERE m.roleid =
+#       (SELECT oid FROM pg_roles WHERE rolname='ddl_admin');
+#
+# Comment:
+# Database structure modification privileges are restricted
+# to authorized administrative roles. The PUBLIC role does
+# not have CREATE privileges on the public schema, and
+# membership in the DDL administrative role is restricted
+# to approved administrators.
+############################################################
+
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Ensure DDL Role Exists
+############################
+
+- name: "V-206548 | Ensure DDL role exists"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ postgresql_srg_ddl_role }}';" | grep -q 1 || \
+    psql -c "CREATE ROLE {{ postgresql_srg_ddl_role }} NOLOGIN;"
+  changed_when: false
+  tags: ['V-206548', 'CAT II', 'enforce']
+
+
+############################
+# Revoke CREATE from PUBLIC
+############################
+
+- name: "V-206548 | Revoke CREATE from PUBLIC schema"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
+  changed_when: false
+  tags: ['V-206548', 'CAT II', 'enforce']
+
+
+############################
+# Grant CREATE to DDL Role
+############################
+
+- name: "V-206548 | Grant CREATE to DDL role"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -c "GRANT CREATE ON SCHEMA public TO {{ postgresql_srg_ddl_role }};"
+  changed_when: false
+  tags: ['V-206548', 'CAT II', 'enforce']
+
+
+############################
+# Restrict DDL Role Membership
+############################
+
+- name: "V-206548 | Remove unauthorized DDL role members"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO \$\$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT m.rolname
+        FROM pg_auth_members am
+        JOIN pg_roles r1 ON am.roleid = r1.oid
+        JOIN pg_roles m ON am.member = m.oid
+        WHERE r1.rolname='{{ postgresql_srg_ddl_role }}'
+        AND m.rolname NOT IN ('{{ postgresql_srg_authorized_ddl_users | join("', '") }}')
+      LOOP
+        EXECUTE format('REVOKE {{ postgresql_srg_ddl_role }} FROM %I;', r.rolname);
+      END LOOP;
+    END \$\$;"
+  changed_when: false
+  tags: ['V-206548', 'CAT II', 'enforce']

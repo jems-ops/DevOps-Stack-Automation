@@ -1,0 +1,44 @@
+---
+############################################################
+# Category: Lifecycle
+# Version management, patching, time sync, cleanup
+# NOTE: Cleanup controls (V-206549, V-206610) are gated
+#       behind postgresql_srg_allow_removal for safety.
+############################################################
+
+# --- CAT I ---
+- name: "Lifecycle | V-265854"
+  ansible.builtin.import_tasks: V-265854.yml
+  when: postgresql_srg_v265854_enabled | bool
+  tags: [enforce, lifecycle, CATI, V-265854]
+
+# --- CAT II ---
+- name: "Lifecycle | V-206549"
+  ansible.builtin.import_tasks: V-206549.yml
+  when: postgresql_srg_v206549_enabled | bool
+  tags: [enforce, lifecycle, CATII, V-206549]
+
+- name: "Lifecycle | V-206610"
+  ansible.builtin.import_tasks: V-206610.yml
+  when: postgresql_srg_v206610_enabled | bool
+  tags: [enforce, lifecycle, CATII, V-206610]
+
+- name: "Lifecycle | V-206611"
+  ansible.builtin.import_tasks: V-206611.yml
+  when: postgresql_srg_v206611_enabled | bool
+  tags: [enforce, lifecycle, CATII, V-206611]
+
+- name: "Lifecycle | V-263606"
+  ansible.builtin.import_tasks: V-263606.yml
+  when: postgresql_srg_v263606_enabled | bool
+  tags: [enforce, lifecycle, CATII, V-263606]
+
+- name: "Lifecycle | V-263621"
+  ansible.builtin.import_tasks: V-263621.yml
+  when: postgresql_srg_v263621_enabled | bool
+  tags: [enforce, lifecycle, CATII, V-263621]
+
+- name: "Lifecycle | V-263622"
+  ansible.builtin.import_tasks: V-263622.yml
+  when: postgresql_srg_v263622_enabled | bool
+  tags: [enforce, lifecycle, CATII, V-263622]

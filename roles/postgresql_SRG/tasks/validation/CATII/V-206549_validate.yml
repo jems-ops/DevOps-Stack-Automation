@@ -6,10 +6,10 @@
 - name: "V-206549 | Display installed databases"
   ansible.builtin.debug:
     var: v206549_dbs.stdout_lines
-  tags: ['V-206549','CAT II','check']
+  tags: ['V-206549', 'CAT II', 'check']
 
 
 - name: "V-206549 | Display installed extensions"
   ansible.builtin.debug:
     var: v206549_ext.stdout_lines
-  tags: ['V-206549','CAT II','check']
+  tags: ['V-206549', 'CAT II', 'check']

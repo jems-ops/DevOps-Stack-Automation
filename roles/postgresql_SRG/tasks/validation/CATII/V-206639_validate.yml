@@ -16,9 +16,9 @@
   ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
   register: fips_status
   changed_when: false
-  tags: ['V-206639','CAT II', 'validate']
+  tags: ['V-206639', 'CAT II', 'validate']
 
 - name: "V-206639 | Display FIPS status"
   ansible.builtin.debug:
     var: fips_status.stdout
-  tags: ['V-206639','CAT II', 'validate']
+  tags: ['V-206639', 'CAT II', 'validate']

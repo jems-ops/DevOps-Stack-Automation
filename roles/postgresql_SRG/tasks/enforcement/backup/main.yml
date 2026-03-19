@@ -1,0 +1,12 @@
+---
+############################################################
+# Category: Backup
+# Pre-enforcement config backup with retention pruning
+############################################################
+
+- name: "Backup | Run pre-enforcement backup"
+  ansible.builtin.include_tasks:
+    file: backup.yml
+    apply:
+      tags: [always]
+  tags: [always, backup, enforce]

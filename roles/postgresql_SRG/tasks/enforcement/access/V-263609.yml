@@ -1,0 +1,53 @@
+---
+############################################################
+# STIG Control: V-263609
+# Status: NOT APPLICABLE
+#
+# Title:
+# The DBMS must implement multifactor authentication for
+# access to privileged and nonprivileged accounts.
+#
+# Finding Details:
+# Multifactor authentication helps prevent unauthorized
+# access by requiring multiple verification factors during
+# authentication.
+#
+# Implementation in this Environment:
+# PostgreSQL is deployed as the backend database for the
+# SonarQube application. End users do not authenticate
+# directly to the DBMS.
+#
+# User authentication occurs at the application layer
+# through the enterprise identity provider (Keycloak SSO),
+# which enforces multifactor authentication.
+#
+# PostgreSQL is accessed only by application service
+# accounts and does not provide direct user authentication.
+#
+# Comment:
+# Since PostgreSQL does not authenticate end users in this
+# architecture, multifactor authentication is enforced by
+# the centralized identity provider (Keycloak) rather than
+# the DBMS. Therefore this control is not applicable to
+# the PostgreSQL deployment.
+#
+# Manual Verification Steps:
+#
+# 1. Verify SonarQube authentication uses Keycloak SSO.
+#
+# 2. Verify PostgreSQL roles are application service
+#    accounts:
+#
+#       SELECT rolname FROM pg_roles;
+#
+# 3. Confirm users do not authenticate directly to
+#    PostgreSQL.
+############################################################
+
+- name: "V-263609 | MFA handled by application identity provider"
+  ansible.builtin.debug:
+    msg: "DBMS does not perform user authentication; control not applicable."
+  tags:
+    - V-263609
+    - CATII
+    - enforce

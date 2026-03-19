@@ -53,7 +53,7 @@
     psql -t -A -c "SHOW data_directory;"
   register: v206546_data_dir
   changed_when: false
-  tags: ['V-206546','CAT II','check']
+  tags: ['V-206546', 'CAT II', 'check']
 
 
 - name: "V-206546 | Validate data directory path"
@@ -65,7 +65,7 @@
       PostgreSQL data directory not located in dedicated path.
     success_msg: >
       PostgreSQL data directory located in dedicated directory.
-  tags: ['V-206546','CAT II','check']
+  tags: ['V-206546', 'CAT II', 'check']
 
 
 ############################
@@ -77,7 +77,7 @@
   ansible.builtin.stat:
     path: "{{ postgresql_srg_pg_bin_path }}/postgres"
   register: v206546_bin
-  tags: ['V-206546','CAT II','check']
+  tags: ['V-206546', 'CAT II', 'check']
 
 
 - name: "V-206546 | Validate binary directory"
@@ -90,7 +90,7 @@
       PostgreSQL binary not located in dedicated pgsql directory.
     success_msg: >
       PostgreSQL binary installed in dedicated directory ({{ postgresql_srg_pg_bin_path }}).
-  tags: ['V-206546','CAT II','check']
+  tags: ['V-206546', 'CAT II', 'check']
 
 
 ############################
@@ -102,7 +102,7 @@
   ansible.builtin.stat:
     path: "{{ postgresql_srg_conf_file }}"
   register: v206546_conf
-  tags: ['V-206546','CAT II','check']
+  tags: ['V-206546', 'CAT II', 'check']
 
 
 - name: "V-206546 | Assert configuration file exists"
@@ -114,4 +114,4 @@
       PostgreSQL configuration file not found.
     success_msg: >
       PostgreSQL configuration file located in dedicated directory.
-  tags: ['V-206546','CAT II','check']
+  tags: ['V-206546', 'CAT II', 'check']

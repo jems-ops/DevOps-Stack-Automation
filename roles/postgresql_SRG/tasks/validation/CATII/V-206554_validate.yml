@@ -55,9 +55,9 @@
     psql -t -c "SELECT rolname FROM pg_roles;"
   register: postgres_roles
   changed_when: false
-  tags: ['V-206554','CAT II','check']
+  tags: ['V-206554', 'CAT II', 'check']
 
 - name: "V-206554 | Display PostgreSQL roles"
   ansible.builtin.debug:
     var: postgres_roles.stdout_lines
-  tags: ['V-206554','CAT II','check']
+  tags: ['V-206554', 'CAT II', 'check']

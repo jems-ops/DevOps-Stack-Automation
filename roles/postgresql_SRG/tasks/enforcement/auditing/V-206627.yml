@@ -1,0 +1,62 @@
+---
+############################################################
+# STIG Control: V-206627
+# Status : NOT A FINDING
+#
+# Title:
+# DBMS must generate audit records for attempts to
+# delete security objects.
+#
+# Finding Details:
+# Logging deletion attempts against security-related
+# database objects ensures administrators can detect
+# unauthorized attempts to modify database security
+# configuration.
+#
+# Implementation in this Environment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension and database logging configuration.
+#
+# Security-related operations such as DROP ROLE,
+# REVOKE privileges, DROP SCHEMA, and other privileged
+# DDL actions are recorded in audit logs.
+#
+# Manual Verification Steps:
+#
+# 1. Verify pgaudit extension installed:
+#
+#       SELECT extname FROM pg_extension WHERE extname='pgaudit';
+#
+# 2. Verify pgaudit library loaded:
+#
+#       SHOW shared_preload_libraries;
+#
+# 3. Verify audit classes include role and ddl:
+#
+#       SHOW pgaudit.log;
+#
+# Comment:
+# PostgreSQL auditing is implemented using the pgaudit
+# extension. Security-related operations such as DROP
+# ROLE, REVOKE, and other privileged DDL actions are
+# recorded in audit logs. Both successful and failed
+# attempts to delete security objects generate audit
+# records containing timestamp, user identity, and
+# affected object.
+############################################################
+
+- name: "V-206627 | Ensure pgaudit library loaded"
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?shared_preload_libraries'
+    line: "shared_preload_libraries = 'pgaudit'"
+  become: true
+  tags: ['V-206627', 'CAT II', 'enforce']
+
+- name: "V-206627 | Configure audit logging for security operations"
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^#?pgaudit\.log\s*='
+    line: "pgaudit.log = '{{ postgresql_srg_pgaudit_classes }}'"
+  become: true
+  tags: ['V-206627', 'CAT II', 'enforce']

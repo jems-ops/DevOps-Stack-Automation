@@ -1,0 +1,94 @@
+---
+############################################################
+# PostgreSQL SRG — Pre-enforcement Backup
+############################################################
+# Creates a timestamped tar.gz archive of all PostgreSQL config
+# files before enforcement tasks modify them.  Old archives are
+# pruned based on postgresql_srg_backup_retention_count.
+############################################################
+
+- name: Backup | Generate timestamp for backup filename
+  ansible.builtin.set_fact:
+    _srg_backup_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+- name: Backup | Ensure backup directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_backup_dir }}"
+    state: directory
+    owner: "{{ postgresql_srg_postgres_user }}"
+    group: "{{ postgresql_srg_postgres_user }}"
+    mode: "0700"
+
+- name: Backup | Check which config files exist
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ postgresql_srg_backup_configs }}"
+  register: _srg_backup_stat
+
+- name: Backup | Build list of existing config files
+  ansible.builtin.set_fact:
+    _srg_backup_files: >-
+      {{ _srg_backup_stat.results
+         | selectattr('stat.exists', 'equalto', true)
+         | map(attribute='item')
+         | list }}
+
+- name: Backup | Create timestamped archive
+  become: true
+  ansible.builtin.archive:
+    path: "{{ _srg_backup_files }}"
+    dest: "{{ postgresql_srg_backup_dir }}/srg-backup-{{ _srg_backup_timestamp }}.tar.gz"
+    format: gz
+    owner: "{{ postgresql_srg_postgres_user }}"
+    group: "{{ postgresql_srg_postgres_user }}"
+    mode: "0600"
+  when: _srg_backup_files | length > 0
+
+- name: Backup | Record backup path as fact
+  ansible.builtin.set_fact:
+    postgresql_srg_last_backup: "{{ postgresql_srg_backup_dir }}/srg-backup-{{ _srg_backup_timestamp }}.tar.gz"
+  when: _srg_backup_files | length > 0
+
+- name: Backup | Completed
+  ansible.builtin.debug:
+    msg:
+      - "============================================"
+      - " Pre-Enforcement Backup Complete"
+      - "============================================"
+      - "Timestamp   : {{ _srg_backup_timestamp }}"
+      - "Archive     : {{ postgresql_srg_backup_dir }}/srg-backup-{{ _srg_backup_timestamp }}.tar.gz"
+      - "Files       : {{ _srg_backup_files | join(', ') }}"
+      - "Retention   : {{ postgresql_srg_backup_retention_count }} archives"
+      - "============================================"
+  when: _srg_backup_files | length > 0
+
+- name: Backup | Skipped (no config files found)
+  ansible.builtin.debug:
+    msg: "WARNING: No PostgreSQL config files found to back up."
+  when: _srg_backup_files | length == 0
+
+# --- Retention pruning ---------------------------------------------------
+
+- name: Backup | List existing backup archives
+  become: true
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_backup_dir }}"
+    patterns: "srg-backup-*.tar.gz"
+    file_type: file
+  register: _srg_backup_archives
+
+- name: Backup | Prune old backups beyond retention count
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: >-
+    {{ (_srg_backup_archives.files
+        | sort(attribute='mtime')
+        | reverse
+        | list)[postgresql_srg_backup_retention_count:] }}
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when: (_srg_backup_archives.files | length) > postgresql_srg_backup_retention_count

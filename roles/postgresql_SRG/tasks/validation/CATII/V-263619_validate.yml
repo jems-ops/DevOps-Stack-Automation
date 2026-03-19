@@ -23,7 +23,7 @@
   ansible.builtin.command: psql -t -c "SHOW ssl;"
   register: postgresql_srg_ssl_status
   changed_when: false
-  tags: ['V-263619','CAT II','check']
+  tags: ['V-263619', 'CAT II', 'check']
 
 - name: "V-263619 | Assert SSL disabled (Not Applicable)"
   ansible.builtin.assert:
@@ -31,4 +31,4 @@
       - "'off' in postgresql_srg_ssl_status.stdout"
     success_msg: "Control Not Applicable - PostgreSQL SSL/TLS is disabled"
     fail_msg: "STIG V-263619 FAILED: SSL enabled, trust store may be in use"
-  tags: ['V-263619','CAT II','check']
+  tags: ['V-263619', 'CAT II', 'check']

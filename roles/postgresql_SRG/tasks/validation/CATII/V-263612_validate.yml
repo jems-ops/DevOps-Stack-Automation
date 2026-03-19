@@ -11,4 +11,4 @@
 - name: "V-263612 | Procedural validation"
   ansible.builtin.debug:
     msg: "Password blacklist updates are managed by organizational password policy systems."
-  tags: ['V-263612','CAT II','check']
+  tags: ['V-263612', 'CAT II', 'check']

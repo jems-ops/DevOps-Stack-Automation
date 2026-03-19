@@ -11,7 +11,7 @@
     psql -t -A -c "SHOW shared_preload_libraries;"
   register: v206543_preload
   changed_when: false
-  tags: ['V-206543','CAT II','check']
+  tags: ['V-206543', 'CAT II', 'check']
 
 
 - name: "V-206543 | Verify pgaudit extension installed"
@@ -22,7 +22,7 @@
     -t -A -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
   register: v206543_ext
   changed_when: false
-  tags: ['V-206543','CAT II','check']
+  tags: ['V-206543', 'CAT II', 'check']
 
 
 - name: "V-206543 | Validate superuser restriction"
@@ -32,7 +32,7 @@
     psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper=true;"
   register: v206543_superusers
   changed_when: false
-  tags: ['V-206543','CAT II','check']
+  tags: ['V-206543', 'CAT II', 'check']
 
 
 - name: "V-206543 | Assert only authorized superusers exist"
@@ -44,4 +44,4 @@
       Unauthorized superuser could disable auditing.
     success_msg: >
       Audit features protected from unauthorized removal.
-  tags: ['V-206543','CAT II','check']
+  tags: ['V-206543', 'CAT II', 'check']

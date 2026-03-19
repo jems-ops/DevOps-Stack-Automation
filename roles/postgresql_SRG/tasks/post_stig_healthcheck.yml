@@ -106,14 +106,29 @@
       - "============================================"
       - " Post-STIG Health Check Summary"
       - "============================================"
+      - "Timestamp       : {{ ansible_date_time.iso8601 }}"
+      - "Host            : {{ inventory_hostname }}"
+      - "--------------------------------------------"
       - "PostgreSQL ({{ postgresql_srg_service_name }})"
       - "  Service state : {{ _pg_service.status.ActiveState }} / {{ _pg_service.status.SubState }}"
+      - "  Status        : {{ 'HEALTHY' if _pg_service.status.ActiveState == 'active' else 'UNHEALTHY' }}"
+      - "--------------------------------------------"
       - "SonarQube ({{ postgresql_srg_sonarqube_service_name }})"
       - "  Service state : {{ _sonar_service.status.ActiveState }} / {{ _sonar_service.status.SubState }}"
+      - "  Status        : {{ 'HEALTHY' if _sonar_service.status.ActiveState == 'active' else 'UNHEALTHY' }}"
+      - "--------------------------------------------"
       - "SonarQube Web   : {{ postgresql_srg_sonarqube_url }}"
       - "  HTTP status   : {{ _sonar_web.status | default('N/A') }}"
       - "  App status    : {{ _sonar_web.json.status | default('N/A') }}"
       - "  Version       : {{ _sonar_web.json.version | default('N/A') }}"
+      - "  Status        : {{ 'HEALTHY' if (_sonar_web.json.status | default('')) == 'UP' else 'UNHEALTHY' }}"
+      - "--------------------------------------------"
+      - >-
+        Overall         : {{ 'ALL HEALTHY'
+        if (_pg_service.status.ActiveState == 'active'
+        and _sonar_service.status.ActiveState == 'active'
+        and (_sonar_web.json.status | default('')) == 'UP')
+        else 'DEGRADED — CHECK ABOVE' }}
       - "============================================"
   tags:
     - healthcheck

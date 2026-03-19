@@ -32,7 +32,7 @@
   ansible.builtin.command: psql -t -A -c "SHOW log_line_prefix;"
   register: v206533_prefix
   changed_when: false
-  tags: ['V-206533','CAT II','check']
+  tags: ['V-206533', 'CAT II', 'check']
 
 
 ############################################################
@@ -54,4 +54,4 @@
       Current value: {{ v206533_prefix.stdout }}
     success_msg: >
       PostgreSQL audit logs include user identity and context fields.
-  tags: ['V-206533','CAT II','check']
+  tags: ['V-206533', 'CAT II', 'check']

@@ -10,7 +10,7 @@
     psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
   register: v206539_superusers
   changed_when: false
-  tags: ['V-206539','CAT II','check']
+  tags: ['V-206539', 'CAT II', 'check']
 
 
 - name: "V-206539 | Assert superuser restriction"
@@ -23,4 +23,4 @@
       Unauthorized user could modify audit data.
     success_msg: >
       PostgreSQL audit information protected from modification.
-  tags: ['V-206539','CAT II','check']
+  tags: ['V-206539', 'CAT II', 'check']

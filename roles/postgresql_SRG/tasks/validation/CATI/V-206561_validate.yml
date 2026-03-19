@@ -21,7 +21,7 @@
   register: v206561_pgpass
   changed_when: false
   failed_when: false
-  tags: ['V-206561','CAT-I','validate','postgres','stig']
+  tags: ['V-206561', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206561 | Check .pgpass permissions"
@@ -34,7 +34,7 @@
     - v206561_pgpass is defined
     - v206561_pgpass.matched | default(0) > 0
   changed_when: false
-  tags: ['V-206561','validate']
+  tags: ['V-206561', 'validate']
 
 
 - name: "V-206561 | Assert .pgpass secure"
@@ -45,7 +45,7 @@
   loop: "{{ v206561_pgpass_stat.results | default([]) }}"
   when: v206561_pgpass_stat is defined
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206561','CAT-I','validate','postgres','stig']
+  tags: ['V-206561', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -59,15 +59,15 @@
   register: v206561_log_statement
   changed_when: false
   failed_when: false
-  tags: ['V-206561','validate']
+  tags: ['V-206561', 'validate']
 
 
 - name: "V-206561 | Assert logging safe"
   ansible.builtin.assert:
     that:
-      - v206561_log_statement.stdout | trim in ['ddl','none']
+      - v206561_log_statement.stdout | trim in ['ddl', 'none']
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206561','CAT-I','validate','postgres','stig']
+  tags: ['V-206561', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -78,8 +78,8 @@
   become: true
   ansible.builtin.shell: |
     grep -RinI \
-      --exclude-dir={pg_wal,base,global,pg_stat,log} \
-      --exclude=*.{cfs,js,log} \
+      --exclude-dir={pg_wal, base, global, pg_stat, log} \
+      --exclude=*.{cfs, js, log} \
       -E "^[^#]*password\s*=" \
       {{ postgresql_srg_conf_file }} \
       {{ postgresql_srg_hba_file }} \
@@ -88,7 +88,7 @@
   register: v206561_password_search
   changed_when: false
   failed_when: false
-  tags: ['V-206561','validate']
+  tags: ['V-206561', 'validate']
 
 
 - name: "V-206561 | Assert no plaintext passwords"
@@ -96,7 +96,7 @@
     that:
       - v206561_password_search.stdout_lines | length == 0
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206561','CAT-I','validate','postgres','stig']
+  tags: ['V-206561', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -112,7 +112,7 @@
     - "{{ postgresql_srg_hba_file }}"
   register: v206561_conf_stat
   changed_when: false
-  tags: ['V-206561','validate']
+  tags: ['V-206561', 'validate']
 
 
 - name: "V-206561 | Assert config files secure"
@@ -122,4 +122,4 @@
       - item.stat.mode | int(base=8) <= 600
   loop: "{{ v206561_conf_stat.results }}"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206561','CAT-I','validate','postgres','stig']
+  tags: ['V-206561', 'CAT-I', 'validate', 'postgres', 'stig']

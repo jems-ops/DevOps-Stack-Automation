@@ -1,0 +1,89 @@
+---
+############################################################
+# STIG Control: V-206600
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must prevent privilege escalation without
+# requiring reauthentication.
+#
+# Finding Details:
+# If users are able to escalate privileges without proper
+# authorization controls, they may gain administrative
+# capabilities and bypass security restrictions.
+#
+# Implementation in this Environment:
+# PostgreSQL restricts privilege escalation by limiting
+# superuser role assignments and monitoring SECURITY
+# DEFINER functions that execute with elevated privileges.
+#
+# Only authorized administrative roles are permitted
+# superuser privileges. SECURITY DEFINER functions are
+# reviewed to ensure they are approved and necessary.
+#
+# Manual Verification Steps:
+#
+# 1. Verify superuser roles:
+#
+#       SELECT rolname
+#       FROM pg_roles
+#       WHERE rolsuper = true;
+#
+# 2. Verify SECURITY DEFINER functions:
+#
+#       SELECT n.nspname, p.proname
+#       FROM pg_proc p
+#       JOIN pg_namespace n ON p.pronamespace = n.oid
+#       WHERE p.prosecdef = true;
+#
+# 3. Confirm only authorized administrative roles have
+#    superuser privileges and SECURITY DEFINER functions
+#    are documented and approved.
+#
+# Comment:
+# PostgreSQL restricts privilege escalation by limiting
+# superuser privileges to authorized database administrators.
+# SECURITY DEFINER functions are monitored to ensure they
+# are approved and do not permit unauthorized privilege
+# escalation.
+############################################################
+
+- name: "V-206600 | Gather current superuser roles"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  register: v206600_superusers_raw
+  changed_when: false
+  tags: ['V-206600', 'CAT II', 'enforce']
+
+- name: "V-206600 | Identify unauthorized superusers"
+  ansible.builtin.set_fact:
+    v206600_unauthorized: >
+      {{
+        v206600_superusers_raw.stdout_lines
+        | difference(postgresql_srg_authorized_priv_roles)
+      }}
+  tags: ['V-206600', 'CAT II', 'enforce']
+
+- name: "V-206600 | Warn about unauthorized superusers (dry-run)"
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: role '{{ item }}' has superuser but is not in postgresql_srg_authorized_priv_roles.
+      Set postgresql_srg_allow_removal: true to revoke.
+  loop: "{{ v206600_unauthorized }}"
+  when:
+    - v206600_unauthorized | length > 0
+    - not (postgresql_srg_allow_removal | default(false) | bool)
+  tags: ['V-206600', 'CAT II', 'enforce']
+
+- name: "V-206600 | Remove unauthorized superuser privileges"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -c "ALTER ROLE {{ item }} NOSUPERUSER;"
+  loop: "{{ v206600_unauthorized }}"
+  when:
+    - v206600_unauthorized | length > 0
+    - postgresql_srg_allow_removal | default(false) | bool
+  tags: ['V-206600', 'CAT II', 'enforce']

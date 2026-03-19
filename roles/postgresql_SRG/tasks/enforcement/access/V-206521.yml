@@ -1,0 +1,206 @@
+---
+############################################################
+# STIG Control: V-206521
+# Status: NOT A FINDING
+#
+# Title: Enforce Least Privilege Access Control
+#
+# Finding Details:
+# Excessive privileges (especially PUBLIC) can expose data.
+#
+# SAFE ENFORCEMENT PRINCIPLES:
+# - DO NOT modify system schemas (pg_catalog, information_schema)
+# - DO NOT remove CONNECT
+# - ONLY restrict application schemas
+# - ENFORCE default privileges (critical)
+#
+# Implementation / Justification:
+# Least privilege is enforced in this PostgreSQL environment:
+#
+#   • PUBLIC privileges are revoked from application schemas
+#   • System schemas remain accessible as required by PostgreSQL
+#   • CREATE privileges are removed from PUBLIC at database level
+#   • Default privileges are hardened to prevent future exposure
+#   • RBAC is implemented via a controlled readonly role
+#   • Access is limited to authorized roles only
+#
+# Manual Verification Steps:
+#
+#   1. Verify PUBLIC CREATE privilege on database:
+#        SELECT has_database_privilege('public', '<db>', 'CREATE');
+#
+#   2. Verify schema-level privileges:
+#        SELECT nspname FROM pg_namespace
+#        WHERE has_schema_privilege('public', oid, 'CREATE');
+#
+#   3. Verify default privileges:
+#        SELECT * FROM pg_default_acl;
+#
+#   4. Verify PUBLIC table access:
+#        SELECT * FROM information_schema.role_table_grants
+#        WHERE grantee = 'public';
+#
+#   5. Verify RBAC role:
+#        SELECT rolname FROM pg_roles WHERE rolname='<readonly_role>';
+#
+# Summary:
+# PUBLIC access is restricted to prevent unauthorized privilege escalation.
+# Default privileges are hardened to secure both current and future objects.
+# RBAC is enforced for controlled access to database objects.
+# Therefore, least privilege is fully enforced and V-206521 is NOT A FINDING.
+############################################################
+
+############################################################
+# Normalize schemas
+############################################################
+
+- name: "V-206521 | Normalize schemas"
+  ansible.builtin.set_fact:
+    postgresql_srg_effective_schemas: >-
+      {{
+        postgresql_srg_application_schemas
+        | flatten
+        | map('trim')
+        | reject('equalto', '')
+        | difference(['pg_catalog', 'information_schema'])
+        | list
+      }}
+  tags: ['V-206521', 'CAT-II', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Restrict CREATE on database
+############################################################
+
+- name: "V-206521 | Revoke CREATE on database from PUBLIC"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgresql_srg_target_database }}"
+    type: database
+    objs: "{{ postgresql_srg_target_database }}"
+    roles: PUBLIC
+    privs: CREATE
+    state: absent
+  tags: ['V-206521', 'enforce']
+
+
+############################################################
+# Restrict schema access (CREATE + USAGE)
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC access on schemas"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgresql_srg_target_database }}"
+    type: schema
+    objs: "{{ item }}"
+    roles: PUBLIC
+    privs: CREATE, USAGE
+    state: absent
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  when: postgresql_srg_effective_schemas | length > 0
+  tags: ['V-206521', 'enforce']
+
+
+############################################################
+# OPTIONAL: Existing objects
+############################################################
+
+- name: "V-206521 | Revoke PUBLIC on existing tables"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "REVOKE ALL ON ALL TABLES IN SCHEMA {{ item }} FROM PUBLIC;"
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  when:
+    - postgresql_srg_revoke_existing_objects | default(false)
+    - postgresql_srg_effective_schemas | length > 0
+  changed_when: false
+  tags: ['V-206521', 'optional']
+
+
+############################################################
+# DEFAULT PRIVILEGES (COMPLETE)
+############################################################
+
+- name: "V-206521 | Harden default privileges (tables)"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+     REVOKE ALL ON TABLES FROM PUBLIC;"
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  changed_when: false
+  tags: ['V-206521', 'critical']
+
+
+- name: "V-206521 | Harden default privileges (sequences)"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+     REVOKE ALL ON SEQUENCES FROM PUBLIC;"
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  changed_when: false
+  tags: ['V-206521', 'critical']
+
+
+- name: "V-206521 | Harden default privileges (functions)"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+     REVOKE ALL ON FUNCTIONS FROM PUBLIC;"
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  changed_when: false
+  tags: ['V-206521', 'critical']
+
+
+############################################################
+# RBAC (IMPROVED)
+############################################################
+
+- name: "V-206521 | Ensure readonly role exists"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_srg_readonly_role }}"
+    role_attr_flags: "NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOLOGIN"
+    state: present
+  tags: ['V-206521', 'rbac']
+
+
+- name: "V-206521 | Grant SELECT on existing tables"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgresql_srg_target_database }}"
+    type: table
+    schema: "{{ item }}"
+    roles: "{{ postgresql_srg_readonly_role }}"
+    privs: SELECT
+    objs: ALL_IN_SCHEMA
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  tags: ['V-206521', 'rbac']
+
+
+############################################################
+# FUTURE OBJECTS 🔥 CRITICAL FIX
+############################################################
+
+- name: "V-206521 | Grant default SELECT for future tables"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c "
+      ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
+      GRANT SELECT ON TABLES TO {{ postgresql_srg_readonly_role }};"
+  loop: "{{ postgresql_srg_effective_schemas }}"
+  changed_when: false
+  tags: ['V-206521', 'rbac']

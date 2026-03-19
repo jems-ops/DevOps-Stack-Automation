@@ -1,33 +1,61 @@
 ---
 ############################################################
 # PostgreSQL SRG/STIG Role - Main Loader
+#
+# Auto-detect, backup, flush handlers, and healthcheck use
+# the 'always' tag so they run regardless of tag filtering.
+# This guarantees: backup runs first, healthcheck runs last.
 ############################################################
 
 - name: PostgreSQL SRG | Auto-detect PostgreSQL instance
-  ansible.builtin.include_tasks: auto-detect.yml
+  ansible.builtin.include_tasks:
+    file: auto-detect.yml
+    apply:
+      tags: [always]
   when: postgresql_srg_auto_detect | bool
+  tags:
+    - always
 
 - name: PostgreSQL SRG | Common tasks
-  ansible.builtin.include_tasks: common/normalize.yml
+  ansible.builtin.include_tasks:
+    file: common/normalize.yml
+    apply:
+      tags: [always]
   when: postgresql_srg_auto_detect | bool
+  tags:
+    - always
+
+- name: PostgreSQL SRG | Pre-enforcement Backup
+  ansible.builtin.include_tasks:
+    file: enforcement/backup/main.yml
+    apply:
+      tags: [always]
+  when: postgresql_srg_backup_enabled | bool
+  tags:
+    - always
 
 - name: PostgreSQL SRG | Load Enforcement Tasks
   ansible.builtin.import_tasks: enforcement/main.yml
   when: postgresql_srg_enforcement_enabled | bool
   tags:
-    - enforcement
+    - enforce
 
 - name: PostgreSQL SRG | Flush handlers so config changes take effect before validation
   ansible.builtin.meta: flush_handlers
+  tags:
+    - always
 
 - name: PostgreSQL SRG | Load Validation Tasks
   ansible.builtin.import_tasks: validation/main.yml
   when: postgresql_srg_validation_enabled | bool
   tags:
-    - validation
+    - validate
 
 - name: PostgreSQL SRG | Post-STIG Health Check
-  ansible.builtin.include_tasks: post_stig_healthcheck.yml
+  ansible.builtin.include_tasks:
+    file: post_stig_healthcheck.yml
+    apply:
+      tags: [always]
   when: postgresql_srg_post_healthcheck_enabled | bool
   tags:
-    - healthcheck
+    - always

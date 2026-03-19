@@ -1,3 +1,74 @@
+# PostgreSQL SRG Role — Documentation
+
+## Quick Start
+
+```bash
+# Run full enforcement + validation + healthcheck
+ansible-playbook playbooks/services/postgresql-srg.yml
+
+# Run only enforcement
+ansible-playbook playbooks/services/postgresql-srg.yml -t enforce
+
+# Run only validation (read-only checks)
+ansible-playbook playbooks/services/postgresql-srg.yml -t validate
+
+# Run a specific category
+ansible-playbook playbooks/services/postgresql-srg.yml -t access
+ansible-playbook playbooks/services/postgresql-srg.yml -t auditing
+ansible-playbook playbooks/services/postgresql-srg.yml -t config
+ansible-playbook playbooks/services/postgresql-srg.yml -t crypto
+ansible-playbook playbooks/services/postgresql-srg.yml -t lifecycle
+
+# Rollback to pre-enforcement state
+ansible-playbook playbooks/services/postgresql-srg-rollback.yml
+
+# Enable destructive operations (drop DBs, remove packages)
+ansible-playbook playbooks/services/postgresql-srg.yml -e postgresql_srg_allow_removal=true
+```
+
+## Role Structure
+
+```
+roles/postgresql_SRG/
+  defaults/main.yml              # All configurable variables
+  handlers/main.yml              # Restart/Reload PostgreSQL handlers
+  tasks/
+    main.yml                     # Orchestrator: detect → backup → enforce → validate → healthcheck
+    auto-detect.yml              # Find active PostgreSQL service
+    post_stig_healthcheck.yml    # Verify PG + SonarQube health
+    common/normalize.yml         # Normalize detected paths
+    enforcement/
+      main.yml                   # Category loader
+      access/                    # Auth, RBAC, sessions, privileges (32 controls)
+      auditing/                  # pgaudit, logging, audit protection (43 controls)
+      config/                    # postgresql.conf, network, components (6 controls)
+      crypto/                    # FIPS, TLS, crypto modules (10 controls)
+      lifecycle/                 # Versioning, patching, cleanup (7 controls)
+      backup/                    # Pre-enforcement config backup
+    validation/
+      CATI/                      # CAT I validation tasks
+      CATII/                     # CAT II validation tasks
+  files/sql/                     # Reference SQL scripts
+```
+
+## Safety
+
+Destructive operations (DROP DATABASE, remove packages, revoke superuser) are **disabled by default**.
+Set `postgresql_srg_allow_removal: true` to enable them. Without this flag, destructive tasks
+only report warnings.
+
+Backups are created automatically before every enforcement run. See
+[postgresql-srg-rollback.md](postgresql-srg-rollback.md) for rollback procedures.
+
+## Related Documentation
+
+- [STIG Control Mapping](stig-mapping.md) — V-ID → category → description
+- [Troubleshooting Guide](troubleshooting.md) — Common issues and fixes
+- [Rollback Procedure](postgresql-srg-rollback.md) — Backup/restore details
+- [CAT I Manual Steps](postgresql-srg-cati-manual-steps.md) — Manual verification commands
+
+---
+
 ## PostgreSQL SRG CAT I Compliance Summary (RMF Artifact)
 
 | Control ID | CAT | Implementation Status | Implementation Method | Validation Method | Evidence / Notes |

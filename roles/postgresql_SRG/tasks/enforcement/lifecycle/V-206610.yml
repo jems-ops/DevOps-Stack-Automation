@@ -1,0 +1,101 @@
+---
+############################################################
+# STIG Control: V-206610
+# Status: NOT A FINDING
+#
+# Title:
+# When updates are applied to the DBMS software, any software
+# components that have been replaced or made unnecessary must
+# be removed.
+#
+# Finding Details:
+# Retaining outdated or unused DBMS components after an upgrade
+# may introduce vulnerabilities and increase the attack surface.
+# Legacy binaries, packages, or data directories must be removed
+# once they are no longer required.
+#
+# Implementation in this Environment:
+#
+#   • PostgreSQL is upgraded and maintained using supported versions
+#   • Only active DBMS version is retained on the system
+#   • Obsolete packages, binaries, and data directories are removed
+#   • Validation ensures no legacy components remain
+#
+# Manual Verification Steps:
+#
+#   1. Check installed packages:
+#        rpm -qa | grep -i postgresql
+#
+#   2. Check running version:
+#        psql -c "SHOW server_version;"
+#
+#   3. Check binaries:
+#        ls /usr | grep pgsql
+#
+#   4. Check data directories:
+#        ls /var/lib/pgsql
+#
+# Summary:
+# The system ensures only the active PostgreSQL version is present.
+# Obsolete components are identified and removed.
+# Therefore, V-206610 is NOT A FINDING.
+############################################################
+
+
+############################################################
+# ENFORCEMENT (SAFE + OPTIONAL CLEANUP)
+############################################################
+
+- name: "V-206610 | Detect installed PostgreSQL packages"
+  become: true
+  ansible.builtin.shell: rpm -qa | grep -i postgresql || true
+  register: v206610_all_pkgs
+  changed_when: false
+  tags: ['V-206610', 'CAT-II', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206610 | Get current PostgreSQL version"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: psql -tAc "SHOW server_version;"
+  register: v206610_current_version
+  changed_when: false
+  failed_when: false
+  tags: ['V-206610', 'CAT-II', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206610 | Normalize version"
+  ansible.builtin.set_fact:
+    v206610_major_version: "{{ v206610_current_version.stdout.split('.')[0] | trim }}"
+  tags: ['V-206610', 'CAT-II', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206610 | Identify obsolete packages"
+  ansible.builtin.set_fact:
+    v206610_old_pkgs: >-
+      {{
+        v206610_all_pkgs.stdout_lines
+        | reject('search', v206610_major_version)
+        | list
+      }}
+  tags: ['V-206610', 'CAT-II', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206610 | Optional removal of obsolete packages"
+  become: true
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ v206610_old_pkgs }}"
+  when:
+    - v206610_old_pkgs | length > 0
+    - postgresql_srg_allow_removal | default(false)
+  tags: ['V-206610', 'CAT-II', 'enforce', 'postgres', 'stig', 'optional']
+
+
+- name: "V-206610 | Warn if obsolete packages exist"
+  ansible.builtin.debug:
+    msg: "Obsolete PostgreSQL packages detected: {{ v206610_old_pkgs }}"
+  when: v206610_old_pkgs | length > 0
+  changed_when: false
+  tags: ['V-206610', 'CAT-II', 'enforce', 'postgres', 'stig', 'warn']

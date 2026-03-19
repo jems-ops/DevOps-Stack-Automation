@@ -6,12 +6,12 @@
 - name: "V-206637 | Verify error logging configuration"
   become: true
   become_user: postgres
-  command: psql -t -c "SHOW log_min_error_statement;"
+  ansible.builtin.command: psql -t -c "SHOW log_min_error_statement;"
   register: error_logging
   changed_when: false
   tags: ['V-206637', 'CAT II', 'validate']
 
 - name: "V-206637 | Display error logging setting"
-  debug:
+  ansible.builtin.debug:
     var: error_logging.stdout
   tags: ['V-206637', 'CAT II', 'validate']

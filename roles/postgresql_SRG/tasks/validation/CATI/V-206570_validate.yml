@@ -18,7 +18,7 @@
     path: "{{ postgresql_srg_data_dir }}"
   register: v206570_stat
   changed_when: false
-  tags: ['V-206570','CAT-I','validate','postgres','stig']
+  tags: ['V-206570', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -37,7 +37,7 @@
       Data directory is not properly secured.
     success_msg: >
       Data directory ownership and permissions are compliant.
-  tags: ['V-206570','CAT-I','validate','postgres','stig','critical']
+  tags: ['V-206570', 'CAT-I', 'validate', 'postgres', 'stig', 'critical']
 
 
 ############################################################
@@ -53,7 +53,7 @@
     - "{{ postgresql_srg_hba_file }}"
   register: v206570_conf_stat
   changed_when: false
-  tags: ['V-206570','validate']
+  tags: ['V-206570', 'validate']
 
 
 - name: "V-206570 | Assert config files secure"
@@ -63,4 +63,4 @@
       - item.stat.mode | int(base=8) <= 600
     fail_msg: "Config file {{ item.stat.path }} is not secure"
   loop: "{{ v206570_conf_stat.results }}"
-  tags: ['V-206570','CAT-I','validate','postgres','stig']
+  tags: ['V-206570', 'CAT-I', 'validate', 'postgres', 'stig']

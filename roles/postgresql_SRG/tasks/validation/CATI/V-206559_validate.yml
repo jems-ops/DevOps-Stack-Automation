@@ -15,7 +15,7 @@
     path: "{{ postgresql_srg_data_dir }}/server.key"
   register: v206559_key
   changed_when: false
-  tags: ['V-206559','CAT-II','validate','postgres','stig']
+  tags: ['V-206559', 'CAT-II', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -28,7 +28,7 @@
       PostgreSQL does not use DBMS-level PKI private keys.
       Control V-206559 is Not Applicable.
   when: not v206559_key.stat.exists
-  tags: ['V-206559','CAT-II','validate','postgres','stig']
+  tags: ['V-206559', 'CAT-II', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -48,4 +48,4 @@
       server.key permissions are secure.
   when: v206559_key.stat.exists
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206559','CAT-II','validate','postgres','stig']
+  tags: ['V-206559', 'CAT-II', 'validate', 'postgres', 'stig']

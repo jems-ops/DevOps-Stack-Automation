@@ -47,7 +47,7 @@
     psql -t -c "SHOW log_connections;"
   register: log_connections_status
   changed_when: false
-  tags: ['V-206631','CAT II','check']
+  tags: ['V-206631', 'CAT II', 'check']
 
 - name: "V-206631 | Verify log line prefix"
   become: true
@@ -56,11 +56,11 @@
     psql -t -c "SHOW log_line_prefix;"
   register: log_prefix
   changed_when: false
-  tags: ['V-206631','CAT II','check']
+  tags: ['V-206631', 'CAT II', 'check']
 
 - name: "V-206631 | Display configuration"
   ansible.builtin.debug:
     msg:
       - "log_connections: {{ log_connections_status.stdout }}"
       - "log_line_prefix: {{ log_prefix.stdout }}"
-  tags: ['V-206631','CAT II','check']
+  tags: ['V-206631', 'CAT II', 'check']

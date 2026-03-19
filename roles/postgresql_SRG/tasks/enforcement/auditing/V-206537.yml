@@ -1,0 +1,84 @@
+---
+############################################################
+# STIG Control: V-206537
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must use the system clock to generate
+# timestamps for audit records.
+#
+# Finding Details:
+# Accurate timestamps are required for audit records to
+# support forensic analysis and event correlation across
+# systems.
+#
+# Implementation in this Environment:
+# PostgreSQL derives timestamps directly from the host
+# operating system clock. The host system is synchronized
+# using chrony with authoritative time sources.
+#
+# PostgreSQL timezone is configured to UTC and audit logs
+# include timestamps using the log_line_prefix parameter.
+#
+# Manual Verification Steps:
+#
+#   timedatectl status
+#   SHOW timezone;
+#   SHOW log_line_prefix;
+#
+# Comment:
+# PostgreSQL uses the host operating system clock for
+# timestamp generation. Chrony maintains system time
+# synchronization and PostgreSQL audit logs include
+# timestamps for all recorded events.
+############################################################
+
+
+############################################################
+# Ensure OS Time Synchronization
+############################################################
+
+- name: "V-206537 | Ensure chrony installed"
+  become: true
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  tags: ['V-206537', 'CAT II', 'enforce']
+
+
+- name: "V-206537 | Ensure chronyd running"
+  become: true
+  ansible.builtin.service:
+    name: chronyd
+    state: started
+    enabled: true
+  tags: ['V-206537', 'CAT II', 'enforce']
+
+
+############################################################
+# Configure PostgreSQL Timezone
+############################################################
+
+- name: "V-206537 | Configure PostgreSQL timezone"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*timezone\s*='
+    line: "timezone = 'UTC'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206537', 'CAT II', 'enforce']
+
+
+############################################################
+# Ensure timestamp in audit logs
+############################################################
+
+- name: "V-206537 | Ensure timestamp included in logs"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_line_prefix\s*='
+    line: "log_line_prefix = '%m %u %d %r %p %c %a %h '"
+  notify: Restart PostgreSQL
+  tags: ['V-206537', 'CAT II', 'enforce']

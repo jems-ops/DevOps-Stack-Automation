@@ -10,4 +10,4 @@
 - name: "V-263610 | Procedural validation"
   ansible.builtin.debug:
     msg: "Password blacklist list maintained through enterprise identity management policy."
-  tags: ['V-263610','CAT II','check']
+  tags: ['V-263610', 'CAT II', 'check']

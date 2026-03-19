@@ -1,0 +1,117 @@
+---
+############################################################
+# STIG Control: V-206551
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must disable unnecessary integrated components.
+#
+# Finding Details:
+# Unused integrated DBMS components such as replication,
+# logical decoding, and remote listening services may
+# introduce additional attack surfaces or expose
+# unnecessary network services. These features must be
+# disabled when not required for mission operations.
+#
+# Implementation in this Environment:
+# The PostgreSQL instance used by the SonarQube application
+# does not require replication or logical decoding
+# capabilities. Remote network access to the database is
+# restricted to authorized interfaces only.
+#
+# Replication services, replication slots, and logical
+# decoding capabilities are disabled through database
+# configuration settings. The database listener is limited
+# to approved interfaces in accordance with organizational
+# security policy.
+#
+# Manual Verification Steps:
+#
+# 1. Verify listening interfaces:
+#
+#       SHOW listen_addresses;
+#
+# 2. Verify replication senders:
+#
+#       SHOW max_wal_senders;
+#
+# 3. Verify replication slots:
+#
+#       SHOW max_replication_slots;
+#
+# 4. Verify WAL level:
+#
+#       SHOW wal_level;
+#
+# Comment:
+# Integrated PostgreSQL components that are not required
+# for the SonarQube application environment have been
+# disabled through database configuration. Replication,
+# logical decoding, and unnecessary network listeners are
+# restricted or disabled to reduce the DBMS attack surface.
+############################################################
+
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Restrict Listening Interface
+############################
+
+- name: "V-206551 | Restrict PostgreSQL listening interface"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*listen_addresses\s*='
+    line: "listen_addresses = '{{ postgresql_srg_allowed_listen_addresses }}'"
+    backup: true
+  when: postgresql_srg_disable_remote_access
+  notify: Restart PostgreSQL
+  tags: ['V-206551', 'CAT II', 'enforce']
+
+
+############################
+# Disable Replication Slots
+############################
+
+- name: "V-206551 | Disable replication slots"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*max_replication_slots\s*='
+    line: "max_replication_slots = 0"
+  when: postgresql_srg_disable_replication
+  notify: Restart PostgreSQL
+  tags: ['V-206551', 'CAT II', 'enforce']
+
+
+############################
+# Disable WAL Senders
+############################
+
+- name: "V-206551 | Disable WAL senders"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*max_wal_senders\s*='
+    line: "max_wal_senders = 0"
+  when: postgresql_srg_disable_replication
+  notify: Restart PostgreSQL
+  tags: ['V-206551', 'CAT II', 'enforce']
+
+
+############################
+# Disable Logical Decoding
+############################
+
+- name: "V-206551 | Disable logical decoding"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*wal_level\s*='
+    line: "wal_level = replica"
+  when: postgresql_srg_disable_logical_decoding
+  notify: Restart PostgreSQL
+  tags: ['V-206551', 'CAT II', 'enforce']

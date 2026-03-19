@@ -10,7 +10,7 @@
     psql -t -c "SHOW listen_addresses;"
   register: postgresql_listen_addresses
   changed_when: false
-  tags: ['V-206553','CAT II','check']
+  tags: ['V-206553', 'CAT II', 'check']
 
 
 - name: "V-206553 | Check PostgreSQL port configuration"
@@ -20,7 +20,7 @@
     psql -t -c "SHOW port;"
   register: postgresql_port
   changed_when: false
-  tags: ['V-206553','CAT II','check']
+  tags: ['V-206553', 'CAT II', 'check']
 
 
 - name: "V-206553 | Check external execution function restriction"
@@ -30,7 +30,7 @@
     psql -t -c "SELECT proname FROM pg_proc WHERE proname='pg_execute_server_program';"
   register: postgresql_exec_func
   changed_when: false
-  tags: ['V-206553','CAT II','check']
+  tags: ['V-206553', 'CAT II', 'check']
 
 
 - name: "V-206553 | Display validation results"
@@ -39,4 +39,4 @@
       - "listen_addresses: {{ postgresql_listen_addresses.stdout }}"
       - "port: {{ postgresql_port.stdout }}"
       - "pg_execute_server_program present: {{ postgresql_exec_func.stdout }}"
-  tags: ['V-206553','CAT II','check']
+  tags: ['V-206553', 'CAT II', 'check']

@@ -1,0 +1,154 @@
+---
+############################################################
+# PostgreSQL SRG — Rollback Playbook
+############################################################
+# Restores PostgreSQL configuration files from the most recent
+# pre-enforcement backup and restarts the service.
+#
+# Usage:
+#   ansible-playbook playbooks/services/postgresql-srg-rollback.yml
+#
+# To restore a specific backup:
+#   ansible-playbook playbooks/services/postgresql-srg-rollback.yml \
+#     -e srg_rollback_archive=/var/lib/pgsql/srg-backups/srg-backup-20260319T064500.tar.gz
+############################################################
+
+- name: Rollback PostgreSQL SRG configuration
+  hosts: "{{ target_hosts | default('sonarqube') }}"
+  gather_facts: true
+  become: true
+
+  vars:
+    # Import role defaults for path variables
+    postgresql_srg_pg_version: "16"
+    postgresql_srg_postgres_user: postgres
+    postgresql_srg_backup_dir: /var/lib/pgsql/srg-backups
+    postgresql_srg_auto_detect: true
+    postgresql_srg_candidate_services:
+      - postgresql
+      - postgresql-16
+      - postgresql-15
+      - postgres
+    postgresql_srg_data_dir_map:
+      postgresql: /var/lib/pgsql/data
+      postgresql-16: /var/lib/pgsql/16/data
+      postgresql-15: /var/lib/pgsql/15/data
+      postgres: /var/lib/pgsql/data
+    # Variables required by post_stig_healthcheck.yml
+    postgresql_srg_sonarqube_service_name: sonarqube
+    postgresql_srg_sonarqube_url: "https://{{ groups['sonarqube'][0] }}"
+    postgresql_srg_sonarqube_validate_certs: false
+    postgresql_srg_sonarqube_healthcheck_timeout: 30
+
+  tasks:
+
+    # --- Auto-detect the active PostgreSQL service --------------------------
+    - name: Rollback | Detect active PostgreSQL service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+      loop: "{{ postgresql_srg_candidate_services }}"
+      register: _rollback_svc_probe
+      ignore_errors: true
+      changed_when: false
+
+    - name: Rollback | Set detected service name
+      ansible.builtin.set_fact:
+        _rollback_service_name: >-
+          {{ (_rollback_svc_probe.results
+              | selectattr('status.LoadState', 'equalto', 'loaded')
+              | map(attribute='item')
+              | first) }}
+      failed_when: _rollback_service_name is not defined or _rollback_service_name | trim == ''
+
+    - name: Rollback | Resolve data directory
+      ansible.builtin.set_fact:
+        _rollback_data_dir: "{{ postgresql_srg_data_dir_map[_rollback_service_name | trim] }}"
+
+    - name: Rollback | Display detected layout
+      ansible.builtin.debug:
+        msg: "Service={{ _rollback_service_name | trim }}  DataDir={{ _rollback_data_dir }}"
+
+    # --- Select the backup archive to restore -------------------------------
+    - name: Rollback | List available backup archives
+      ansible.builtin.find:
+        paths: "{{ postgresql_srg_backup_dir }}"
+        patterns: "srg-backup-*.tar.gz"
+        file_type: file
+      register: _rollback_archives
+
+    - name: Rollback | Fail if no backups found
+      ansible.builtin.fail:
+        msg: >-
+          No SRG backup archives found in {{ postgresql_srg_backup_dir }}.
+          Run the postgresql-srg playbook with postgresql_srg_backup_enabled=true first.
+      when: _rollback_archives.files | length == 0 and srg_rollback_archive is not defined
+
+    - name: Rollback | Select most recent archive (unless overridden)
+      ansible.builtin.set_fact:
+        _rollback_archive: >-
+          {{ srg_rollback_archive | default(
+               (_rollback_archives.files | sort(attribute='mtime') | last).path
+             ) }}
+
+    - name: Rollback | Confirm archive exists
+      ansible.builtin.stat:
+        path: "{{ _rollback_archive | trim }}"
+      register: _rollback_archive_stat
+
+    - name: Rollback | Fail if selected archive is missing
+      ansible.builtin.fail:
+        msg: "Backup archive not found: {{ _rollback_archive | trim }}"
+      when: not _rollback_archive_stat.stat.exists
+
+    - name: Rollback | Display archive to restore
+      ansible.builtin.debug:
+        msg: "Restoring from: {{ _rollback_archive | trim }}"
+
+    # --- Stop PostgreSQL before restoring -----------------------------------
+    - name: Rollback | Stop PostgreSQL
+      ansible.builtin.systemd:
+        name: "{{ _rollback_service_name | trim }}"
+        state: stopped
+
+    # --- Extract the backup into the data directory -------------------------
+    - name: Rollback | Extract backup archive
+      ansible.builtin.unarchive:
+        src: "{{ _rollback_archive | trim }}"
+        dest: /
+        remote_src: true
+        owner: "{{ postgresql_srg_postgres_user }}"
+        group: "{{ postgresql_srg_postgres_user }}"
+        extra_opts:
+          - --overwrite
+
+    # --- Restart PostgreSQL -------------------------------------------------
+    - name: Rollback | Start PostgreSQL
+      ansible.builtin.systemd:
+        name: "{{ _rollback_service_name | trim }}"
+        state: started
+        enabled: true
+
+    - name: Rollback | Wait for PostgreSQL to accept connections
+      ansible.builtin.command:
+        cmd: >-
+          /usr/pgsql-{{ postgresql_srg_pg_version }}/bin/pg_isready
+          -h /var/run/postgresql -U {{ postgresql_srg_postgres_user }}
+      register: _rollback_pg_ready
+      retries: 10
+      delay: 3
+      until: _rollback_pg_ready.rc == 0
+      changed_when: false
+
+    # --- Wait for SonarQube to reconnect after PostgreSQL restart -----------
+    - name: Rollback | Pause to let SonarQube reconnect to PostgreSQL
+      ansible.builtin.pause:
+        seconds: 10
+
+    # --- Re-use the role's health check to verify everything is healthy -----
+    - name: Rollback | Set postgresql_srg_service_name for healthcheck
+      ansible.builtin.set_fact:
+        postgresql_srg_service_name: "{{ _rollback_service_name | trim }}"
+
+    - name: Rollback | Run post-STIG health check
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../roles/postgresql_SRG/tasks/post_stig_healthcheck.yml"
+      tags: [healthcheck]

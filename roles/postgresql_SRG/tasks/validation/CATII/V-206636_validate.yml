@@ -6,12 +6,12 @@
 - name: "V-206636 | Verify pgaudit logging configuration"
   become: true
   become_user: postgres
-  command: psql -t -c "SHOW pgaudit.log;"
+  ansible.builtin.command: psql -t -c "SHOW pgaudit.log;"
   register: audit_logging
   changed_when: false
   tags: ['V-206636', 'CAT II', 'validate']
 
 - name: "V-206636 | Display audit configuration"
-  debug:
+  ansible.builtin.debug:
     var: audit_logging.stdout
   tags: ['V-206636', 'CAT II', 'validate']

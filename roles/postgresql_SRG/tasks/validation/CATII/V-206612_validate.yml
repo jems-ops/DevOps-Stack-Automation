@@ -1,0 +1,13 @@
+- name: "V-206612 | Check pgaudit loaded"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: psql -tAc "SHOW shared_preload_libraries;"
+  register: v206612_lib
+  changed_when: false
+  tags: ['V-206612', 'CAT-II', 'validate', 'postgres', 'stig']
+
+- name: "V-206612 | Assert pgaudit enabled"
+  ansible.builtin.assert:
+    that:
+      - "'pgaudit' in v206612_lib.stdout"
+  tags: ['V-206612', 'CAT-II', 'validate', 'postgres', 'stig']

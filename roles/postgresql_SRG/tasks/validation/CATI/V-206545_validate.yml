@@ -13,7 +13,7 @@
   ansible.builtin.command: getent passwd postgres
   register: v206545_passwd
   changed_when: false
-  tags: ['V-206545','validate']
+  tags: ['V-206545', 'validate']
 
 
 - name: "V-206545 | Assert restricted shell"
@@ -21,7 +21,7 @@
     that:
       - v206545_passwd.stdout is search('/nologin|/bash')
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206545','CAT-I','validate','postgres','stig']
+  tags: ['V-206545', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -33,7 +33,7 @@
   register: v206545_lock
   changed_when: false
   failed_when: false
-  tags: ['V-206545','validate']
+  tags: ['V-206545', 'validate']
 
 
 - name: "V-206545 | Assert account controlled"
@@ -41,7 +41,7 @@
     that:
       - v206545_lock.stdout is search('L|NP')
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206545','CAT-I','validate','postgres','stig']
+  tags: ['V-206545', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -52,7 +52,7 @@
   ansible.builtin.stat:
     path: /etc/sudoers.d/postgres_admins
   register: v206545_sudo
-  tags: ['V-206545','validate']
+  tags: ['V-206545', 'validate']
 
 
 - name: "V-206545 | Assert sudo exists"
@@ -60,7 +60,7 @@
     that:
       - v206545_sudo.stat.exists
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206545','CAT-I','validate','postgres','stig']
+  tags: ['V-206545', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -71,7 +71,7 @@
   ansible.builtin.shell: auditctl -l | grep postgres || true
   register: v206545_audit
   changed_when: false
-  tags: ['V-206545','validate']
+  tags: ['V-206545', 'validate']
 
 
 - name: "V-206545 | Assert audit rules present"
@@ -79,4 +79,4 @@
     that:
       - v206545_audit.stdout | length > 0
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206545','CAT-I','validate','postgres','stig']
+  tags: ['V-206545', 'CAT-I', 'validate', 'postgres', 'stig']

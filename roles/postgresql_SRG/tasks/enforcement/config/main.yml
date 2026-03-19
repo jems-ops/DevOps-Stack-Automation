@@ -1,0 +1,35 @@
+---
+############################################################
+# Category: Configuration Hardening
+# postgresql.conf, pg_hba.conf, network, components, file perms
+############################################################
+
+- name: "Config | V-206546"
+  ansible.builtin.import_tasks: V-206546.yml
+  when: postgresql_srg_v206546_enabled | bool
+  tags: [enforce, config, CATII, V-206546]
+
+- name: "Config | V-206550"
+  ansible.builtin.import_tasks: V-206550.yml
+  when: postgresql_srg_v206550_enabled | bool
+  tags: [enforce, config, CATII, V-206550]
+
+- name: "Config | V-206551"
+  ansible.builtin.import_tasks: V-206551.yml
+  when: postgresql_srg_v206551_enabled | bool
+  tags: [enforce, config, CATII, V-206551]
+
+- name: "Config | V-206552"
+  ansible.builtin.import_tasks: V-206552.yml
+  when: postgresql_srg_v206552_enabled | bool
+  tags: [enforce, config, CATII, V-206552]
+
+- name: "Config | V-206553"
+  ansible.builtin.import_tasks: V-206553.yml
+  when: postgresql_srg_v206553_enabled | bool
+  tags: [enforce, config, CATII, V-206553]
+
+- name: "Config | V-206643"
+  ansible.builtin.import_tasks: V-206643.yml
+  when: postgresql_srg_v206643_enabled | bool
+  tags: [enforce, config, CATII, V-206643]

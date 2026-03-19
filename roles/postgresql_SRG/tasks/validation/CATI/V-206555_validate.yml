@@ -20,7 +20,7 @@
   register: v206555_password_files
   changed_when: false
   failed_when: false
-  tags: ['V-206555','CAT-I','validate','postgres','stig']
+  tags: ['V-206555', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -35,7 +35,7 @@
   register: v206555_file_stats
   when: v206555_password_files.stdout_lines | length > 0
   changed_when: false
-  tags: ['V-206555','CAT-I','validate','postgres','stig']
+  tags: ['V-206555', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206555 | Assert secure permissions"
@@ -45,7 +45,7 @@
   loop: "{{ v206555_file_stats.results | default([]) }}"
   when: v206555_file_stats is defined
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206555','CAT-I','validate','postgres','stig']
+  tags: ['V-206555', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -61,7 +61,7 @@
   register: v206555_pgpass
   changed_when: false
   failed_when: false
-  tags: ['V-206555','CAT-I','validate','postgres','stig']
+  tags: ['V-206555', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206555 | Validate .pgpass permissions"
@@ -72,7 +72,7 @@
   register: v206555_pgpass_stat
   when: v206555_pgpass.matched | default(0) > 0
   changed_when: false
-  tags: ['V-206555','CAT-I','validate','postgres','stig']
+  tags: ['V-206555', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206555 | Assert .pgpass secure"
@@ -82,4 +82,4 @@
   loop: "{{ v206555_pgpass_stat.results | default([]) }}"
   when: v206555_pgpass_stat is defined
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206555','CAT-I','validate','postgres','stig']
+  tags: ['V-206555', 'CAT-I', 'validate', 'postgres', 'stig']

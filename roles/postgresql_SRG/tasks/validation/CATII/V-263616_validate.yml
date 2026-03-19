@@ -20,12 +20,12 @@
   ansible.builtin.command: psql -t -c "SHOW password_encryption;"
   register: postgresql_srg_password_encryption
   changed_when: false
-  tags: ['V-263616','CAT II','check']
-  
+  tags: ['V-263616', 'CAT II', 'check']
+
 - name: "V-263616 | Display password encryption setting"
   ansible.builtin.debug:
     var: postgresql_srg_password_encryption.stdout_lines
-  tags: ['V-263616','CAT II','check']
+  tags: ['V-263616', 'CAT II', 'check']
 
 - name: "V-263616 | Assert SCRAM password hashing enabled"
   ansible.builtin.assert:
@@ -33,4 +33,4 @@
       - "'scram-sha-256' in postgresql_srg_password_encryption.stdout"
     fail_msg: "STIG V-263616 FAILED: Weak password hashing detected"
     success_msg: "SCRAM-SHA-256 password hashing enabled"
-  tags: ['V-263616','CAT II','check']
+  tags: ['V-263616', 'CAT II', 'check']

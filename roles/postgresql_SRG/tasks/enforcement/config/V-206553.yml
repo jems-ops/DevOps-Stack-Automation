@@ -1,0 +1,93 @@
+---
+############################################################
+# STIG Control: V-206553
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must restrict the use of network ports,
+# protocols, and services to only those required for
+# operation.
+#
+# Finding Details:
+# Unrestricted network services, ports, or DBMS features
+# may expose the database to unauthorized access or
+# exploitation. Restricting the DBMS to approved ports,
+# interfaces, and functions reduces the attack surface
+# and ensures only authorized services are accessible.
+#
+# Implementation in this Environment:
+# PostgreSQL is configured to limit network exposure and
+# database functionality to only approved interfaces,
+# ports, and features required by the SonarQube
+# application.
+#
+# The DBMS listens only on authorized interfaces and
+# operates on the approved database port. Network access
+# is restricted to required application connections.
+#
+# Dangerous or unnecessary functionality such as external
+# program execution is restricted, and unused services or
+# features are disabled according to organizational
+# security policy and PPSM guidance.
+#
+# Manual Verification Steps:
+#
+# 1. Verify PostgreSQL listening interfaces:
+#
+#       SHOW listen_addresses;
+#
+# 2. Verify the configured PostgreSQL port:
+#
+#       SHOW port;
+#
+# 3. Verify external command execution privileges are
+#    restricted:
+#
+#       SELECT proname
+#       FROM pg_proc
+#       WHERE proname = 'pg_execute_server_program';
+#
+# Comment:
+# PostgreSQL is configured to restrict network exposure
+# and DBMS functionality to only approved ports,
+# protocols, and services. The database listens only on
+# authorized interfaces and operates on the approved
+# port required by the SonarQube application.
+############################################################
+
+
+############################################################
+# Enforcement
+############################################################
+
+- name: "V-206553 | Restrict listen_addresses"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*listen_addresses\s*='
+    line: "listen_addresses = '{{ postgresql_srg_allowed_listen_addresses }}'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206553', 'CAT II', 'enforce']
+
+
+- name: "V-206553 | Enforce approved PostgreSQL port"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*port\s*='
+    line: "port = {{ postgresql_srg_allowed_port }}"
+  notify: Restart PostgreSQL
+  tags: ['V-206553', 'CAT II', 'enforce']
+
+
+- name: "V-206553 | Restrict external program execution function"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    REVOKE EXECUTE ON FUNCTION pg_catalog.pg_execute_server_program(text[])
+    FROM PUBLIC;"
+  changed_when: false
+  ignore_errors: true
+  tags: ['V-206553', 'CAT II', 'enforce']

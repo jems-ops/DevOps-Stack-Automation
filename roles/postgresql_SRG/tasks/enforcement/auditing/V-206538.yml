@@ -1,0 +1,76 @@
+---
+############################################################
+# STIG Control: V-206538
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must protect audit information from
+# unauthorized read access.
+#
+# Finding Details:
+# Audit logs contain sensitive security information and
+# must be protected from unauthorized access to prevent
+# disclosure of system activity, user operations, or
+# security monitoring data.
+#
+# Implementation in this Environment:
+# PostgreSQL audit logs are stored in a dedicated
+# directory owned by the postgres administrative account.
+# Directory permissions are restricted to 0700 and log
+# files are restricted to 0600, ensuring only the
+# database administrator account can read the logs.
+#
+# Manual Verification Steps:
+#
+# 1. Verify directory permissions:
+#
+#       ls -ld {{ postgresql_srg_log_directory }}
+#
+# 2. Verify log file permissions:
+#
+#       ls -l {{ postgresql_srg_log_directory }}
+#
+# Comment:
+# Audit logs are protected from unauthorized read access
+# through restrictive operating system permissions.
+############################################################
+
+
+############################################################
+# Protect Log Directory
+############################################################
+
+- name: "V-206538 | Ensure log directory protected"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_log_directory }}"
+    owner: postgres
+    group: postgres
+    mode: "0700"
+    state: directory
+  tags: ['V-206538', 'CAT II', 'enforce']
+
+
+############################################################
+# Protect Log Files
+############################################################
+
+- name: "V-206538 | Find PostgreSQL log files"
+  become: true
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_log_directory }}"
+    file_type: file
+  register: v206538_logs
+  tags: ['V-206538', 'CAT II', 'check']
+
+
+- name: "V-206538 | Restrict log file permissions"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  loop: "{{ v206538_logs.files }}"
+  when: v206538_logs.matched > 0
+  tags: ['V-206538', 'CAT II', 'enforce']

@@ -12,7 +12,7 @@
     -t -c "\dn+ public"
   register: schema_privs
   changed_when: false
-  tags: ['V-206548','CAT II','check']
+  tags: ['V-206548', 'CAT II', 'check']
 
 
 - name: "V-206548 | Check DDL role members"
@@ -27,7 +27,7 @@
     (SELECT oid FROM pg_roles WHERE rolname='{{ postgresql_srg_ddl_role }}');"
   register: ddl_members
   changed_when: false
-  tags: ['V-206548','CAT II','check']
+  tags: ['V-206548', 'CAT II', 'check']
 
 
 - name: "V-206548 | Display validation results"
@@ -35,4 +35,4 @@
     msg:
       - "Public schema privileges: {{ schema_privs.stdout }}"
       - "DDL role members: {{ ddl_members.stdout_lines }}"
-  tags: ['V-206548','CAT II','check']
+  tags: ['V-206548', 'CAT II', 'check']

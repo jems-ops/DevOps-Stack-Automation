@@ -24,4 +24,4 @@
 - name: "V-263615 | Display password encryption setting"
   ansible.builtin.debug:
     var: postgresql_srg_password_encryption.stdout_lines
-  tags: ['V-263615','CAT II','check']
+  tags: ['V-263615', 'CAT II', 'check']

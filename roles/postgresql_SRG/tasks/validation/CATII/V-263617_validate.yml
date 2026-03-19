@@ -23,7 +23,7 @@
   ansible.builtin.command: psql -t -c "SHOW ssl;"
   register: postgresql_srg_ssl_status
   changed_when: false
-  tags: ['V-263617','CAT II','check']
+  tags: ['V-263617', 'CAT II', 'check']
 
 - name: "V-263617 | Confirm PKI authentication not used"
   ansible.builtin.assert:
@@ -31,4 +31,4 @@
       - "'off' in postgresql_srg_ssl_status.stdout"
     success_msg: "Control Not Applicable - PKI authentication not used"
     fail_msg: "STIG V-263617 FAILED: SSL enabled, PKI authentication may be in use"
-  tags: ['V-263617','CAT II','check']
+  tags: ['V-263617', 'CAT II', 'check']

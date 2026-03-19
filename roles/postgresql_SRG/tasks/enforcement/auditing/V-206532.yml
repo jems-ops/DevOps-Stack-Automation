@@ -1,0 +1,78 @@
+---
+############################################################
+# STIG Control: V-206532
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must include the event outcome (success or
+# failure) in audit records.
+#
+# Finding Details:
+# Audit records must clearly indicate whether database
+# events were successful or unsuccessful to support
+# monitoring and incident response.
+#
+# Implementation in this Environment:
+# PostgreSQL records successful database operations
+# through the pgaudit extension and logs failed
+# statements using log_min_error_statement.
+#
+# Error verbosity settings ensure sufficient contextual
+# information is included in audit logs.
+#
+# Manual Verification Steps:
+#
+#     SHOW pgaudit.log;
+#     SHOW log_min_error_statement;
+#     SHOW log_error_verbosity;
+#
+# Comment:
+# PostgreSQL audit logs include both successful and
+# unsuccessful database events, allowing event outcomes
+# to be clearly determined.
+############################################################
+
+
+############################################################
+# Enable pgaudit event logging
+############################################################
+
+- name: "V-206532 | Ensure pgaudit event classes enabled"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log\s*='
+    line: "pgaudit.log = 'ddl, role, write, read'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206532', 'CAT II', 'enforce']
+
+
+############################################################
+# Log failed statements
+############################################################
+
+- name: "V-206532 | Log failed statements"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_min_error_statement\s*='
+    line: "log_min_error_statement = error"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206532', 'CAT II', 'enforce']
+
+
+############################################################
+# Configure error verbosity
+############################################################
+
+- name: "V-206532 | Ensure error verbosity configured"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_error_verbosity\s*='
+    line: "log_error_verbosity = verbose"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206532', 'CAT II', 'enforce']

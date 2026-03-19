@@ -16,10 +16,10 @@
      JOIN pg_roles r ON p.proowner=r.oid;"
   register: v206544_functions
   changed_when: false
-  tags: ['V-206544','CAT II','check']
+  tags: ['V-206544', 'CAT II', 'check']
 
 
 - name: "V-206544 | Display function ownership"
   ansible.builtin.debug:
     var: v206544_functions.stdout_lines
-  tags: ['V-206544','CAT II','check']
+  tags: ['V-206544', 'CAT II', 'check']

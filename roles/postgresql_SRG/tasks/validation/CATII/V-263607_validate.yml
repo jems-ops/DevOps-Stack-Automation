@@ -13,9 +13,9 @@
   ansible.builtin.command: psql -t -c "SHOW hba_file;"
   register: pg_hba_file
   changed_when: false
-  tags: ['V-263607','CAT II','check']
+  tags: ['V-263607', 'CAT II', 'check']
 
 - name: "V-263607 | Display pg_hba.conf location"
   ansible.builtin.debug:
     var: pg_hba_file.stdout
-  tags: ['V-263607','CAT II','check']
+  tags: ['V-263607', 'CAT II', 'check']

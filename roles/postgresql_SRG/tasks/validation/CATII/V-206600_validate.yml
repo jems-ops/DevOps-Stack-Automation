@@ -55,12 +55,12 @@
     psql -t -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
   register: superuser_roles
   changed_when: false
-  tags: ['V-206600','CAT II','check']
+  tags: ['V-206600', 'CAT II', 'check']
 
 - name: "V-206600 | Display superuser roles"
   ansible.builtin.debug:
     var: superuser_roles.stdout_lines
-  tags: ['V-206600','CAT II','check']
+  tags: ['V-206600', 'CAT II', 'check']
 
 - name: "V-206600 | Identify SECURITY DEFINER functions"
   become: true
@@ -73,9 +73,9 @@
     WHERE p.prosecdef = true;"
   register: security_definer_functions
   changed_when: false
-  tags: ['V-206600','CAT II','check']
+  tags: ['V-206600', 'CAT II', 'check']
 
 - name: "V-206600 | Display SECURITY DEFINER functions"
   ansible.builtin.debug:
     var: security_definer_functions.stdout_lines
-  tags: ['V-206600','CAT II','check']
+  tags: ['V-206600', 'CAT II', 'check']

@@ -1,0 +1,117 @@
+---
+############################################################
+# STIG Control: V-206552
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must restrict the use of external executables
+# to authorized users.
+#
+# Finding Details:
+# External executable functionality within the DBMS may
+# allow users to execute operating system commands or
+# access host files. If improperly controlled, this may
+# result in unauthorized system access or privilege
+# escalation.
+#
+# Implementation in this Environment:
+# PostgreSQL restricts external execution capabilities by
+# limiting membership in the pg_execute_server_program
+# role, removing unapproved file access extensions such as
+# file_fdw, and disabling untrusted procedural languages.
+#
+# Only authorized administrative roles are permitted to
+# access server execution features when required.
+#
+# Manual Verification Steps:
+#
+# 1. Verify role membership for server execution roles:
+#
+#       SELECT rolname
+#       FROM pg_roles
+#       WHERE rolname='pg_execute_server_program';
+#
+# 2. Verify installed extensions:
+#
+#       SELECT extname FROM pg_extension;
+#
+# 3. Verify installed procedural languages:
+#
+#       SELECT lanname FROM pg_language;
+#
+# Comment:
+# External executable functionality is restricted to
+# authorized administrators only. Unapproved extensions
+# and untrusted procedural languages are removed or
+# disabled to prevent unauthorized execution of operating
+# system commands from the database environment.
+############################################################
+
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Restrict pg_execute_server_program
+############################
+
+- name: "V-206552 | Remove unauthorized pg_execute_server_program role members"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO \$\$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT m.rolname
+        FROM pg_auth_members am
+        JOIN pg_roles r1 ON am.roleid = r1.oid
+        JOIN pg_roles m ON am.member = m.oid
+        WHERE r1.rolname='pg_execute_server_program'
+        AND m.rolname NOT IN ('{{ postgresql_srg_authorized_exec_roles | join("', '") }}')
+      LOOP
+        EXECUTE format('REVOKE pg_execute_server_program FROM %I;', r.rolname);
+      END LOOP;
+    END \$\$;"
+  changed_when: false
+  tags: ['V-206552', 'CAT II', 'enforce']
+
+
+############################
+# Remove file_fdw extension
+############################
+
+- name: "V-206552 | Remove file_fdw extension if present"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -d {{ postgresql_srg_target_database }} -c \
+    "DROP EXTENSION IF EXISTS file_fdw CASCADE;"
+  ignore_errors: true
+  tags: ['V-206552', 'CAT II', 'enforce']
+
+
+############################
+# Remove untrusted procedural languages
+############################
+
+- name: "V-206552 | Remove untrusted procedural languages"
+  become: true
+  become_user: postgres
+  ansible.builtin.shell: |
+    psql -c "
+    DO \$\$
+    DECLARE r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT lanname
+        FROM pg_language
+        WHERE lanname IN ('plpythonu', 'plperlu', 'pltclu')
+      LOOP
+        EXECUTE format('DROP LANGUAGE IF EXISTS %I CASCADE;', r.lanname);
+      END LOOP;
+    END \$\$;"
+  ignore_errors: true
+  tags: ['V-206552', 'CAT II', 'enforce']

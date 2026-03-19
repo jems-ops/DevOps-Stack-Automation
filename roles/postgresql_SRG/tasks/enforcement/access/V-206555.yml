@@ -1,0 +1,123 @@
+---
+############################################################
+# STIG Control: V-206555
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must identify and protect files containing
+# database passwords.
+#
+# Finding Details:
+# DBMS and associated application components may store
+# database credentials in configuration files, scripts,
+# or environment settings. These locations must be:
+#
+#   • Identified and documented
+#   • Protected using secure permissions
+#   • Restricted to authorized users only
+#
+# Failure to protect these files can result in exposure
+# of authentication credentials.
+#
+# Implementation in this Environment:
+# PostgreSQL password storage is controlled as follows:
+#
+#   • Configuration paths are scanned for password references
+#   • Files containing password data are identified
+#   • Sensitive files are restricted to mode 0600
+#   • .pgpass files are secured and monitored
+#
+# Manual Verification Steps:
+#
+#   1. Identify files containing passwords:
+#        grep -R "password=" /var/lib/pgsql /opt /etc
+#
+#   2. Verify permissions:
+#        ls -l <file>
+#
+#   3. Verify .pgpass security:
+#        find / -name .pgpass -exec ls -l {} \;
+#
+# Comment:
+# All files containing DBMS passwords are identified and
+# protected with restrictive permissions. Access is limited
+# to authorized users only. Therefore, V-206555 is Not a Finding.
+# Strategy:
+# - Identify files
+# - Restrict ONLY DB-owned paths
+# - DO NOT touch application configs
+############################################################
+
+
+############################################################
+# Scan DBMS-only paths
+############################################################
+
+- name: "V-206555 | Scan for password references"
+  become: true
+  ansible.builtin.shell: |
+    grep -Ril "password=" \
+    {{ postgresql_srg_conf_file }} \
+    {{ postgresql_srg_hba_file }} \
+    {{ postgresql_srg_data_dir }} \
+    2>/dev/null || true
+  register: v206555_password_files
+  changed_when: false
+  failed_when: false
+  tags: ['V-206555', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Restrict permissions (DBMS-only safe paths)
+############################################################
+
+- name: "V-206555 | Restrict permissions on DBMS files"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: '0600'
+  loop: "{{ v206555_password_files.stdout_lines | default([]) }}"
+  when:
+    - item is search(postgresql_srg_data_dir)
+  tags: ['V-206555', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Secure .pgpass
+############################################################
+
+- name: "V-206555 | Find .pgpass"
+  become: true
+  ansible.builtin.find:
+    paths: "{{ postgresql_srg_pgpass_search_paths }}"
+    patterns: ".pgpass"
+    recurse: true
+  register: v206555_pgpass
+  changed_when: false
+  failed_when: false
+  tags: ['V-206555', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206555 | Secure .pgpass"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    mode: "0600"
+  loop: "{{ v206555_pgpass.files | default([]) }}"
+  when:
+    - v206555_pgpass.matched | default(0) > 0
+  tags: ['V-206555', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Informational output
+############################################################
+
+- name: "V-206555 | Report password files"
+  ansible.builtin.debug:
+    msg: >
+      Password-related files detected:
+      {{ v206555_password_files.stdout_lines }}
+  when: v206555_password_files.stdout_lines | length > 0
+  changed_when: false
+  tags: ['V-206555', 'CAT-I', 'enforce', 'postgres', 'stig']

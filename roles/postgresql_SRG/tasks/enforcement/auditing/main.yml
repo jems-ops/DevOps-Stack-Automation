@@ -1,0 +1,230 @@
+---
+############################################################
+# Category: Auditing
+# pgaudit, logging, audit record generation, audit protection
+############################################################
+
+- name: "Auditing | V-206522"
+  ansible.builtin.import_tasks: V-206522.yml
+  when: postgresql_srg_v206522_enabled | bool
+  tags: [enforce, auditing, CATII, V-206522]
+
+- name: "Auditing | V-206523"
+  ansible.builtin.import_tasks: V-206523.yml
+  when: postgresql_srg_v206523_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206523]
+
+- name: "Auditing | V-206524"
+  ansible.builtin.import_tasks: V-206524.yml
+  when: postgresql_srg_v206524_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206524]
+
+- name: "Auditing | V-206525"
+  ansible.builtin.import_tasks: V-206525.yml
+  when: postgresql_srg_v206525_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206525]
+
+- name: "Auditing | V-206526"
+  ansible.builtin.import_tasks: V-206526.yml
+  when: postgresql_srg_v206526_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206526]
+
+- name: "Auditing | V-206527"
+  ansible.builtin.import_tasks: V-206527.yml
+  when: postgresql_srg_v206527_enabled | bool
+  tags: [enforce, auditing, CATII, V-206527]
+
+- name: "Auditing | V-206528"
+  ansible.builtin.import_tasks: V-206528.yml
+  when: postgresql_srg_v206528_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206528]
+
+- name: "Auditing | V-206529"
+  ansible.builtin.import_tasks: V-206529.yml
+  when: postgresql_srg_v206529_enabled | bool
+  tags: [enforce, auditing, CATII, V-206529]
+
+- name: "Auditing | V-206530"
+  ansible.builtin.import_tasks: V-206530.yml
+  when: postgresql_srg_v206530_enabled | bool
+  tags: [enforce, auditing, CATII, V-206530]
+
+- name: "Auditing | V-206531"
+  ansible.builtin.import_tasks: V-206531.yml
+  when: postgresql_srg_v206531_enabled | bool
+  tags: [enforce, auditing, CATII, V-206531]
+
+- name: "Auditing | V-206532"
+  ansible.builtin.import_tasks: V-206532.yml
+  when: postgresql_srg_v206532_enabled | bool
+  tags: [enforce, auditing, CATII, V-206532]
+
+- name: "Auditing | V-206533"
+  ansible.builtin.import_tasks: V-206533.yml
+  when: postgresql_srg_v206533_enabled | bool
+  tags: [enforce, auditing, CATII, V-206533]
+
+- name: "Auditing | V-206534"
+  ansible.builtin.import_tasks: V-206534.yml
+  when: postgresql_srg_v206534_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206534]
+
+- name: "Auditing | V-206537"
+  ansible.builtin.import_tasks: V-206537.yml
+  when: postgresql_srg_v206537_enabled | bool
+  tags: [enforce, auditing, CATII, V-206537]
+
+- name: "Auditing | V-206538"
+  ansible.builtin.import_tasks: V-206538.yml
+  when: postgresql_srg_v206538_enabled | bool
+  tags: [enforce, auditing, CATII, V-206538]
+
+- name: "Auditing | V-206539"
+  ansible.builtin.import_tasks: V-206539.yml
+  when: postgresql_srg_v206539_enabled | bool
+  tags: [enforce, auditing, CATII, V-206539]
+
+- name: "Auditing | V-206540"
+  ansible.builtin.import_tasks: V-206540.yml
+  when: postgresql_srg_v206540_enabled | bool
+  tags: [enforce, auditing, CATII, V-206540]
+
+- name: "Auditing | V-206541"
+  ansible.builtin.import_tasks: V-206541.yml
+  when: postgresql_srg_v206541_enabled | bool
+  tags: [enforce, auditing, CATII, V-206541]
+
+- name: "Auditing | V-206542"
+  ansible.builtin.import_tasks: V-206542.yml
+  when: postgresql_srg_v206542_enabled | bool
+  tags: [enforce, auditing, CATII, V-206542]
+
+- name: "Auditing | V-206543"
+  ansible.builtin.import_tasks: V-206543.yml
+  when: postgresql_srg_v206543_enabled | bool and postgresql_srg_pgaudit_enabled | bool
+  tags: [enforce, auditing, CATII, V-206543]
+
+- name: "Auditing | V-206612"
+  ansible.builtin.import_tasks: V-206612.yml
+  when: postgresql_srg_v206612_enabled | bool
+  tags: [enforce, auditing, CATII, V-206612]
+
+- name: "Auditing | V-206620"
+  ansible.builtin.import_tasks: V-206620.yml
+  when: postgresql_srg_v206620_enabled | bool
+  tags: [enforce, auditing, CATII, V-206620]
+
+- name: "Auditing | V-206621"
+  ansible.builtin.import_tasks: V-206621.yml
+  when: postgresql_srg_v206621_enabled | bool
+  tags: [enforce, auditing, CATII, V-206621]
+
+- name: "Auditing | V-206622"
+  ansible.builtin.import_tasks: V-206622.yml
+  when: postgresql_srg_v206622_enabled | bool
+  tags: [enforce, auditing, CATII, V-206622]
+
+- name: "Auditing | V-206623"
+  ansible.builtin.import_tasks: V-206623.yml
+  when: postgresql_srg_v206623_enabled | bool
+  tags: [enforce, auditing, CATII, V-206623]
+
+- name: "Auditing | V-206624"
+  ansible.builtin.import_tasks: V-206624.yml
+  when: postgresql_srg_v206624_enabled | bool
+  tags: [enforce, auditing, CATII, V-206624]
+
+- name: "Auditing | V-206625"
+  ansible.builtin.import_tasks: V-206625.yml
+  when: postgresql_srg_v206625_enabled | bool
+  tags: [enforce, auditing, CATII, V-206625]
+
+- name: "Auditing | V-206626"
+  ansible.builtin.import_tasks: V-206626.yml
+  when: postgresql_srg_v206626_enabled | bool
+  tags: [enforce, auditing, CATII, V-206626]
+
+- name: "Auditing | V-206627"
+  ansible.builtin.import_tasks: V-206627.yml
+  when: postgresql_srg_v206627_enabled | bool
+  tags: [enforce, auditing, CATII, V-206627]
+
+- name: "Auditing | V-206628"
+  ansible.builtin.import_tasks: V-206628.yml
+  when: postgresql_srg_v206628_enabled | bool
+  tags: [enforce, auditing, CATII, V-206628]
+
+- name: "Auditing | V-206629"
+  ansible.builtin.import_tasks: V-206629.yml
+  when: postgresql_srg_v206629_enabled | bool
+  tags: [enforce, auditing, CATII, V-206629]
+
+- name: "Auditing | V-206630"
+  ansible.builtin.import_tasks: V-206630.yml
+  when: postgresql_srg_v206630_enabled | bool
+  tags: [enforce, auditing, CATII, V-206630]
+
+- name: "Auditing | V-206631"
+  ansible.builtin.import_tasks: V-206631.yml
+  when: postgresql_srg_v206631_enabled | bool
+  tags: [enforce, auditing, CATII, V-206631]
+
+- name: "Auditing | V-206632"
+  ansible.builtin.import_tasks: V-206632.yml
+  when: postgresql_srg_v206632_enabled | bool
+  tags: [enforce, auditing, CATII, V-206632]
+
+- name: "Auditing | V-206633"
+  ansible.builtin.import_tasks: V-206633.yml
+  when: postgresql_srg_v206633_enabled | bool
+  tags: [enforce, auditing, CATII, V-206633]
+
+- name: "Auditing | V-206634"
+  ansible.builtin.import_tasks: V-206634.yml
+  when: postgresql_srg_v206634_enabled | bool
+  tags: [enforce, auditing, CATII, V-206634]
+
+- name: "Auditing | V-206635"
+  ansible.builtin.import_tasks: V-206635.yml
+  when: postgresql_srg_v206635_enabled | bool
+  tags: [enforce, auditing, CATII, V-206635]
+
+- name: "Auditing | V-206636"
+  ansible.builtin.import_tasks: V-206636.yml
+  when: postgresql_srg_v206636_enabled | bool
+  tags: [enforce, auditing, CATII, V-206636]
+
+- name: "Auditing | V-206637"
+  ansible.builtin.import_tasks: V-206637.yml
+  when: postgresql_srg_v206637_enabled | bool
+  tags: [enforce, auditing, CATII, V-206637]
+
+- name: "Auditing | V-206638"
+  ansible.builtin.import_tasks: V-206638.yml
+  when: postgresql_srg_v206638_enabled | bool
+  tags: [enforce, auditing, CATII, V-206638]
+
+- name: "Auditing | V-206642"
+  ansible.builtin.import_tasks: V-206642.yml
+  when: postgresql_srg_v206642_enabled | bool
+  tags: [enforce, auditing, CATII, V-206642]
+
+- name: "Auditing | V-203604"
+  ansible.builtin.import_tasks: V-203604.yml
+  when: postgresql_srg_v203604_enabled | bool
+  tags: [enforce, auditing, CATII, V-203604]
+
+- name: "Auditing | V-203605"
+  ansible.builtin.import_tasks: V-203605.yml
+  when: postgresql_srg_v203605_enabled | bool
+  tags: [enforce, auditing, CATII, V-203605]
+
+############################################################
+# Final pass: re-harden file permissions after all
+# ALTER SYSTEM SET calls (which reset postgresql.auto.conf
+# to 0640). V-206542 is intentionally re-run last.
+############################################################
+- name: "Auditing | Re-enforce V-206542 (final file permission hardening)"
+  ansible.builtin.import_tasks: V-206542.yml
+  when: postgresql_srg_v206542_enabled | bool
+  tags: [enforce, auditing, CATII, V-206542]

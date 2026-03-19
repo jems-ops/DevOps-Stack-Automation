@@ -46,21 +46,21 @@
   ansible.builtin.command: dnf updateinfo list security
   register: v206611_security_updates
   changed_when: false
-  tags: ['V-206611','CAT II','check']
+  tags: ['V-206611', 'CAT II', 'check']
 
 - name: "V-206611 | Display security update status"
   ansible.builtin.debug:
     var: v206611_security_updates.stdout_lines
-  tags: ['V-206611','CAT II','check']
+  tags: ['V-206611', 'CAT II', 'check']
 
 - name: "V-206611 | Record PostgreSQL version"
   become: true
   ansible.builtin.command: psql --version
   register: v206611_pg_version
   changed_when: false
-  tags: ['V-206611','CAT II','check']
+  tags: ['V-206611', 'CAT II', 'check']
 
 - name: "V-206611 | Display PostgreSQL version"
   ansible.builtin.debug:
     var: v206611_pg_version.stdout
-  tags: ['V-206611','CAT II','check']
+  tags: ['V-206611', 'CAT II', 'check']

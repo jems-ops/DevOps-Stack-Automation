@@ -10,7 +10,7 @@
     psql -t -c "SELECT rolname FROM pg_roles WHERE rolname='pg_execute_server_program';"
   register: exec_role
   changed_when: false
-  tags: ['V-206552','CAT II','check']
+  tags: ['V-206552', 'CAT II', 'check']
 
 
 - name: "V-206552 | Check installed extensions"
@@ -20,7 +20,7 @@
     psql -t -c "SELECT extname FROM pg_extension;"
   register: installed_extensions
   changed_when: false
-  tags: ['V-206552','CAT II','check']
+  tags: ['V-206552', 'CAT II', 'check']
 
 
 - name: "V-206552 | Check installed procedural languages"
@@ -30,7 +30,7 @@
     psql -t -c "SELECT lanname FROM pg_language;"
   register: installed_languages
   changed_when: false
-  tags: ['V-206552','CAT II','check']
+  tags: ['V-206552', 'CAT II', 'check']
 
 
 - name: "V-206552 | Display validation results"
@@ -39,4 +39,4 @@
       - "Server execution role: {{ exec_role.stdout }}"
       - "Installed extensions: {{ installed_extensions.stdout_lines }}"
       - "Installed languages: {{ installed_languages.stdout_lines }}"
-  tags: ['V-206552','CAT II','check']
+  tags: ['V-206552', 'CAT II', 'check']

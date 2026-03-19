@@ -48,7 +48,7 @@
     psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
   register: pgaudit_status
   changed_when: false
-  tags: ['V-206628','CAT II','check']
+  tags: ['V-206628', 'CAT II', 'check']
 
 - name: "V-206628 | Verify pgaudit library loaded"
   become: true
@@ -57,7 +57,7 @@
     psql -t -c "SHOW shared_preload_libraries;"
   register: pgaudit_loaded
   changed_when: false
-  tags: ['V-206628','CAT II','check']
+  tags: ['V-206628', 'CAT II', 'check']
 
 - name: "V-206628 | Verify deletion activity logging"
   become: true
@@ -66,7 +66,7 @@
     psql -t -c "SHOW pgaudit.log;"
   register: pgaudit_config
   changed_when: false
-  tags: ['V-206628','CAT II','check']
+  tags: ['V-206628', 'CAT II', 'check']
 
 - name: "V-206628 | Display audit configuration"
   ansible.builtin.debug:
@@ -74,4 +74,4 @@
       - "pgaudit extension: {{ pgaudit_status.stdout }}"
       - "shared_preload_libraries: {{ pgaudit_loaded.stdout }}"
       - "pgaudit.log: {{ pgaudit_config.stdout }}"
-  tags: ['V-206628','CAT II','check']
+  tags: ['V-206628', 'CAT II', 'check']

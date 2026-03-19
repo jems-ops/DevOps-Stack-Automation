@@ -10,7 +10,7 @@
     psql -t -c "SHOW listen_addresses;"
   register: v206551_listen_addresses
   changed_when: false
-  tags: ['V-206551','CAT II','check']
+  tags: ['V-206551', 'CAT II', 'check']
 
 
 - name: "V-206551 | Check WAL senders"
@@ -20,7 +20,7 @@
     psql -t -c "SHOW max_wal_senders;"
   register: v206551_wal_senders
   changed_when: false
-  tags: ['V-206551','CAT II','check']
+  tags: ['V-206551', 'CAT II', 'check']
 
 
 - name: "V-206551 | Check replication slots"
@@ -30,7 +30,7 @@
     psql -t -c "SHOW max_replication_slots;"
   register: v206551_replication_slots
   changed_when: false
-  tags: ['V-206551','CAT II','check']
+  tags: ['V-206551', 'CAT II', 'check']
 
 
 - name: "V-206551 | Check WAL level"
@@ -40,7 +40,7 @@
     psql -t -c "SHOW wal_level;"
   register: v206551_wal_level
   changed_when: false
-  tags: ['V-206551','CAT II','check']
+  tags: ['V-206551', 'CAT II', 'check']
 
 
 - name: "V-206551 | Display validation results"
@@ -50,4 +50,4 @@
       - "max_wal_senders: {{ v206551_wal_senders.stdout }}"
       - "max_replication_slots: {{ v206551_replication_slots.stdout }}"
       - "wal_level: {{ v206551_wal_level.stdout }}"
-  tags: ['V-206551','CAT II','check']
+  tags: ['V-206551', 'CAT II', 'check']

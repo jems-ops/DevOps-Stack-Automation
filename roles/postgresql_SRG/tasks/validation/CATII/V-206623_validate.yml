@@ -55,7 +55,7 @@
     psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
   register: pgaudit_status
   changed_when: false
-  tags: ['V-206623','CAT II','check']
+  tags: ['V-206623', 'CAT II', 'check']
 
 - name: "V-206623 | Verify pgaudit library loaded"
   become: true
@@ -64,7 +64,7 @@
     psql -t -c "SHOW shared_preload_libraries;"
   register: pgaudit_loaded
   changed_when: false
-  tags: ['V-206623','CAT II','check']
+  tags: ['V-206623', 'CAT II', 'check']
 
 - name: "V-206623 | Verify modification auditing"
   become: true
@@ -73,7 +73,7 @@
     psql -t -c "SHOW pgaudit.log;"
   register: pgaudit_config
   changed_when: false
-  tags: ['V-206623','CAT II','check']
+  tags: ['V-206623', 'CAT II', 'check']
 
 - name: "V-206623 | Verify error logging configuration"
   become: true
@@ -82,7 +82,7 @@
     psql -t -c "SHOW log_min_error_statement;"
   register: error_log_config
   changed_when: false
-  tags: ['V-206623','CAT II','check']
+  tags: ['V-206623', 'CAT II', 'check']
 
 - name: "V-206623 | Display audit configuration"
   ansible.builtin.debug:
@@ -91,4 +91,4 @@
       - "shared_preload_libraries: {{ pgaudit_loaded.stdout }}"
       - "pgaudit.log: {{ pgaudit_config.stdout }}"
       - "log_min_error_statement: {{ error_log_config.stdout }}"
-  tags: ['V-206623','CAT II','check']
+  tags: ['V-206623', 'CAT II', 'check']

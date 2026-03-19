@@ -1,0 +1,85 @@
+---
+############################################################
+# STIG Control: V-206522
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must support non-repudiation of actions taken
+# by users.
+#
+# Implementation:
+# PostgreSQL supports non-repudiation through connection
+# logging and the pgaudit extension. Audit logs capture
+# user identity, database, client host, and session ID.
+############################################################
+
+
+############################################################
+# Enable connection logging
+############################################################
+
+- name: "V-206522 | Enable connection logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_connections\s*='
+    line: "log_connections = on"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206522', 'CAT II', 'enforce']
+
+
+############################################################
+# Enable disconnection logging
+############################################################
+
+- name: "V-206522 | Enable disconnection logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_disconnections\s*='
+    line: "log_disconnections = on"
+  notify: Restart PostgreSQL
+  tags: ['V-206522', 'CAT II', 'enforce']
+
+
+############################################################
+# Ensure user identity captured in logs
+############################################################
+
+- name: "V-206522 | Configure log_line_prefix"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_line_prefix\s*='
+    line: "log_line_prefix = '%m %u %d %r %p %c %a %h '"
+  notify: Restart PostgreSQL
+  tags: ['V-206522', 'CAT II', 'enforce']
+
+
+############################################################
+# Ensure pgaudit loaded
+############################################################
+
+- name: "V-206522 | Ensure pgaudit loads at startup"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
+    line: "shared_preload_libraries = 'pgaudit'"
+  notify: Restart PostgreSQL
+  tags: ['V-206522', 'CAT II', 'enforce']
+
+
+############################################################
+# Configure audit classes
+############################################################
+
+- name: "V-206522 | Configure pgaudit logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log\s*='
+    line: "pgaudit.log = 'read, write, ddl'"
+  notify: Restart PostgreSQL
+  tags: ['V-206522', 'CAT II', 'enforce']

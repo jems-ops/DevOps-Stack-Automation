@@ -10,4 +10,4 @@
 - name: "V-263609 | MFA validation"
   ansible.builtin.debug:
     msg: "MFA enforcement verified through enterprise identity management infrastructure."
-  tags: ['V-263609','CAT II','check']
+  tags: ['V-263609', 'CAT II', 'check']

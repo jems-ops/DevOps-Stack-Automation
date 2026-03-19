@@ -52,7 +52,7 @@
     psql -t -c "SHOW idle_session_timeout;"
   register: idle_session_timeout
   changed_when: false
-  tags: ['V-206580','CAT II','check']
+  tags: ['V-206580', 'CAT II', 'check']
 
 - name: "V-206580 | Check idle transaction timeout"
   become: true
@@ -61,7 +61,7 @@
     psql -t -c "SHOW idle_in_transaction_session_timeout;"
   register: idle_tx_timeout
   changed_when: false
-  tags: ['V-206580','CAT II','check']
+  tags: ['V-206580', 'CAT II', 'check']
 
 - name: "V-206580 | Check statement timeout"
   become: true
@@ -70,7 +70,7 @@
     psql -t -c "SHOW statement_timeout;"
   register: statement_timeout
   changed_when: false
-  tags: ['V-206580','CAT II','check']
+  tags: ['V-206580', 'CAT II', 'check']
 
 - name: "V-206580 | Display session timeout configuration"
   ansible.builtin.debug:
@@ -78,4 +78,4 @@
       - "idle_session_timeout: {{ idle_session_timeout.stdout }}"
       - "idle_in_transaction_session_timeout: {{ idle_tx_timeout.stdout }}"
       - "statement_timeout: {{ statement_timeout.stdout }}"
-  tags: ['V-206580','CAT II','check']
+  tags: ['V-206580', 'CAT II', 'check']

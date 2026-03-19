@@ -6,12 +6,12 @@
 - name: "V-206638 | Verify audit logging configuration"
   become: true
   become_user: postgres
-  command: psql -t -c "SHOW log_connections;"
+  ansible.builtin.command: psql -t -c "SHOW log_connections;"
   register: log_connections_status
   changed_when: false
   tags: ['V-206638', 'CAT II', 'validate']
 
 - name: "V-206638 | Display connection logging status"
-  debug:
+  ansible.builtin.debug:
     var: log_connections_status.stdout
   tags: ['V-206638', 'CAT II', 'validate']

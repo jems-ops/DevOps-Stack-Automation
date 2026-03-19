@@ -6,8 +6,6 @@
 # Objective:
 # Ensure PostgreSQL version is vendor-supported
 ############################################################
-
-
 ############################################################
 # Gather PostgreSQL version (SAFE)
 ############################################################
@@ -20,9 +18,7 @@
   register: postgresql_srg_version
   changed_when: false
   failed_when: false
-  tags: ['V-265854','CAT-I','validate','postgres','stig','version']
-
-
+  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig', 'version']
 ############################################################
 # Normalize version output
 ############################################################
@@ -30,9 +26,7 @@
 - name: "V-265854 | Normalize version"
   ansible.builtin.set_fact:
     postgresql_srg_version_clean: "{{ postgresql_srg_version.stdout | default('') | trim }}"
-  tags: ['V-265854','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
 # Extract major version (SAFE)
 ############################################################
@@ -44,9 +38,7 @@
         (postgresql_srg_version_clean | regex_search('^([0-9]+)'))
         if postgresql_srg_version_clean != '' else 'unknown'
       }}
-  tags: ['V-265854','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
 # Define supported versions (OVERRIDABLE)
 ############################################################
@@ -56,11 +48,9 @@
     postgresql_srg_supported_versions: >-
       {{
         postgresql_srg_supported_versions
-        | default(['16','15'])
+        | default(['16', '15'])
       }}
-  tags: ['V-265854','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
 # Assert version is supported
 ############################################################
@@ -76,5 +66,4 @@
       Supported versions: {{ postgresql_srg_supported_versions }}.
     success_msg: >
       PostgreSQL version {{ postgresql_srg_version_clean }} is supported.
-  tags: ['V-265854','CAT-I','validate','postgres','stig','critical']
-
+  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig', 'critical']

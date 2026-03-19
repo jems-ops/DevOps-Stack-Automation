@@ -1,0 +1,43 @@
+---
+############################################################
+# STIG Control: V-206546
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS software and data directories must be located
+# in dedicated directories separate from other applications.
+#
+# Finding Details:
+# DBMS software and data files must be stored in dedicated
+# directories to prevent unauthorized access, accidental
+# modification, or interference from other applications.
+#
+# Implementation in this Environment:
+# PostgreSQL binaries are installed through the operating
+# system package manager in a dedicated directory under
+# /usr/pgsql-<version>. The PostgreSQL data directory is
+# located in /var/lib/pgsql and is not shared with other
+# applications.
+#
+# Manual Verification Steps:
+#
+# 1. Verify PostgreSQL data directory:
+#
+#       SHOW data_directory;
+#
+# 2. Verify PostgreSQL binary location:
+#
+#       which postgres
+#
+# 3. Verify configuration directory location.
+#
+# Comment:
+# PostgreSQL software and data files are stored in
+# dedicated directories that are not shared with other
+# applications. Therefore, V-206546 is Not a Finding.
+############################################################
+
+# no enforcement tasks are required for this control as the# PostgreSQL installation is compliant with the requirement.
+# Directory locations are determined by the operating system
+# package manager and are not shared with other applications.
+# The PostgreSQL instance is dedicated to the SonarQube

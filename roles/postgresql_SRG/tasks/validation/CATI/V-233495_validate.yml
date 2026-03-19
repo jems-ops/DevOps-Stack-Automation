@@ -6,8 +6,6 @@
 # Objective:
 # Ensure system enforces FIPS-approved cryptography
 ############################################################
-
-
 ############################################################
 # Check FIPS kernel mode (PRIMARY CONTROL)
 ############################################################
@@ -19,9 +17,7 @@
   register: postgresql_srg_fips_status
   changed_when: false
   failed_when: false
-  tags: ['V-233495','CAT-I','validate','postgres','stig','fips']
-
-
+  tags: ['V-233495', 'CAT-I', 'validate', 'postgres', 'stig', 'fips']
 - name: "V-233495 | Assert FIPS enabled"
   ansible.builtin.assert:
     that:
@@ -32,9 +28,7 @@
     - postgresql_srg_fips_required | default(true)
     - postgresql_srg_enforce_strict | default(true)
   ignore_errors: true
-  tags: ['V-233495','CAT-I','validate','postgres','stig','fips']
-
-
+  tags: ['V-233495', 'CAT-I', 'validate', 'postgres', 'stig', 'fips']
 
 ############################################################
 # Check crypto policy (RHEL-based systems)
@@ -47,9 +41,7 @@
   register: postgresql_srg_crypto_policy
   changed_when: false
   failed_when: false
-  tags: ['V-233495','CAT-I','validate','postgres','stig','fips']
-
-
+  tags: ['V-233495', 'CAT-I', 'validate', 'postgres', 'stig', 'fips']
 - name: "V-233495 | Assert crypto policy is FIPS"
   ansible.builtin.assert:
     that:
@@ -61,9 +53,7 @@
   when:
     - postgresql_srg_fips_required | default(true)
     - postgresql_srg_crypto_policy.stdout != "UNKNOWN"
-  tags: ['V-233495','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-233495', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
 # Verify OpenSSL FIPS (This could be a strong evidence)
 ############################################################
@@ -75,9 +65,7 @@
   register: postgresql_srg_openssl_fips
   changed_when: false
   failed_when: false
-  tags: ['V-233495','CAT-I','validate','postgres','stig','evidence']
-
-
+  tags: ['V-233495', 'CAT-I', 'validate', 'postgres', 'stig', 'evidence']
 - name: "V-233495 | Assert OpenSSL FIPS available"
   ansible.builtin.assert:
     that:
@@ -86,4 +74,4 @@
     success_msg: "OpenSSL FIPS provider detected"
   when: postgresql_srg_fips_required | default(true)
   ignore_errors: true
-  tags: ['V-233495','CAT-I','validate','postgres','stig']
+  tags: ['V-233495', 'CAT-I', 'validate', 'postgres', 'stig']

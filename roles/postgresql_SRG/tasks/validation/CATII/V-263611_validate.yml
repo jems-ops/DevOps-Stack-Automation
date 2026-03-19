@@ -10,4 +10,4 @@
 - name: "V-263611 | Procedural validation"
   ansible.builtin.debug:
     msg: "Password blacklist update frequency enforced through organizational password policy."
-  tags: ['V-263611','CAT II','check']
+  tags: ['V-263611', 'CAT II', 'check']

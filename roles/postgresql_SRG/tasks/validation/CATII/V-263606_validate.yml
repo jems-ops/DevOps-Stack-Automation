@@ -16,15 +16,15 @@
 - name: "V-263606 | Show repository GPG configuration"
   ansible.builtin.debug:
     var: repo_gpgcheck.stdout_lines
-  tags: ['V-263606','CAT II','check']
+  tags: ['V-263606', 'CAT II', 'check']
 
 - name: "V-263606 | Check global GPG check setting"
   ansible.builtin.command: grep gpgcheck /etc/dnf/dnf.conf
   register: global_gpgcheck
   changed_when: false
-  tags: ['V-263606','CAT II','check']
-  
+  tags: ['V-263606', 'CAT II', 'check']
+
 - name: "V-263606 | Show global GPG check configuration"
   ansible.builtin.debug:
     var: global_gpgcheck.stdout_lines
-  tags: ['V-263606','CAT II','check']
+  tags: ['V-263606', 'CAT II', 'check']

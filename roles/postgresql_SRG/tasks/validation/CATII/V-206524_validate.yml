@@ -7,7 +7,7 @@
 - name: "V-206524 | Check SUPERUSER roles"
   become: true
   become_user: postgres
-  ansible.builtin.shell: psql -t -A -F',' -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
+  ansible.builtin.shell: psql -t -A -F', ' -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
   register: v206524_superusers
   changed_when: false
   tags: [V-206524, stig, cat2]

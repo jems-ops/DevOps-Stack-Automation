@@ -1,0 +1,111 @@
+---
+############################################################
+# STIG Control: V-206541
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must protect audit features from unauthorized
+# access.
+#
+# Finding Details:
+# Audit mechanisms must be protected from unauthorized
+# access to ensure that security events are recorded
+# accurately and cannot be manipulated or disabled by
+# unauthorized users.
+#
+# Implementation in this Environment:
+# PostgreSQL audit configuration files and log directories
+# are restricted to the postgres administrative account.
+# File permissions and ownership prevent unauthorized
+# users from accessing or modifying audit configuration
+# and log data.
+#
+# Manual Verification Steps:
+#
+# 1. Verify configuration file permissions:
+#
+#       ls -l postgresql.conf
+#
+# 2. Verify log directory permissions:
+#
+#       ls -ld <log_directory>
+#
+# 3. Verify superuser roles:
+#
+#       SELECT rolname FROM pg_roles WHERE rolsuper=true;
+#
+# Comment:
+# PostgreSQL audit configuration files and log directories
+# are protected through operating system file permissions
+# and ownership. Superuser privileges are restricted to
+# authorized administrators, preventing unauthorized
+# access to audit features.
+############################################################
+
+
+############################################################
+# Enforcement
+############################################################
+
+############################
+# Protect postgresql.conf
+############################
+
+- name: "V-206541 | Protect postgresql.conf"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_conf_file }}"
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  tags: ['V-206541', 'CAT II', 'enforce']
+
+
+############################
+# Protect log directory
+############################
+
+- name: "V-206541 | Protect PostgreSQL log directory"
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgresql_srg_log_directory }}"
+    owner: postgres
+    group: postgres
+    mode: "0700"
+    state: directory
+  tags: ['V-206541', 'CAT II', 'enforce']
+
+
+############################################################
+# Validation
+############################################################
+
+- name: "V-206541 | Check configuration file permissions"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_conf_file }}"
+  register: v206541_conf
+  tags: ['V-206541', 'CAT II', 'check']
+
+
+- name: "V-206541 | Check log directory permissions"
+  become: true
+  ansible.builtin.stat:
+    path: "{{ postgresql_srg_log_directory }}"
+  register: v206541_logdir
+  tags: ['V-206541', 'CAT II', 'check']
+
+
+- name: "V-206541 | Assert file protections"
+  ansible.builtin.assert:
+    that:
+      - v206541_conf.stat.pw_name == "postgres"
+      - v206541_conf.stat.mode == "0600"
+      - v206541_logdir.stat.pw_name == "postgres"
+      - v206541_logdir.stat.mode == "0700"
+    fail_msg: >
+      STIG V-206541 FAILED:
+      Audit configuration or log directory permissions incorrect.
+    success_msg: >
+      Audit configuration and log directories protected.
+  tags: ['V-206541', 'CAT II', 'check']

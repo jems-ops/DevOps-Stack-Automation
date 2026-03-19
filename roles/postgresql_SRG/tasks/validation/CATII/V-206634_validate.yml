@@ -6,7 +6,7 @@
 - name: "V-206634 | Check log_connections"
   become: true
   become_user: postgres
-  command: psql -t -c "SHOW log_connections;"
+  ansible.builtin.command: psql -t -c "SHOW log_connections;"
   register: log_connections
   changed_when: false
   tags: ['V-206634', 'CAT II', 'validate']
@@ -14,13 +14,13 @@
 - name: "V-206634 | Check log_disconnections"
   become: true
   become_user: postgres
-  command: psql -t -c "SHOW log_disconnections;"
+  ansible.builtin.command: psql -t -c "SHOW log_disconnections;"
   register: log_disconnections
   changed_when: false
   tags: ['V-206634', 'CAT II', 'validate']
 
 - name: "Display validation results"
-  debug:
+  ansible.builtin.debug:
     msg:
       - "log_connections: {{ log_connections.stdout }}"
       - "log_disconnections: {{ log_disconnections.stdout }}"

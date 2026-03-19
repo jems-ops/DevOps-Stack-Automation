@@ -17,7 +17,7 @@
   register: v206556_encryption
   changed_when: false
   failed_when: false
-  tags: ['V-206556','CAT-I','validate','postgres','stig']
+  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206556 | Assert SCRAM enabled"
@@ -27,7 +27,7 @@
     fail_msg: "SCRAM password hashing is NOT enabled"
     success_msg: "SCRAM password hashing is enabled"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206556','CAT-I','validate','postgres','stig']
+  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -46,7 +46,7 @@
   register: v206556_weak_hashes
   changed_when: false
   failed_when: false
-  tags: ['V-206556','CAT-I','validate','postgres','stig']
+  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206556 | Normalize weak hash results"
@@ -54,9 +54,9 @@
     v206556_weak_clean: >-
       {{ v206556_weak_hashes.stdout_lines
          | map('trim')
-         | reject('equalto','')
+         | reject('equalto', '')
          | list }}
-  tags: ['V-206556','CAT-I','validate','postgres','stig']
+  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206556 | Assert no weak hashes exist"
@@ -68,4 +68,4 @@
       {{ v206556_weak_clean }}
     success_msg: "All roles use SCRAM password hashing"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206556','CAT-I','validate','postgres','stig']
+  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']

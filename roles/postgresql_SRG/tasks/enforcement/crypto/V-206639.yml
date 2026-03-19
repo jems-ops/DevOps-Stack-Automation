@@ -1,0 +1,72 @@
+---
+############################################################
+# STIG Control: V-206639
+# Status : NOT A FINDING
+#
+# Title:
+# DBMS must use NIST FIPS validated cryptographic modules
+# to provision digital signatures.
+#
+# Finding Details:
+# Digital signature operations used by the DBMS must rely
+# on validated cryptographic modules to ensure integrity
+# and authenticity of cryptographic operations.
+#
+# Implementation in this Environment:
+# PostgreSQL cryptographic operations rely on the OpenSSL
+# library provided by the underlying RHEL operating system.
+# When the system operates in FIPS mode, OpenSSL uses
+# NIST FIPS 140-2/140-3 validated cryptographic modules.
+#
+# Manual Verification Steps:
+#
+# 1. Verify system FIPS mode:
+#
+#       cat /proc/sys/crypto/fips_enabled
+#
+#    Expected result:
+#
+#       1
+#
+# 2. Verify system crypto policy:
+#
+#       update-crypto-policies --show
+#
+#    Expected result:
+#
+#       FIPS
+#
+# 3. Verify PostgreSQL links to OpenSSL:
+#
+#       ldd $(which postgres) | grep ssl
+#
+# Comment:
+# PostgreSQL cryptographic functions rely on the OpenSSL
+# library provided by the RHEL operating system. When FIPS
+# mode is enabled, OpenSSL operates using validated
+# cryptographic modules. Therefore PostgreSQL inherits
+# FIPS-compliant digital signature capabilities from the
+# operating system.
+############################################################
+
+- name: "V-206639 | Check FIPS mode"
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: fips_status
+  changed_when: false
+  tags: ['V-206639', 'CAT II', 'check']
+
+- name: "V-206639 | Display FIPS status"
+  ansible.builtin.debug:
+    var: fips_status.stdout
+  tags: ['V-206639', 'CAT II', 'check']
+
+- name: "V-206639 | Verify crypto policy"
+  ansible.builtin.command: update-crypto-policies --show
+  register: crypto_policy
+  changed_when: false
+  tags: ['V-206639', 'CAT II', 'check']
+
+- name: "V-206639 | Display crypto policy"
+  ansible.builtin.debug:
+    var: crypto_policy.stdout
+  tags: ['V-206639', 'CAT II', 'check']

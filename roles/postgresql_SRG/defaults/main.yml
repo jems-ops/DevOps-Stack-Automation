@@ -15,10 +15,69 @@ postgresql_srg_validation_enabled: true
 postgresql_srg_post_healthcheck_enabled: true
 
 ############################################################
+# Pre-Enforcement Backup
+############################################################
+# When true, snapshot all PostgreSQL config files before
+# enforcement tasks run.  Backups are stored as timestamped
+# tar archives and can be restored with the rollback playbook.
+postgresql_srg_backup_enabled: true
+
+# Directory on the remote host where backups are stored.
+postgresql_srg_backup_dir: /var/lib/pgsql/srg-backups
+
+# Configuration files to include in the backup.
+postgresql_srg_backup_configs:
+  - "{{ postgresql_srg_data_dir }}/postgresql.conf"
+  - "{{ postgresql_srg_data_dir }}/pg_hba.conf"
+  - "{{ postgresql_srg_data_dir }}/pg_ident.conf"
+  - "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
+
+# Number of backup archives to retain (oldest pruned first).
+postgresql_srg_backup_retention_count: 5
+
+############################################################
+# RHEL8 STIG Integration
+############################################################
+# When true, coordinate with the upstream rhel8-stig role
+# (e.g. apply variable overrides before or after the base OS
+# STIG baseline runs on the same host).
+postgresql_srg_rhel8_stig_enabled: false
+
+# Run the upstream rhel8-stig role as part of this role's execution.
+# Set to false if the base OS STIG is applied separately (e.g. via
+# playbooks/baseos/rhel8-stig.yml or the sonarqube-stig wrapper).
+postgresql_srg_run_rhel8_stig: false
+
+# Optional safety check: fail if the target host is not EL8.
+# Set to false for Rocky/EL9 hosts where you are running an
+# EL8 baseline iteratively.
+postgresql_srg_enforce_el8: false
+
+# Variables to pass to the upstream roles/rhel8-stig role.
+# Use this dict to tailor/disable individual DISA_STIG_* controls
+# that conflict with PostgreSQL service requirements.
+#
+# Example:
+#   postgresql_srg_rhel8_stig_vars:
+#     DISA_STIG_RHEL_08_010358: false    # mailx not on Rocky 9
+#     package_mailx_installed: false
+#
+# These are injected as host-scoped facts before the rhel8-stig
+# role runs, identical to the sonarqube-stig pattern.
+postgresql_srg_rhel8_stig_vars: {}
+
+# Protect the SSH/automation connection user from being locked out
+# during OS STIG hardening (password aging, account expiry, etc.).
+postgresql_srg_protect_connection_user: true
+
+# Specific users to protect.  If empty, defaults to ansible_user.
+postgresql_srg_protected_users: []
+
+############################################################
 # Post-STIG Health Check Settings
 ############################################################
 postgresql_srg_sonarqube_service_name: sonarqube
-postgresql_srg_sonarqube_url: "https://sonar.local"
+postgresql_srg_sonarqube_url: "https://{{ groups['sonarqube'][0] }}"
 postgresql_srg_sonarqube_validate_certs: false    # set true if using a trusted CA cert
 postgresql_srg_sonarqube_healthcheck_timeout: 30  # seconds
 
@@ -43,17 +102,7 @@ postgresql_srg_candidate_services:
   - postgresql-15
   - postgres
 
-postgresql_srg_pgpass_search_paths:
-  - /var/lib/pgsql
-  - /home
-  - /root
-
-postgresql_srg_application_schemas:
-  - public
-
 postgresql_srg_revoke_existing_objects: false
-
-postgresql_srg_readonly_role: readonly
 
 postgresql_srg_scope_paths:
   - "{{ postgresql_srg_conf_file }}"
@@ -74,12 +123,31 @@ postgresql_srg_data_dir_map:
 postgresql_srg_pgaudit_enabled: true
 postgresql_srg_pgaudit_package: "pgaudit_{{ postgresql_srg_pg_version }}"
 
-# FIPS mode (disable in lab environments where FIPS is not available)
-postgresql_srg_fips_required: true
+# FIPS mode — should match OS-level FIPS state.
+# The RHEL8 STIG baseline can enable FIPS at the OS level; set this
+# to true once FIPS is confirmed active so the PostgreSQL SRG
+# validation controls (V-233495, V-206562) enforce rather than skip.
+postgresql_srg_fips_required: false
+
+# Strict enforcement mode — when true, FIPS/crypto validation
+# failures are fatal; when false they are reported but ignored.
 postgresql_srg_enforce_strict: true
 
-# SELinux enforcement (set to false if SELinux is not available)
+# Safety guard for destructive operations.
+# When false (default), destructive tasks (DROP DATABASE, DROP EXTENSION,
+# remove obsolete packages, revoke superuser) will only REPORT findings
+# without making changes.  Set to true to allow actual removal/revocation.
+postgresql_srg_allow_removal: false
+
+# SELinux enforcement — should match OS-level SELinux state.
+# The RHEL8 STIG baseline enforces SELinux; set to false only
+# if SELinux is intentionally disabled/permissive in your environment.
 postgresql_srg_selinux_required: true
+
+# OS crypto policy — expected value when validating FIPS controls.
+# Typical values: FIPS, DEFAULT, FUTURE.  The RHEL8 STIG sets this
+# to FIPS; adjust if your base OS policy differs.
+postgresql_srg_expected_crypto_policy: FIPS
 
 # Optional common logging knobs
 postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "
@@ -339,7 +407,7 @@ postgresql_srg_allowed_port: 5432
 ############################################################
 # V-206554 Configuration
 ############################################################
-password_encryption: scram-sha-256
+postgresql_srg_password_encryption: scram-sha-256
 
 ############################################################
 # V-206567 — Application HBA Entries
@@ -389,8 +457,7 @@ postgresql_srg_ntp_server_ip: "192.168.1.100"
 ############################################################
 # V-263621 / V-263622 NTP Configuration
 ############################################################
-postgresql_srg_shared_preload_libraries : 'pgaudit'
-postgresql_srg_pgaudit_log : 'read,write,ddl,role'
-postgresql_srg_log_connections : on
-postgresql_srg_log_disconnections : on
-#postgresql_srg_log_line_prefix : '%m %u %d %r %p '
+postgresql_srg_shared_preload_libraries: 'pgaudit'
+postgresql_srg_pgaudit_log: 'read, write, ddl, role'
+postgresql_srg_log_connections: true
+postgresql_srg_log_disconnections: true

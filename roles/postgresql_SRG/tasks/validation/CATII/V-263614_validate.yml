@@ -14,4 +14,4 @@
 - name: "V-263614 | Procedural control validation"
   ansible.builtin.debug:
     msg: "Password recovery is handled through documented administrative procedures."
-  tags: ['V-263614','CAT II','check']
+  tags: ['V-263614', 'CAT II', 'check']

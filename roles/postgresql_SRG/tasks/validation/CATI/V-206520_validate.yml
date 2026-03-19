@@ -17,7 +17,7 @@
   register: v206520_listen
   changed_when: false
   failed_when: false
-  tags: ['V-206520','validate']
+  tags: ['V-206520', 'validate']
 
 
 - name: "V-206520 | Assert localhost-only binding"
@@ -27,7 +27,7 @@
     fail_msg: "Database is not restricted to localhost"
     success_msg: "Database restricted to localhost"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206520','validate']
+  tags: ['V-206520', 'validate']
 
 
 ############################################################
@@ -42,7 +42,7 @@
   register: v206520_hba
   changed_when: false
   failed_when: false
-  tags: ['V-206520','validate']
+  tags: ['V-206520', 'validate']
 
 
 - name: "V-206520 | Assert no external access"
@@ -52,11 +52,11 @@
     fail_msg: "External DB access detected"
     success_msg: "No external DB access configured"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206520','validate']
+  tags: ['V-206520', 'validate']
 
 
 ############################################################
-# Validate authentication methods 
+# Validate authentication methods
 ############################################################
 
 - name: "V-206520 | Check authentication methods"
@@ -66,7 +66,7 @@
   register: v206520_auth
   changed_when: false
   failed_when: false
-  tags: ['V-206520','validate']
+  tags: ['V-206520', 'validate']
 
 
 - name: "V-206520 | Assert only secure methods used"
@@ -76,7 +76,7 @@
     fail_msg: "Insecure authentication method detected (trust)"
     success_msg: "Only secure authentication methods in use"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206520','validate']
+  tags: ['V-206520', 'validate']
 
 
 ############################################################
@@ -94,7 +94,7 @@
   register: v206520_roles
   changed_when: false
   failed_when: false
-  tags: ['V-206520','validate','rbac']
+  tags: ['V-206520', 'validate', 'rbac']
 
 
 - name: "V-206520 | Assert roles are application/service accounts"
@@ -106,4 +106,4 @@
       {{ v206520_roles.stdout_lines }}
     fail_msg: "Unable to evaluate login roles"
   ignore_errors: true
-  tags: ['V-206520','validate','rbac']
+  tags: ['V-206520', 'validate', 'rbac']

@@ -21,7 +21,7 @@
   register: v206557_hba_check
   changed_when: false
   failed_when: false
-  tags: ['V-206557','CAT-I','validate','postgres','stig']
+  tags: ['V-206557', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -37,7 +37,7 @@
       {{ v206557_hba_check.stdout_lines }}
     success_msg: "Authentication methods are secure"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206557','CAT-I','validate','postgres','stig']
+  tags: ['V-206557', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 ############################################################
@@ -51,7 +51,7 @@
   register: v206557_scram_check
   changed_when: false
   failed_when: false
-  tags: ['V-206557','CAT-I','validate','postgres','stig']
+  tags: ['V-206557', 'CAT-I', 'validate', 'postgres', 'stig']
 
 
 - name: "V-206557 | Assert SCRAM enforced"
@@ -59,4 +59,4 @@
     that:
       - "'scram-sha-256' in v206557_scram_check.stdout"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206557','CAT-I','validate','postgres','stig']
+  tags: ['V-206557', 'CAT-I', 'validate', 'postgres', 'stig']

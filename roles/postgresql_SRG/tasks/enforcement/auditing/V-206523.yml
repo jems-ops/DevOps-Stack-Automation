@@ -1,0 +1,100 @@
+---
+############################################################
+# STIG Control: V-206523
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must generate audit records for all DoD-defined
+# auditable events.
+#
+# Implementation:
+# PostgreSQL auditing is implemented using native logging
+# and the pgaudit extension. Connection events, DDL events,
+# and catalog access are recorded to support security
+# monitoring and forensic analysis.
+############################################################
+
+
+############################################################
+# Enable connection logging
+############################################################
+
+- name: "V-206523 | Enable connection logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_connections\s*='
+    line: "log_connections = on"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206523', 'CAT II', 'enforce']
+
+
+############################################################
+# Enable disconnection logging
+############################################################
+
+- name: "V-206523 | Enable disconnection logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_disconnections\s*='
+    line: "log_disconnections = on"
+  notify: Restart PostgreSQL
+  tags: ['V-206523', 'CAT II', 'enforce']
+
+
+############################################################
+# Enable DDL logging
+############################################################
+
+- name: "V-206523 | Enable DDL statement logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_statement\s*='
+    line: "log_statement = ddl"
+  notify: Restart PostgreSQL
+  tags: ['V-206523', 'CAT II', 'enforce']
+
+
+############################################################
+# Ensure pgaudit loads at startup
+############################################################
+
+- name: "V-206523 | Enable pgaudit in shared_preload_libraries"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
+    line: "shared_preload_libraries = 'pgaudit'"
+  notify: Restart PostgreSQL
+  tags: ['V-206523', 'CAT II', 'enforce']
+
+
+############################################################
+# Configure pgaudit classes
+############################################################
+
+- name: "V-206523 | Configure pgaudit event classes"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log\s*='
+    line: "pgaudit.log = 'read, write, ddl, role'"
+  notify: Restart PostgreSQL
+  tags: ['V-206523', 'CAT II', 'enforce']
+
+
+############################################################
+# Enable catalog auditing
+############################################################
+
+- name: "V-206523 | Enable pgaudit catalog logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='
+    line: "pgaudit.log_catalog = on"
+  notify: Restart PostgreSQL
+  tags: ['V-206523', 'CAT II', 'enforce']

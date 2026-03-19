@@ -19,7 +19,7 @@
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
   register: postgresql_srg_tls_key
-  tags: ['V-263620','CAT II','check']
+  tags: ['V-263620', 'CAT II', 'check']
 
 - name: "V-263620 | Validate TLS key permissions"
   ansible.builtin.assert:
@@ -29,4 +29,4 @@
       - postgresql_srg_tls_key.stat.mode == "0600"
     fail_msg: "STIG V-263620 FAILED: TLS key permissions not secure"
     success_msg: "TLS key protected with secure permissions"
-  tags: ['V-263620','CAT II','check']
+  tags: ['V-263620', 'CAT II', 'check']

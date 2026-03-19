@@ -19,8 +19,6 @@
 #
 # Therefore, V-206605 is Not a Finding.
 ############################################################
-
-
 ############################################################
 # Check listen_addresses
 ############################################################
@@ -32,9 +30,7 @@
     psql -tAc "SHOW listen_addresses;"
   register: v206605_listen
   changed_when: false
-  tags: ['V-206605','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-206605', 'CAT-I', 'validate', 'postgres', 'stig']
 - name: "V-206605 | Assert localhost-only binding"
   ansible.builtin.assert:
     that:
@@ -44,9 +40,7 @@
       PostgreSQL is not restricted to localhost
     success_msg: >
       PostgreSQL is bound to localhost only
-  tags: ['V-206605','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-206605', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
 # Check pg_hba.conf for remote access (FIXED LOGIC)
 ############################################################
@@ -63,7 +57,7 @@
     ' {{ postgresql_srg_hba_file }}
   register: v206605_hba
   changed_when: false
-  tags: ['V-206605','CAT-I','validate','postgres','stig']
+  tags: ['V-206605', 'CAT-I', 'validate', 'postgres', 'stig']
 
 - name: "V-206605 | Assert no external host access"
   ansible.builtin.assert:
@@ -75,9 +69,7 @@
       {{ v206605_hba.stdout_lines }}
     success_msg: >
       No remote host access configured
-  tags: ['V-206605','CAT-I','validate','postgres','stig']
-
-
+  tags: ['V-206605', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
 # Final assertion: Isolation confirmed
 ############################################################
@@ -89,5 +81,4 @@
       No external network communication exists.
       DBMS-level TLS is not required.
       Control satisfied via network isolation.
-  tags: ['V-206605','CAT-I','validate','postgres','stig']
-
+  tags: ['V-206605', 'CAT-I', 'validate', 'postgres', 'stig']

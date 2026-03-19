@@ -1,0 +1,72 @@
+---
+############################################################
+# STIG Control: V-206527
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must initiate session auditing upon system startup.
+#
+# Finding Details:
+# Session auditing must begin automatically when the DBMS
+# starts to ensure all database sessions are monitored.
+#
+# Implementation in this Environment:
+# PostgreSQL loads the pgaudit extension at startup through
+# shared_preload_libraries. Connection and disconnection
+# logging is enabled to record session start and end events.
+#
+# Manual Verification Steps:
+#
+#     SHOW shared_preload_libraries;
+#     SHOW log_connections;
+#     SHOW log_disconnections;
+#
+# Comment:
+# PostgreSQL session auditing is automatically initiated at
+# DBMS startup through pgaudit and connection logging.
+############################################################
+
+
+############################################################
+# Ensure pgaudit loads at startup
+############################################################
+
+- name: "V-206527 | Ensure pgaudit loads at startup"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
+    line: "shared_preload_libraries = 'pgaudit'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206527', 'CAT II', 'enforce']
+
+
+############################################################
+# Enable connection logging
+############################################################
+
+- name: "V-206527 | Enable connection logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_connections\s*='
+    line: "log_connections = on"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206527', 'CAT II', 'enforce']
+
+
+############################################################
+# Enable disconnection logging
+############################################################
+
+- name: "V-206527 | Enable disconnection logging"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*log_disconnections\s*='
+    line: "log_disconnections = on"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206527', 'CAT II', 'enforce']

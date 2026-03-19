@@ -1,0 +1,52 @@
+---
+############################################################
+# STIG Control: V-263617
+# Status: NOT APPLICABLE
+#
+# Title:
+# The DBMS must implement certificate status checking
+# (CRL or OCSP) when using public key infrastructure (PKI)
+# authentication.
+#
+# Finding Details:
+# If certificate-based authentication is used without
+# validating certificate revocation status, compromised
+# certificates could still be accepted, allowing
+# unauthorized access to the DBMS.
+#
+# Implementation in this Environment:
+# PostgreSQL in this environment does not implement
+# PKI-based authentication. Database authentication
+# uses SCRAM-SHA-256 credentials over trusted internal
+# network connections.
+#
+# Comment:
+# PostgreSQL SSL/TLS and client certificate authentication
+# are not enabled in this environment. Because PKI
+# authentication is not used, certificate revocation
+# validation mechanisms such as CRL or OCSP are not
+# applicable to this deployment.
+#
+# Manual Verification Steps:
+# 1. Verify PostgreSQL SSL configuration:
+#
+#       psql -t -c "SHOW ssl;"
+#
+# 2. Confirm SSL is disabled:
+#
+#       ssl = off
+#
+# 3. Verify pg_hba.conf does not contain certificate
+#    authentication entries such as:
+#
+#       hostssl ... cert
+#
+############################################################
+
+- name: "V-263617 | PKI authentication not implemented - control not applicable"
+  ansible.builtin.debug:
+    msg: "PKI authentication not used; CRL/OCSP validation not applicable."
+  tags:
+    - V-263617
+    - CATII
+    - enforce

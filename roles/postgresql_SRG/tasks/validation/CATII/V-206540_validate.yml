@@ -9,7 +9,7 @@
   ansible.builtin.stat:
     path: "{{ postgresql_srg_log_directory }}"
   register: v206540_logdir
-  tags: ['V-206540','CAT II','check']
+  tags: ['V-206540', 'CAT II', 'check']
 
 
 - name: "V-206540 | Assert directory protection"
@@ -22,4 +22,4 @@
       Log directory permissions are not secure.
     success_msg: >
       PostgreSQL audit logs protected from unauthorized deletion.
-  tags: ['V-206540','CAT II','check']
+  tags: ['V-206540', 'CAT II', 'check']

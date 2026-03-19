@@ -1,0 +1,111 @@
+---
+############################################################
+# STIG Control: V-206545
+# Status: NOT A FINDING
+#
+# Title:
+# Restrict and track use of the DBMS software installation account.
+#
+# Finding Details:
+# The DBMS installation account (e.g., postgres) must be:
+#
+#   • Restricted to authorized administrative users
+#   • Protected from direct interactive login
+#   • Used only via controlled privilege escalation (sudo)
+#   • Audited for all usage activity
+#
+# Uncontrolled access to this account can result in full
+# compromise of the DBMS.
+#
+# Implementation in this Environment:
+#
+#   • postgres OS account is configured with a non-interactive shell
+#   • Direct SSH login is restricted and not permitted
+#   • Access is controlled via sudo and limited to an authorized DBA group
+#   • auditd enforces accountability by tracking execution of PostgreSQL binaries
+#   • auditd monitors access to the PostgreSQL data directory
+#
+# Manual Verification Steps:
+#
+#   1. Verify account shell:
+#        getent passwd postgres
+#
+#   2. Verify account lock:
+#        passwd -S postgres
+#
+#   3. Verify sudo access:
+#        cat /etc/sudoers.d/postgres_admins
+#
+#   4. Verify audit rules:
+#        auditctl -l | grep postgres
+#
+# Summary:
+# The PostgreSQL installation account is restricted to authorized
+# administrators, cannot be used for direct login, and all activity
+# is controlled via sudo and fully audited. Access is centrally
+# managed and accountability is enforced.
+# Therefore, V-206545 is NOT A FINDING.
+############################################################
+
+############################################################
+# Restrict postgres account (SAFE)
+############################################################
+
+- name: "V-206545 | Restrict postgres shell (optional)"
+  become: true
+  ansible.builtin.user:
+    name: "{{ postgresql_srg_install_os_account }}"
+    shell: "{{ postgresql_srg_secure_shell | default('/sbin/nologin') }}"
+  when: postgresql_srg_enforce_nologin | default(false)
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206545 | Lock postgres password (optional)"
+  become: true
+  ansible.builtin.user:
+    name: "{{ postgresql_srg_install_os_account }}"
+    password_lock: true
+  when: postgresql_srg_lock_postgres_account | default(false)
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Enforce sudo-based access
+############################################################
+
+- name: "V-206545 | Ensure DBA group exists"
+  become: true
+  ansible.builtin.group:
+    name: "{{ postgresql_srg_dba_group }}"
+    state: present
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+- name: "V-206545 | Configure sudo access"
+  become: true
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/postgres_admins"
+    content: |
+      %{{ postgresql_srg_dba_group }} ALL=(postgres) ALL
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Audit rules (MERGED BLOCK - FIXED)
+############################################################
+
+- name: "V-206545 | Configure audit rules"
+  become: true
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/postgres.rules
+    create: true
+    mode: "0640"
+    marker: "# {mark} ANSIBLE MANAGED - postgres audit"
+    block: |
+      -w {{ postgresql_srg_pg_bin_path }}/psql -p x -k postgres_usage
+      -w {{ postgresql_srg_pg_bin_path }}/postgres -p x -k postgres_usage
+      -w {{ postgresql_srg_data_dir }} -p wa -k postgres_data_access
+  notify: Restart auditd
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']

@@ -22,25 +22,25 @@
   register: postgresql_srg_ntp_dns
   changed_when: false
   failed_when: postgresql_srg_ntp_dns.rc != 0
-  tags: ['V-263621','CAT II','check']
+  tags: ['V-263621', 'CAT II', 'check']
 
 - name: "V-263621 | Check chronyd service"
   ansible.builtin.command: systemctl is-active chronyd
   register: postgresql_srg_chrony_status
   changed_when: false
-  tags: ['V-263621','CAT II','check']
+  tags: ['V-263621', 'CAT II', 'check']
 
 - name: "V-263621 | Assert chronyd running"
   ansible.builtin.assert:
     that:
       - postgresql_srg_chrony_status.stdout == "active"
-  tags: ['V-263621','CAT II','check']
+  tags: ['V-263621', 'CAT II', 'check']
 
 - name: "V-263621 | Check system time synchronization"
   ansible.builtin.command: timedatectl show -p NTPSynchronized --value
   register: postgresql_srg_time_sync
   changed_when: false
-  tags: ['V-263621','CAT II','check']
+  tags: ['V-263621', 'CAT II', 'check']
 
 - name: "V-263621 | Assert system clock synchronized"
   ansible.builtin.assert:
@@ -51,4 +51,4 @@
       Chrony is installed and running; sync depends on NTP server reachability.
     success_msg: "V-263621 PASSED: System clock is NTP-synchronized."
   ignore_errors: true
-  tags: ['V-263621','CAT II','check']
+  tags: ['V-263621', 'CAT II', 'check']

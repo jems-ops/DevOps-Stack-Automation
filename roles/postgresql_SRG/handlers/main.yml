@@ -30,4 +30,3 @@
   ansible.builtin.systemd:
     name: chronyd
     state: restarted
-

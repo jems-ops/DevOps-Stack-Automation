@@ -1,14 +1,14 @@
 # tasks/common/normalize.yml
 
 - name: "Normalize schema list"
-  set_fact:
+  ansible.builtin.set_fact:
     postgresql_srg_effective_schemas: >-
       {{
         postgresql_srg_application_schemas
         | flatten
         | map('trim')
-        | reject('equalto','')
-        | difference(['pg_catalog','information_schema'])
+        | reject('equalto', '')
+        | difference(['pg_catalog', 'information_schema'])
         | list
       }}
-  tags: ['always','normalize','postgres','stig']
+  tags: ['always', 'normalize', 'postgres', 'stig']

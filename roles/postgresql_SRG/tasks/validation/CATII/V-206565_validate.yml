@@ -55,9 +55,9 @@
     psql -t -c "SELECT pid, usename, backend_start FROM pg_stat_activity;"
   register: postgres_sessions
   changed_when: false
-  tags: ['V-206565','CAT II','check']
+  tags: ['V-206565', 'CAT II', 'check']
 
 - name: "V-206565 | Display active session information"
   ansible.builtin.debug:
     var: postgres_sessions.stdout_lines
-  tags: ['V-206565','CAT II','check']
+  tags: ['V-206565', 'CAT II', 'check']

@@ -6,16 +6,16 @@
 - name: "V-206550 | Display installed extensions"
   ansible.builtin.debug:
     var: v206550_ext.stdout_lines
-  tags: ['V-206550','CAT II','check']
+  tags: ['V-206550', 'CAT II', 'check']
 
 
 - name: "V-206550 | Display installed languages"
   ansible.builtin.debug:
     var: v206550_lang.stdout_lines
-  tags: ['V-206550','CAT II','check']
+  tags: ['V-206550', 'CAT II', 'check']
 
 
 - name: "V-206550 | Display installed PostgreSQL packages"
   ansible.builtin.debug:
     var: v206550_pkgs.stdout_lines
-  tags: ['V-206550','CAT II','check']
+  tags: ['V-206550', 'CAT II', 'check']

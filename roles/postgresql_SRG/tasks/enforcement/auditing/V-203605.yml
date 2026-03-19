@@ -1,0 +1,44 @@
+---
+############################################################
+# STIG Control: V-263605
+#
+# Title:
+# The DBMS must alert organization-defined personnel when
+# unauthorized access, modification, or deletion of audit
+# information occurs.
+#
+# Finding Details:
+# Timely alerts allow security personnel to respond quickly
+# to potential tampering or compromise of audit records.
+#
+# Implementation in this Environment:
+# PostgreSQL generates audit logs which are forwarded to
+# centralized security monitoring systems (SIEM).
+#
+# Manual Verification Steps:
+# 1. Verify PostgreSQL audit logging is enabled.
+# 2. Confirm logs are forwarded to centralized monitoring.
+# 3. Verify alerts are configured for audit log tampering.
+# comment: PostgreSQL generates audit logs for database activity through
+# logging and audit mechanisms. These logs are forwarded to enterprise
+# security monitoring systems where automated alerting is configured.
+# Security monitoring platforms notify designated personnel if
+# unauthorized access, modification, or deletion of audit information is
+# detected. Therefore, alerting is implemented through centralized
+# monitoring infrastructure rather than the DBMS itself.
+
+# status: Not a finding
+############################################################
+
+- name: "V-263605 | Verify logging collector enabled"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: psql -t -c "SHOW logging_collector;"
+  register: logging_collector
+  changed_when: false
+  tags: ['V-263605', 'CAT II', 'check']
+
+- name: "V-263605 | Display logging configuration"
+  ansible.builtin.debug:
+    var: logging_collector.stdout
+  tags: ['V-263605', 'CAT II', 'check']

@@ -1,0 +1,57 @@
+---
+############################################################
+# Category: Cryptography
+# FIPS, TLS, data-at-rest/transit, crypto modules
+############################################################
+
+# --- CAT I ---
+- name: "Crypto | V-206562"
+  ansible.builtin.import_tasks: V-206562.yml
+  when: postgresql_srg_v206562_enabled | bool
+  tags: [enforce, crypto, CATI, V-206562]
+
+- name: "Crypto | V-206570"
+  ansible.builtin.import_tasks: V-206570.yml
+  when: postgresql_srg_v206570_enabled | bool
+  tags: [enforce, crypto, CATI, V-206570]
+
+- name: "Crypto | V-206604"
+  ansible.builtin.import_tasks: V-206604.yml
+  when: postgresql_srg_v206604_enabled | bool
+  tags: [enforce, crypto, CATI, V-206604]
+
+- name: "Crypto | V-206605"
+  ansible.builtin.import_tasks: V-206605.yml
+  when: postgresql_srg_v206605_enabled | bool
+  tags: [enforce, crypto, CATI, V-206605]
+
+- name: "Crypto | V-233495"
+  ansible.builtin.import_tasks: V-233495.yml
+  when: postgresql_srg_v233495_enabled | bool
+  tags: [enforce, crypto, CATI, V-233495]
+
+# --- CAT II ---
+- name: "Crypto | V-206639"
+  ansible.builtin.import_tasks: V-206639.yml
+  when: postgresql_srg_v206639_enabled | bool
+  tags: [enforce, crypto, CATII, V-206639]
+
+- name: "Crypto | V-206640"
+  ansible.builtin.import_tasks: V-206640.yml
+  when: postgresql_srg_v206640_enabled | bool
+  tags: [enforce, crypto, CATII, V-206640]
+
+- name: "Crypto | V-206641"
+  ansible.builtin.import_tasks: V-206641.yml
+  when: postgresql_srg_v206641_enabled | bool
+  tags: [enforce, crypto, CATII, V-206641]
+
+- name: "Crypto | V-263619"
+  ansible.builtin.import_tasks: V-263619.yml
+  when: postgresql_srg_v263619_enabled | bool
+  tags: [enforce, crypto, CATII, V-263619]
+
+- name: "Crypto | V-263620"
+  ansible.builtin.import_tasks: V-263620.yml
+  when: postgresql_srg_v263620_enabled | bool
+  tags: [enforce, crypto, CATII, V-263620]

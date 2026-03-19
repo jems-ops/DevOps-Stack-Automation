@@ -15,11 +15,11 @@
   ansible.builtin.shell: |
     psql -tAc "
     SELECT has_database_privilege('public',
-    '{{ postgresql_srg_target_database }}','CREATE');"
+    '{{ postgresql_srg_target_database }}', 'CREATE');"
   register: v206521_db_create
   changed_when: false
   failed_when: false
-  tags: ['V-206521','validate']
+  tags: ['V-206521', 'validate']
 
 
 - name: "V-206521 | Assert CREATE revoked"
@@ -27,7 +27,7 @@
     that:
       - v206521_db_create.stdout | trim == "f"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521','validate']
+  tags: ['V-206521', 'validate']
 
 
 ############################################################
@@ -42,11 +42,11 @@
     SELECT nspname
     FROM pg_namespace
     WHERE has_schema_privilege('public', oid, 'CREATE')
-    AND nspname NOT IN ('pg_catalog','information_schema');"
+    AND nspname NOT IN ('pg_catalog', 'information_schema');"
   register: v206521_schema_create
   changed_when: false
   failed_when: false
-  tags: ['V-206521','validate']
+  tags: ['V-206521', 'validate']
 
 
 - name: "V-206521 | Normalize schema results"
@@ -54,9 +54,9 @@
     v206521_schema_create_clean: >-
       {{ v206521_schema_create.stdout_lines
          | map('trim')
-         | reject('equalto','')
+         | reject('equalto', '')
          | list }}
-  tags: ['V-206521','validate']
+  tags: ['V-206521', 'validate']
 
 
 - name: "V-206521 | Assert CREATE restricted"
@@ -64,7 +64,7 @@
     that:
       - v206521_schema_create_clean | length == 0
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521','validate']
+  tags: ['V-206521', 'validate']
 
 
 ############################################################
@@ -82,7 +82,7 @@
   register: v206521_default_acl
   changed_when: false
   failed_when: false
-  tags: ['V-206521','validate','critical']
+  tags: ['V-206521', 'validate', 'critical']
 
 
 - name: "V-206521 | Assert default privileges hardened"
@@ -90,7 +90,7 @@
     that:
       - v206521_default_acl.stdout | trim == "0"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521','validate','critical']
+  tags: ['V-206521', 'validate', 'critical']
 
 
 ############################################################
@@ -108,7 +108,7 @@
   register: v206521_rbac_default
   changed_when: false
   failed_when: false
-  tags: ['V-206521','validate','rbac']
+  tags: ['V-206521', 'validate', 'rbac']
 
 
 - name: "V-206521 | Assert RBAC default privileges configured"
@@ -116,7 +116,7 @@
     that:
       - v206521_rbac_default.stdout | int >= 0
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521','validate','rbac']
+  tags: ['V-206521', 'validate', 'rbac']
 
 
 ############################################################
@@ -135,7 +135,7 @@
   changed_when: false
   failed_when: false
   when: postgresql_srg_revoke_existing_objects | default(false)
-  tags: ['V-206521','validate','optional']
+  tags: ['V-206521', 'validate', 'optional']
 
 
 - name: "V-206521 | Assert no PUBLIC table access"
@@ -144,7 +144,7 @@
       - v206521_table_public.stdout | trim == "0"
   when: postgresql_srg_revoke_existing_objects | default(false)
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521','validate','optional']
+  tags: ['V-206521', 'validate', 'optional']
 
 
 ############################################################
@@ -161,7 +161,7 @@
   register: v206521_readonly_role
   changed_when: false
   failed_when: false
-  tags: ['V-206521','validate','rbac']
+  tags: ['V-206521', 'validate', 'rbac']
 
 
 - name: "V-206521 | Assert readonly role exists"
@@ -169,4 +169,4 @@
     that:
       - v206521_readonly_role.stdout | trim == "1"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521','validate','rbac']
+  tags: ['V-206521', 'validate', 'rbac']

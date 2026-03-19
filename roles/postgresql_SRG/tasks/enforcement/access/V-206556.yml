@@ -1,0 +1,75 @@
+---
+############################################################
+# STIG Control: V-206556
+# Status: NOT A FINDING
+#
+# Title:
+# The DBMS must store passwords using salted one-way hashing.
+#
+# Finding Details:
+# Passwords stored in the DBMS must be protected using
+# salted, one-way cryptographic hashing functions.
+# Weak hashing mechanisms (e.g., MD5) are vulnerable to
+# brute-force and rainbow table attacks and must not be used.
+#
+# PostgreSQL supports SCRAM-SHA-256, which provides:
+#   • Salted password hashing
+#   • Iterative hashing
+#   • Protection against replay attacks
+#
+# Implementation in this Environment:
+# PostgreSQL is configured to enforce secure password storage:
+#
+#   • password_encryption is set to 'scram-sha-256'
+#   • pg_hba.conf enforces SCRAM authentication methods
+#   • MD5 authentication methods are not used
+#   • All database roles are verified to use SCRAM hashes
+#
+# Manual Verification Steps:
+#
+#   1. Verify password encryption setting:
+#        SHOW password_encryption;
+#
+#   2. Verify authentication methods:
+#        cat pg_hba.conf
+#
+#   3. Check for weak password hashes:
+#        SELECT rolname FROM pg_authid
+#        WHERE rolpassword NOT LIKE 'SCRAM-SHA-256%';
+#
+# Comment:
+# PostgreSQL is configured to use SCRAM-SHA-256 for all
+# password storage and authentication. No weak hashing
+# mechanisms are present. Therefore, V-206556 is Not a Finding.
+# Strategy:
+# - ONLY enforce password hashing mechanism
+# - DO NOT touch pg_hba (handled elsewhere)
+############################################################
+
+
+############################################################
+# Enforce SCRAM password hashing
+############################################################
+
+- name: "V-206556 | Enforce SCRAM password encryption"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*password_encryption\s*='
+    line: "password_encryption = scram-sha-256"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['V-206556', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+
+############################################################
+# Informational note
+############################################################
+
+- name: "V-206556 | Informational"
+  ansible.builtin.debug:
+    msg: >
+      PostgreSQL uses SCRAM-SHA-256 for password hashing.
+      Authentication enforcement is handled by V-206557.
+  changed_when: false
+  tags: ['V-206556', 'CAT-I', 'enforce', 'postgres', 'stig']

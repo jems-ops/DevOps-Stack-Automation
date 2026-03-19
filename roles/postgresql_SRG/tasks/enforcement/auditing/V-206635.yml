@@ -1,0 +1,80 @@
+---
+############################################################
+# STIG Control: V-206635
+# Status : NOT A FINDING
+#
+# Title:
+# DBMS must generate audit records when concurrent logons
+# by the same user from different workstations occur.
+#
+# Finding Details:
+# Concurrent logins from multiple workstations may indicate
+# credential sharing or compromise. Logging connection and
+# disconnection events allows administrators to reconstruct
+# concurrent sessions and detect suspicious activity.
+#
+# Implementation in this Environment:
+# PostgreSQL is configured to log connection and
+# disconnection events using the parameters
+# log_connections and log_disconnections.
+#
+# The log_line_prefix parameter includes username and
+# client address information, allowing concurrent sessions
+# from different workstations to be reconstructed through
+# log analysis.
+#
+# Manual Verification Steps:
+#
+# 1. Verify connection logging:
+#
+#       SHOW log_connections;
+#
+# 2. Verify disconnection logging:
+#
+#       SHOW log_disconnections;
+#
+# 3. Verify log prefix includes username and client address:
+#
+#       SHOW log_line_prefix;
+#
+# Comment:
+# PostgreSQL logs all connection and disconnection events.
+# These logs include the username and client address, which
+# allows concurrent logins from multiple workstations to be
+# identified through log analysis.
+############################################################
+
+- name: "V-206635 | Verify connection logging"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW log_connections;"
+  register: log_connections_status
+  changed_when: false
+  tags: ['V-206635', 'CAT II', 'check']
+
+- name: "V-206635 | Verify disconnection logging"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW log_disconnections;"
+  register: log_disconnections_status
+  changed_when: false
+  tags: ['V-206635', 'CAT II', 'check']
+
+- name: "V-206635 | Verify log line prefix"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >
+    psql -t -c "SHOW log_line_prefix;"
+  register: log_prefix
+  changed_when: false
+  tags: ['V-206635', 'CAT II', 'check']
+
+- name: "V-206635 | Display configuration"
+  ansible.builtin.debug:
+    msg:
+      - "log_connections: {{ log_connections_status.stdout }}"
+      - "log_disconnections: {{ log_disconnections_status.stdout }}"
+      - "log_line_prefix: {{ log_prefix.stdout }}"
+  tags: ['V-206635', 'CAT II', 'check']
