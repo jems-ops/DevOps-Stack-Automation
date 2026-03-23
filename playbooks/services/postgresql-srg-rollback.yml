@@ -34,11 +34,16 @@
       postgresql-16: /var/lib/pgsql/16/data
       postgresql-15: /var/lib/pgsql/15/data
       postgres: /var/lib/pgsql/data
-    # Variables required by post_stig_healthcheck.yml
-    postgresql_srg_sonarqube_service_name: sonarqube
-    postgresql_srg_sonarqube_url: "https://{{ groups['sonarqube'][0] }}"
-    postgresql_srg_sonarqube_validate_certs: false
-    postgresql_srg_sonarqube_healthcheck_timeout: 30
+    # Application services checked by post_stig_healthcheck.yml
+    postgresql_srg_application_services:
+      - name: SonarQube
+        service_name: sonarqube
+        web_url: "https://{{ groups['sonarqube'][0] }}"
+        health_endpoint: /api/system/status
+        healthy_field: status
+        healthy_value: UP
+        validate_certs: false
+        timeout: 30
 
   tasks:
 
@@ -139,8 +144,8 @@
       until: _rollback_pg_ready.rc == 0
       changed_when: false
 
-    # --- Wait for SonarQube to reconnect after PostgreSQL restart -----------
-    - name: Rollback | Pause to let SonarQube reconnect to PostgreSQL
+    # --- Wait for application services to reconnect after PostgreSQL restart -
+    - name: Rollback | Pause to let application services reconnect
       ansible.builtin.pause:
         seconds: 10
 

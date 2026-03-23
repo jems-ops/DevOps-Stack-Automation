@@ -1,13 +1,18 @@
 ---
 ############################################################
 # Post-STIG Health Check
-# Runs at the end of every STIG run to confirm that the
-# STIG hardening did not break PostgreSQL or SonarQube.
+# Runs at the end of every STIG enforcement to confirm that
+# hardening did not break PostgreSQL or application services.
 #
 # Checks:
 #   1. PostgreSQL systemd service is active/running
-#   2. SonarQube systemd service is active/running
-#   3. SonarQube web UI responds and reports status=UP
+#   2. Each service in postgresql_srg_application_services:
+#      a. systemd service is active/running
+#      b. (optional) web health endpoint returns expected status
+#   3. Summary report with per-service HEALTHY/UNHEALTHY
+#
+# To add services, update postgresql_srg_application_services
+# in defaults/main.yml or host/group vars.
 ############################################################
 
 # ----------------------------------------------------------
@@ -27,7 +32,8 @@
     that:
       - _pg_service.status.ActiveState == 'active'
       - _pg_service.status.SubState == 'running'
-    success_msg: "PostgreSQL ({{ postgresql_srg_service_name }}) is active and running."
+    success_msg: >-
+      PostgreSQL ({{ postgresql_srg_service_name }}) is active and running.
     fail_msg: >-
       PostgreSQL ({{ postgresql_srg_service_name }}) is NOT running!
       ActiveState={{ _pg_service.status.ActiveState }}
@@ -37,98 +43,139 @@
     - healthcheck_postgresql
 
 # ----------------------------------------------------------
-# 2. SonarQube service
+# 2. Application services — systemd check (loop)
 # ----------------------------------------------------------
-- name: "Post-STIG Health | Check SonarQube service is active"
+- name: "Post-STIG Health | Check application service"
   ansible.builtin.systemd:
-    name: "{{ postgresql_srg_sonarqube_service_name }}"
-  register: _sonar_service
+    name: "{{ item.service_name }}"
+  register: _app_services
   changed_when: false
+  loop: "{{ postgresql_srg_application_services | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
   tags:
     - healthcheck
-    - healthcheck_sonarqube
+    - healthcheck_app
 
-- name: "Post-STIG Health | Assert SonarQube service is running"
+- name: "Post-STIG Health | Assert application service is running"
   ansible.builtin.assert:
     that:
-      - _sonar_service.status.ActiveState == 'active'
-      - _sonar_service.status.SubState == 'running'
-    success_msg: "SonarQube ({{ postgresql_srg_sonarqube_service_name }}) is active and running."
-    fail_msg: >-
-      SonarQube ({{ postgresql_srg_sonarqube_service_name }}) is NOT running!
-      ActiveState={{ _sonar_service.status.ActiveState }}
-      SubState={{ _sonar_service.status.SubState }}
-  tags:
-    - healthcheck
-    - healthcheck_sonarqube
-
-# ----------------------------------------------------------
-# 3. SonarQube web health check via /api/system/status
-# ----------------------------------------------------------
-- name: "Post-STIG Health | Query SonarQube web API"
-  ansible.builtin.uri:
-    url: "{{ postgresql_srg_sonarqube_url }}/api/system/status"
-    method: GET
-    validate_certs: "{{ postgresql_srg_sonarqube_validate_certs }}"
-    status_code: 200
-    timeout: "{{ postgresql_srg_sonarqube_healthcheck_timeout }}"
-  register: _sonar_web
-  changed_when: false
-  failed_when: false        # handle assertion below for cleaner output
-  tags:
-    - healthcheck
-    - healthcheck_sonarqube_web
-
-- name: "Post-STIG Health | Assert SonarQube web API returned status=UP"
-  ansible.builtin.assert:
-    that:
-      - _sonar_web.status == 200
-      - _sonar_web.json is defined
-      - _sonar_web.json.status == 'UP'
+      - item.status.ActiveState == 'active'
+      - item.status.SubState == 'running'
     success_msg: >-
-      SonarQube web endpoint {{ postgresql_srg_sonarqube_url }} is healthy
-      (status={{ _sonar_web.json.status | default('N/A') }}).
+      {{ item.item.name }} ({{ item.item.service_name }}) is active and running.
     fail_msg: >-
-      SonarQube web endpoint {{ postgresql_srg_sonarqube_url }} is NOT healthy!
-      HTTP {{ _sonar_web.status | default('N/A') }}
-      status={{ _sonar_web.json.status | default('N/A') }}
-      version={{ _sonar_web.json.version | default('N/A') }}
+      {{ item.item.name }} ({{ item.item.service_name }}) is NOT running!
+      ActiveState={{ item.status.ActiveState }}
+      SubState={{ item.status.SubState }}
+  loop: "{{ _app_services.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   tags:
     - healthcheck
-    - healthcheck_sonarqube_web
+    - healthcheck_app
 
 # ----------------------------------------------------------
-# 4. Summary report
+# 3. Application services — optional web health check (loop)
+#    Only runs for entries that define web_url.
+# ----------------------------------------------------------
+- name: "Post-STIG Health | Query web health endpoint"
+  ansible.builtin.uri:
+    url: "{{ item.web_url }}{{ item.health_endpoint | default('') }}"
+    method: GET
+    validate_certs: "{{ item.validate_certs | default(false) }}"
+    status_code: 200
+    timeout: "{{ item.timeout | default(30) }}"
+  register: _app_web_checks
+  changed_when: false
+  failed_when: false
+  loop: >-
+    {{ postgresql_srg_application_services | default([])
+       | selectattr('web_url', 'defined') | list }}
+  loop_control:
+    label: "{{ item.name }}"
+  tags:
+    - healthcheck
+    - healthcheck_app_web
+
+- name: "Post-STIG Health | Assert web health endpoint"
+  ansible.builtin.assert:
+    that:
+      - item.status == 200
+      - item.json is defined
+      - item.json[item.item.healthy_field] == item.item.healthy_value
+    success_msg: >-
+      {{ item.item.name }} web ({{ item.item.web_url }}) is healthy
+      ({{ item.item.healthy_field }}={{ item.json[item.item.healthy_field] | default('N/A') }}).
+    fail_msg: >-
+      {{ item.item.name }} web ({{ item.item.web_url }}) is NOT healthy!
+      HTTP {{ item.status | default('N/A') }}
+      {{ item.item.healthy_field }}={{ item.json[item.item.healthy_field] | default('N/A') }}
+  loop: "{{ _app_web_checks.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.item.healthy_field is defined
+  tags:
+    - healthcheck
+    - healthcheck_app_web
+
+# ----------------------------------------------------------
+# 4. Compute overall health for summary
+# ----------------------------------------------------------
+- name: "Post-STIG Health | Compute overall result"
+  ansible.builtin.set_fact:
+    _pg_healthy: "{{ _pg_service.status.ActiveState == 'active' }}"
+    _all_app_healthy: >-
+      {{ _app_services.results | default([])
+         | rejectattr('status.ActiveState', 'equalto', 'active')
+         | list | length == 0 }}
+    _all_web_healthy: >-
+      {{ _app_web_checks.results | default([])
+         | rejectattr('status', 'equalto', 200)
+         | list | length == 0 }}
+  tags:
+    - healthcheck
+
+# ----------------------------------------------------------
+# 5. Summary report
 # ----------------------------------------------------------
 - name: "Post-STIG Health | Summary"
+  vars:
+    _overall: >-
+      {{ 'ALL HEALTHY'
+         if (_pg_healthy | bool
+             and _all_app_healthy | bool
+             and _all_web_healthy | bool)
+         else 'DEGRADED — CHECK ABOVE' }}
   ansible.builtin.debug:
-    msg:
-      - "============================================"
-      - " Post-STIG Health Check Summary"
-      - "============================================"
-      - "Timestamp       : {{ ansible_date_time.iso8601 }}"
-      - "Host            : {{ inventory_hostname }}"
-      - "--------------------------------------------"
-      - "PostgreSQL ({{ postgresql_srg_service_name }})"
-      - "  Service state : {{ _pg_service.status.ActiveState }} / {{ _pg_service.status.SubState }}"
-      - "  Status        : {{ 'HEALTHY' if _pg_service.status.ActiveState == 'active' else 'UNHEALTHY' }}"
-      - "--------------------------------------------"
-      - "SonarQube ({{ postgresql_srg_sonarqube_service_name }})"
-      - "  Service state : {{ _sonar_service.status.ActiveState }} / {{ _sonar_service.status.SubState }}"
-      - "  Status        : {{ 'HEALTHY' if _sonar_service.status.ActiveState == 'active' else 'UNHEALTHY' }}"
-      - "--------------------------------------------"
-      - "SonarQube Web   : {{ postgresql_srg_sonarqube_url }}"
-      - "  HTTP status   : {{ _sonar_web.status | default('N/A') }}"
-      - "  App status    : {{ _sonar_web.json.status | default('N/A') }}"
-      - "  Version       : {{ _sonar_web.json.version | default('N/A') }}"
-      - "  Status        : {{ 'HEALTHY' if (_sonar_web.json.status | default('')) == 'UP' else 'UNHEALTHY' }}"
-      - "--------------------------------------------"
-      - >-
-        Overall         : {{ 'ALL HEALTHY'
-        if (_pg_service.status.ActiveState == 'active'
-        and _sonar_service.status.ActiveState == 'active'
-        and (_sonar_web.json.status | default('')) == 'UP')
-        else 'DEGRADED — CHECK ABOVE' }}
-      - "============================================"
+    msg: |-
+      ============================================
+       Post-STIG Health Check Summary
+      ============================================
+      Timestamp : {{ ansible_date_time.iso8601 }}
+      Host      : {{ inventory_hostname }}
+      --------------------------------------------
+      PostgreSQL ({{ postgresql_srg_service_name }})
+        Service : {{ _pg_service.status.ActiveState }} / {{ _pg_service.status.SubState }}
+        Status  : {{ 'HEALTHY' if _pg_service.status.ActiveState == 'active' else 'UNHEALTHY' }}
+      {% for svc in _app_services.results | default([]) %}
+      --------------------------------------------
+      {{ svc.item.name }} ({{ svc.item.service_name }})
+        Service : {{ svc.status.ActiveState }} / {{ svc.status.SubState }}
+        Status  : {{ 'HEALTHY' if svc.status.ActiveState == 'active' else 'UNHEALTHY' }}
+      {% endfor %}
+      {% for web in _app_web_checks.results | default([]) %}
+      {% if web.item.web_url is defined %}
+      --------------------------------------------
+      {{ web.item.name }} Web ({{ web.item.web_url }})
+        HTTP    : {{ web.status | default('N/A') }}
+        {{ web.item.healthy_field | default('status') | capitalize }} : {{ web.json[web.item.healthy_field] | default('N/A') if web.json is defined else 'N/A' }}
+        Version : {{ web.json.version | default('N/A') if web.json is defined else 'N/A' }}
+        Status  : {{ 'HEALTHY' if (web.json is defined and web.json[web.item.healthy_field] | default('') == web.item.healthy_value) else 'UNHEALTHY' }}
+      {% endif %}
+      {% endfor %}
+      --------------------------------------------
+      Overall   : {{ _overall }}
+      ============================================
   tags:
     - healthcheck

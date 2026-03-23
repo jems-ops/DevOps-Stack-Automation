@@ -76,10 +76,53 @@ postgresql_srg_protected_users: []
 ############################################################
 # Post-STIG Health Check Settings
 ############################################################
-postgresql_srg_sonarqube_service_name: sonarqube
-postgresql_srg_sonarqube_url: "https://{{ groups['sonarqube'][0] }}"
-postgresql_srg_sonarqube_validate_certs: false    # set true if using a trusted CA cert
-postgresql_srg_sonarqube_healthcheck_timeout: 30  # seconds
+# List of application services to check after STIG enforcement.
+# Each entry checks the systemd service and optionally a web
+# health endpoint.  Add/remove entries for your environment.
+#
+# Fields:
+#   name            — display name in the summary report
+#   service_name    — systemd unit name
+#   backup_configs  — (optional) list of config file paths to back up
+#   web_url         — (optional) base URL for web health check
+#   health_endpoint — (optional) path appended to web_url
+#   healthy_field   — (optional) JSON field to check in response
+#   healthy_value   — (optional) expected value for healthy_field
+#   validate_certs  — (optional) validate TLS certs, default false
+#   timeout         — (optional) HTTP timeout in seconds, default 30
+#
+postgresql_srg_application_services:
+  - name: SonarQube
+    service_name: sonarqube
+    backup_configs:
+      - /opt/sonarqube/conf/sonar.properties
+      - /opt/sonarqube/conf/wrapper.conf
+    web_url: "https://{{ groups['sonarqube'][0] }}"
+    health_endpoint: /api/system/status
+    healthy_field: status
+    healthy_value: UP
+    validate_certs: false
+    timeout: 30
+  # - name: Bitbucket
+  #   service_name: bitbucket
+  #   backup_configs:
+  #     - /var/atlassian/application-data/bitbucket/shared/bitbucket.properties
+  #   web_url: "https://bitbucket.local"
+  #   health_endpoint: /status
+  #   healthy_field: state
+  #   healthy_value: RUNNING
+  #   validate_certs: false
+  #   timeout: 30
+  # - name: Confluence
+  #   service_name: confluence
+  #   backup_configs:
+  #     - /var/atlassian/application-data/confluence/confluence.cfg.xml
+  #   web_url: "https://confluence.local"
+  #   health_endpoint: /status
+  #   healthy_field: state
+  #   healthy_value: RUNNING
+  #   validate_certs: false
+  #   timeout: 30
 
 # PostgreSQL instance targeting
 postgresql_srg_postgres_user: postgres

@@ -2,9 +2,10 @@
 ############################################################
 # PostgreSQL SRG — Pre-enforcement Backup
 ############################################################
-# Creates a timestamped tar.gz archive of all PostgreSQL config
-# files before enforcement tasks modify them.  Old archives are
-# pruned based on postgresql_srg_backup_retention_count.
+# Creates a timestamped tar.gz archive of PostgreSQL config
+# files and any application service configs before enforcement
+# tasks modify them.  Old archives are pruned based on
+# postgresql_srg_backup_retention_count.
 ############################################################
 
 - name: Backup | Generate timestamp for backup filename
@@ -20,11 +21,21 @@
     group: "{{ postgresql_srg_postgres_user }}"
     mode: "0700"
 
+# --- Collect all config file paths (PostgreSQL + application services) ---
+- name: Backup | Build combined config file list
+  ansible.builtin.set_fact:
+    _srg_backup_all_configs: >-
+      {{ postgresql_srg_backup_configs
+         + (postgresql_srg_application_services | default([])
+            | selectattr('backup_configs', 'defined')
+            | map(attribute='backup_configs')
+            | flatten) }}
+
 - name: Backup | Check which config files exist
   become: true
   ansible.builtin.stat:
     path: "{{ item }}"
-  loop: "{{ postgresql_srg_backup_configs }}"
+  loop: "{{ _srg_backup_all_configs }}"
   register: _srg_backup_stat
 
 - name: Backup | Build list of existing config files
