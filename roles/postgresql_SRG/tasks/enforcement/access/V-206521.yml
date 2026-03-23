@@ -69,138 +69,61 @@
 
 
 ############################################################
-# Restrict CREATE on database
-############################################################
-
-- name: "V-206521 | Revoke CREATE on database from PUBLIC"
-  become: true
-  become_user: postgres
-  community.postgresql.postgresql_privs:
-    login_db: "{{ postgresql_srg_target_database }}"
-    type: database
-    objs: "{{ postgresql_srg_target_database }}"
-    roles: PUBLIC
-    privs: CREATE
-    state: absent
-  tags: ['V-206521', 'enforce']
-
-
-############################################################
-# Restrict schema access (CREATE + USAGE)
-############################################################
-
-- name: "V-206521 | Revoke PUBLIC access on schemas"
-  become: true
-  become_user: postgres
-  community.postgresql.postgresql_privs:
-    login_db: "{{ postgresql_srg_target_database }}"
-    type: schema
-    objs: "{{ item }}"
-    roles: PUBLIC
-    privs: CREATE,USAGE
-    state: absent
-  loop: "{{ postgresql_srg_effective_schemas }}"
-  when: postgresql_srg_effective_schemas | length > 0
-  tags: ['V-206521', 'enforce']
-
-
-############################################################
-# OPTIONAL: Existing objects
-############################################################
-
-- name: "V-206521 | Revoke PUBLIC on existing tables"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "REVOKE ALL ON ALL TABLES IN SCHEMA {{ item }} FROM PUBLIC;"
-  loop: "{{ postgresql_srg_effective_schemas }}"
-  when:
-    - postgresql_srg_revoke_existing_objects | default(false)
-    - postgresql_srg_effective_schemas | length > 0
-  changed_when: false
-  tags: ['V-206521', 'optional']
-
-
-############################################################
-# DEFAULT PRIVILEGES (COMPLETE)
-############################################################
-
-- name: "V-206521 | Harden default privileges (tables)"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
-     REVOKE ALL ON TABLES FROM PUBLIC;"
-  loop: "{{ postgresql_srg_effective_schemas }}"
-  changed_when: false
-  tags: ['V-206521', 'critical']
-
-
-- name: "V-206521 | Harden default privileges (sequences)"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
-     REVOKE ALL ON SEQUENCES FROM PUBLIC;"
-  loop: "{{ postgresql_srg_effective_schemas }}"
-  changed_when: false
-  tags: ['V-206521', 'critical']
-
-
-- name: "V-206521 | Harden default privileges (functions)"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c \
-    "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
-     REVOKE ALL ON FUNCTIONS FROM PUBLIC;"
-  loop: "{{ postgresql_srg_effective_schemas }}"
-  changed_when: false
-  tags: ['V-206521', 'critical']
-
-
-############################################################
-# RBAC (IMPROVED)
+# Ensure readonly role exists (idempotent via DO block)
 ############################################################
 
 - name: "V-206521 | Ensure readonly role exists"
   become: true
   become_user: postgres
-  community.postgresql.postgresql_user:
-    name: "{{ postgresql_srg_readonly_role }}"
-    role_attr_flags: "NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOLOGIN"
-    state: present
-  tags: ['V-206521', 'rbac']
-
-
-- name: "V-206521 | Grant SELECT on existing tables"
-  become: true
-  become_user: postgres
-  community.postgresql.postgresql_privs:
-    login_db: "{{ postgresql_srg_target_database }}"
-    type: table
-    schema: "{{ item }}"
-    roles: "{{ postgresql_srg_readonly_role }}"
-    privs: SELECT
-    objs: ALL_IN_SCHEMA
-  loop: "{{ postgresql_srg_effective_schemas }}"
-  tags: ['V-206521', 'rbac']
-
-
-############################################################
-# FUTURE OBJECTS 🔥 CRITICAL FIX
-############################################################
-
-- name: "V-206521 | Grant default SELECT for future tables"
-  become: true
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -d {{ postgresql_srg_target_database }} -c "
-      ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }}
-      GRANT SELECT ON TABLES TO {{ postgresql_srg_readonly_role }};"
-  loop: "{{ postgresql_srg_effective_schemas }}"
+  ansible.builtin.command: >-
+    psql -d {{ postgresql_srg_target_database }} -c
+    "DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{{ postgresql_srg_readonly_role }}') THEN
+        CREATE ROLE {{ postgresql_srg_readonly_role }} NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;
+        RAISE NOTICE 'Created role: {{ postgresql_srg_readonly_role }}';
+      ELSE
+        RAISE NOTICE 'Role already exists: {{ postgresql_srg_readonly_role }}';
+      END IF;
+    END $$;"
   changed_when: false
-  tags: ['V-206521', 'rbac']
+  tags: ['V-206521', 'enforce', 'rbac']
+
+
+############################################################
+# Render and execute the least-privilege SQL script
+# (revoke PUBLIC, harden defaults, grant RBAC)
+############################################################
+
+- name: "V-206521 | Render least-privilege SQL script"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/sql/v206521_least_privilege.sql.j2"
+    dest: /tmp/v206521_least_privilege.sql
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  become: true
+  tags: ['V-206521', 'enforce']
+
+- name: "V-206521 | Execute least-privilege SQL script"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >-
+    psql -d {{ postgresql_srg_target_database }}
+    -f /tmp/v206521_least_privilege.sql
+    --set ON_ERROR_STOP=1
+  register: _v206521_result
+  changed_when: false
+  tags: ['V-206521', 'enforce']
+
+- name: "V-206521 | Display enforcement result"
+  ansible.builtin.debug:
+    var: _v206521_result.stdout_lines
+  when: _v206521_result.stdout_lines | default([]) | length > 0
+  tags: ['V-206521', 'enforce']
+
+- name: "V-206521 | Clean up temporary SQL script"
+  become: true
+  ansible.builtin.file:
+    path: /tmp/v206521_least_privilege.sql
+    state: absent
+  tags: ['V-206521', 'enforce']
