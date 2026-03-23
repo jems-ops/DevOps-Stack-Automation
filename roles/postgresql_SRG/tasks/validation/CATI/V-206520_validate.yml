@@ -10,7 +10,6 @@
 ############################################################
 
 - name: "V-206520 | Check listen_addresses"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "SHOW listen_addresses;"
@@ -35,7 +34,6 @@
 ############################################################
 
 - name: "V-206520 | Check pg_hba for external access"
-  become: true
   ansible.builtin.shell: |
     awk '!/^\s*#/ && /host/ {print}' {{ postgresql_srg_hba_file }} \
     | grep -E '0\.0\.0\.0|/0' || true
@@ -60,7 +58,6 @@
 ############################################################
 
 - name: "V-206520 | Check authentication methods"
-  become: true
   ansible.builtin.shell: |
     awk '!/^\s*#/ && NF {print}' {{ postgresql_srg_hba_file }}
   register: v206520_auth
@@ -84,7 +81,6 @@
 ############################################################
 
 - name: "V-206520 | Check login roles"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "

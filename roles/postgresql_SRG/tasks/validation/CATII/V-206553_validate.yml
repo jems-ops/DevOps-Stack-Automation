@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206553 | Check listen_addresses configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW listen_addresses;"
@@ -14,7 +13,6 @@
 
 
 - name: "V-206553 | Check PostgreSQL port configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW port;"
@@ -24,7 +22,6 @@
 
 
 - name: "V-206553 | Check external execution function restriction"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT proname FROM pg_proc WHERE proname='pg_execute_server_program';"

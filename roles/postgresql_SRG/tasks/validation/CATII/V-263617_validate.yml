@@ -18,7 +18,6 @@
 ############################################################
 
 - name: "V-263617 | Check PostgreSQL SSL status"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW ssl;"
   register: postgresql_srg_ssl_status

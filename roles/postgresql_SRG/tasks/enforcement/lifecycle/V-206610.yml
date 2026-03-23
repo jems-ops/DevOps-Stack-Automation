@@ -47,7 +47,6 @@
 ############################################################
 
 - name: "V-206610 | Detect installed PostgreSQL packages"
-  become: true
   ansible.builtin.shell: rpm -qa | grep -i postgresql || true
   register: v206610_all_pkgs
   changed_when: false
@@ -55,7 +54,6 @@
 
 
 - name: "V-206610 | Get current PostgreSQL version"
-  become: true
   become_user: postgres
   ansible.builtin.shell: psql -tAc "SHOW server_version;"
   register: v206610_current_version
@@ -82,7 +80,6 @@
 
 
 - name: "V-206610 | Optional removal of obsolete packages"
-  become: true
   ansible.builtin.package:
     name: "{{ item }}"
     state: absent

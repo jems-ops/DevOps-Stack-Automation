@@ -24,7 +24,6 @@
 ############################################################
 
 - name: "V-206538 | Check PostgreSQL log directory"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_log_directory }}"
   register: v206538_log_dir
@@ -51,7 +50,6 @@
 ############################################################
 
 - name: "V-206538 | Find PostgreSQL log files"
-  become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_log_directory }}"
     file_type: file

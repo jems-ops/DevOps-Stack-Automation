@@ -31,7 +31,6 @@
 ############################################################
 
 - name: "V-263603 | List PostgreSQL roles"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SELECT rolname, rolcanlogin FROM pg_roles;"
   register: postgres_roles

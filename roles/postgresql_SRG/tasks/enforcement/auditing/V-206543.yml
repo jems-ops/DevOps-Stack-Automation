@@ -59,7 +59,6 @@
 ############################
 
 - name: "V-206543 | Ensure pgaudit package installed"
-  become: true
   ansible.builtin.package:
     name: "{{ postgresql_srg_pgaudit_package }}"
     state: present
@@ -71,7 +70,6 @@
 ############################
 
 - name: "V-206543 | Ensure pgaudit in shared_preload_libraries"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*shared_preload_libraries\s*='
@@ -86,7 +84,6 @@
 ############################
 
 - name: "V-206543 | Ensure pgaudit extension exists"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }}

@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206634 | Check log_connections"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW log_connections;"
   register: log_connections
@@ -12,7 +11,6 @@
   tags: ['V-206634', 'CAT II', 'validate']
 
 - name: "V-206634 | Check log_disconnections"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW log_disconnections;"
   register: log_disconnections

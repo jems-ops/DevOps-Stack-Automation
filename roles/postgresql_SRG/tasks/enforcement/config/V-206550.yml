@@ -55,7 +55,6 @@
 ############################
 
 - name: "V-206550 | Get installed extensions"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }} -t -A
@@ -66,7 +65,6 @@
 
 
 - name: "V-206550 | Remove unauthorized extensions"
-  become: true
   become_user: postgres
   ansible.builtin.shell: >
     psql -d {{ postgresql_srg_target_database }}
@@ -82,7 +80,6 @@
 ############################
 
 - name: "V-206550 | Get installed languages"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A
@@ -93,7 +90,6 @@
 
 
 - name: "V-206550 | Remove unauthorized procedural languages"
-  become: true
   become_user: postgres
   ansible.builtin.shell: >
     psql -c "DROP LANGUAGE IF EXISTS {{ item }};"
@@ -110,7 +106,6 @@
 ############################
 
 - name: "V-206550 | Gather installed PostgreSQL packages"
-  become: true
   ansible.builtin.shell: |
     rpm -qa --qf '%{NAME}\n' | grep '^postgresql'
   register: v206550_pkgs
@@ -119,7 +114,6 @@
 
 
 - name: "V-206550 | Remove unauthorized PostgreSQL packages"
-  become: true
   ansible.builtin.package:
     name: "{{ item }}"
     state: absent

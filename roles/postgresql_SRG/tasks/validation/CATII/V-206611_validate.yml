@@ -42,7 +42,6 @@
 ############################################################
 
 - name: "V-206611 | Check available security updates"
-  become: true
   ansible.builtin.command: dnf updateinfo list security
   register: v206611_security_updates
   changed_when: false
@@ -54,7 +53,6 @@
   tags: ['V-206611', 'CAT II', 'check']
 
 - name: "V-206611 | Record PostgreSQL version"
-  become: true
   ansible.builtin.command: psql --version
   register: v206611_pg_version
   changed_when: false

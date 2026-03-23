@@ -39,7 +39,6 @@
 ############################################################
 
 - name: "V-206537 | Ensure chrony installed"
-  become: true
   ansible.builtin.package:
     name: chrony
     state: present
@@ -47,7 +46,6 @@
 
 
 - name: "V-206537 | Ensure chronyd running"
-  become: true
   ansible.builtin.service:
     name: chronyd
     state: started
@@ -60,7 +58,6 @@
 ############################################################
 
 - name: "V-206537 | Configure PostgreSQL timezone"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*timezone\s*='
@@ -75,7 +72,6 @@
 ############################################################
 
 - name: "V-206537 | Ensure timestamp included in logs"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_line_prefix\s*='

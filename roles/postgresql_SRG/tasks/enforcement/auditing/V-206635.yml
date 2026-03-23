@@ -45,7 +45,6 @@
 ############################################################
 
 - name: "V-206635 | Verify connection logging"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_connections;"
@@ -54,7 +53,6 @@
   tags: ['V-206635', 'CAT II', 'check']
 
 - name: "V-206635 | Verify disconnection logging"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_disconnections;"
@@ -63,7 +61,6 @@
   tags: ['V-206635', 'CAT II', 'check']
 
 - name: "V-206635 | Verify log line prefix"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_line_prefix;"

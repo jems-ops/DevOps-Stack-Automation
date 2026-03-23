@@ -57,7 +57,6 @@
 ############################################################
 
 - name: V-206554 | Enforce SCRAM password encryption
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?password_encryption'
@@ -70,7 +69,6 @@
     - cat2
 
 - name: V-206554 | Remove trust authentication
-  become: true
   ansible.builtin.replace:
     path: "{{ postgresql_srg_hba_file }}"
     regexp: '\btrust\b'
@@ -82,7 +80,6 @@
     - cat2
 
 - name: V-206554 | Enable log_connections
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?log_connections'

@@ -61,14 +61,12 @@
 ############################################################
 
 - name: "V-263621 | Ensure chrony package installed"
-  become: true
   ansible.builtin.package:
     name: chrony
     state: present
   tags: ['V-263621', 'CAT II', 'enforce']
 
 - name: "V-263621 | Ensure Satellite entry exists in /etc/hosts"
-  become: true
   ansible.builtin.lineinfile:
     path: /etc/hosts
     line: "{{ postgresql_srg_ntp_server_ip }} {{ postgresql_srg_ntp_server }}"
@@ -77,7 +75,6 @@
   tags: ['V-263621', 'CAT II', 'enforce']
 
 - name: "V-263621 | Configure Satellite as NTP source"
-  become: true
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     regexp: '^server {{ postgresql_srg_ntp_server }}'
@@ -87,7 +84,6 @@
   tags: ['V-263621', 'CAT II', 'enforce']
 
 - name: "V-263621 | Ensure chronyd service running"
-  become: true
   ansible.builtin.service:
     name: chronyd
     state: started
@@ -95,7 +91,6 @@
   tags: ['V-263621', 'CAT II', 'enforce']
 
 - name: "V-263621 | Force time synchronization"
-  become: true
   ansible.builtin.command: chronyc makestep
   changed_when: false
   tags: ['V-263621', 'CAT II', 'enforce']

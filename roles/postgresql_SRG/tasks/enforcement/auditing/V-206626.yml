@@ -45,7 +45,6 @@
 ############################################################
 
 - name: "V-206626 | Ensure pgaudit extension is configured"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?shared_preload_libraries'
@@ -53,7 +52,6 @@
   tags: ['V-206626', 'CAT II', 'enforce']
 
 - name: "V-206626 | Configure audit logging for security operations"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?pgaudit\.log\s*='

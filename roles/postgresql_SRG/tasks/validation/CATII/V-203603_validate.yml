@@ -8,7 +8,6 @@
 ############################################################
 
 - name: "V-263603 | Check PostgreSQL roles"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SELECT rolname, rolvaliduntil FROM pg_roles;"
   register: role_expiration

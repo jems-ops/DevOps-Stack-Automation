@@ -56,7 +56,6 @@
 ############################
 
 - name: "V-206548 | Ensure DDL role exists"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ postgresql_srg_ddl_role }}';" | grep -q 1 || \
@@ -70,7 +69,6 @@
 ############################
 
 - name: "V-206548 | Revoke CREATE from PUBLIC schema"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }}
@@ -84,7 +82,6 @@
 ############################
 
 - name: "V-206548 | Grant CREATE to DDL role"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }}
@@ -98,7 +95,6 @@
 ############################
 
 - name: "V-206548 | Remove unauthorized DDL role members"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "

@@ -41,7 +41,6 @@
 # V-206566 satisfies session ID requirement via system-generated backend PIDs
 
 - name: V-206566 | Ensure password encryption uses SCRAM
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*password_encryption\s*='

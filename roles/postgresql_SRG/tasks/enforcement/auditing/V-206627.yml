@@ -50,7 +50,6 @@
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?shared_preload_libraries'
     line: "shared_preload_libraries = 'pgaudit'"
-  become: true
   tags: ['V-206627', 'CAT II', 'enforce']
 
 - name: "V-206627 | Configure audit logging for security operations"
@@ -58,5 +57,4 @@
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?pgaudit\.log\s*='
     line: "pgaudit.log = '{{ postgresql_srg_pgaudit_classes }}'"
-  become: true
   tags: ['V-206627', 'CAT II', 'enforce']

@@ -10,7 +10,6 @@
 ############################################################
 
 - name: "V-206521 | Check PUBLIC CREATE on database"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "
@@ -35,7 +34,6 @@
 ############################################################
 
 - name: "V-206521 | Check PUBLIC CREATE on schemas"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "
@@ -72,7 +70,6 @@
 ############################################################
 
 - name: "V-206521 | Check default privilege leaks"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "
@@ -98,7 +95,6 @@
 ############################################################
 
 - name: "V-206521 | Check default SELECT grants for readonly role"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "
@@ -124,7 +120,6 @@
 ############################################################
 
 - name: "V-206521 | Check PUBLIC table access"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "
@@ -152,7 +147,6 @@
 ############################################################
 
 - name: "V-206521 | Check readonly role"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "

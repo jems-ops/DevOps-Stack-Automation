@@ -10,7 +10,6 @@
 ############################################################
 
 - name: "V-206557 | Check pg_hba.conf for insecure methods"
-  become: true
   ansible.builtin.shell: |
     awk '
       !/^\s*#/ && NF {
@@ -45,7 +44,6 @@
 ############################################################
 
 - name: "V-206557 | Check SCRAM usage"
-  become: true
   ansible.builtin.shell: |
     awk '!/^\s*#/ && $1 == "host" {print}' {{ postgresql_srg_hba_file }}
   register: v206557_scram_check

@@ -8,7 +8,6 @@
 ############################################################
 
 - name: "V-263605 | Check log destination"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW log_destination;"
   register: log_destination

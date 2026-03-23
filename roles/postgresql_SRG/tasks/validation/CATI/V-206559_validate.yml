@@ -10,7 +10,6 @@
 ############################################################
 
 - name: "V-206559 | Check for server.key"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
   register: v206559_key
@@ -36,7 +35,6 @@
 ############################################################
 
 - name: "V-206559 | Validate server.key permissions"
-  become: true
   ansible.builtin.assert:
     that:
       - v206559_key.stat.pw_name == "postgres"

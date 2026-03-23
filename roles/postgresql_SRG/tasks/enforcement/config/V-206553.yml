@@ -61,7 +61,6 @@
 ############################################################
 
 - name: "V-206553 | Restrict listen_addresses"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*listen_addresses\s*='
@@ -72,7 +71,6 @@
 
 
 - name: "V-206553 | Enforce approved PostgreSQL port"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*port\s*='
@@ -82,7 +80,6 @@
 
 
 - name: "V-206553 | Restrict external program execution function"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "

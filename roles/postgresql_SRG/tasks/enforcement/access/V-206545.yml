@@ -52,7 +52,6 @@
 ############################################################
 
 - name: "V-206545 | Restrict postgres shell (optional)"
-  become: true
   ansible.builtin.user:
     name: "{{ postgresql_srg_install_os_account }}"
     shell: "{{ postgresql_srg_secure_shell | default('/sbin/nologin') }}"
@@ -61,7 +60,6 @@
 
 
 - name: "V-206545 | Lock postgres password (optional)"
-  become: true
   ansible.builtin.user:
     name: "{{ postgresql_srg_install_os_account }}"
     password_lock: true
@@ -74,7 +72,6 @@
 ############################################################
 
 - name: "V-206545 | Ensure DBA group exists"
-  become: true
   ansible.builtin.group:
     name: "{{ postgresql_srg_dba_group }}"
     state: present
@@ -82,7 +79,6 @@
 
 
 - name: "V-206545 | Configure sudo access"
-  become: true
   ansible.builtin.copy:
     dest: "/etc/sudoers.d/postgres_admins"
     content: |
@@ -97,7 +93,6 @@
 ############################################################
 
 - name: "V-206545 | Configure audit rules"
-  become: true
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/postgres.rules
     create: true

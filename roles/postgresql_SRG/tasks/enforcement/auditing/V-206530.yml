@@ -34,7 +34,6 @@
 ############################################################
 
 - name: "V-206530 | Ensure log_line_prefix includes location information"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_line_prefix\s*='

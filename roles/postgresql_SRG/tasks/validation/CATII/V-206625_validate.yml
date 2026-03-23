@@ -52,7 +52,6 @@
 ############################################################
 
 - name: "V-206625 | Verify pgaudit extension installed"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
@@ -61,7 +60,6 @@
   tags: ['V-206625', 'CAT II', 'check']
 
 - name: "V-206625 | Verify pgaudit library loaded"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW shared_preload_libraries;"
@@ -70,7 +68,6 @@
   tags: ['V-206625', 'CAT II', 'check']
 
 - name: "V-206625 | Verify role auditing configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW pgaudit.log;"
@@ -79,7 +76,6 @@
   tags: ['V-206625', 'CAT II', 'check']
 
 - name: "V-206625 | Verify error logging configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_min_error_statement;"

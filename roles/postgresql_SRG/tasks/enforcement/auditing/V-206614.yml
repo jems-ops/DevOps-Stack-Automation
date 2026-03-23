@@ -52,7 +52,6 @@
 ############################################################
 
 - name: "V-206614 | Ensure pgaudit installed"
-  become: true
   ansible.builtin.package:
     name: pgaudit
     state: present
@@ -62,7 +61,6 @@
 ############################################################
 
 - name: "V-206614 | Enable pgaudit library"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_postgresql_conf }}"
     regexp: '^shared_preload_libraries'
@@ -74,7 +72,6 @@
 ############################################################
 
 - name: "V-206614 | Configure audit logging"
-  become: true
   ansible.builtin.blockinfile:
     path: "{{ postgresql_srg_postgresql_conf }}"
     block: |
@@ -87,7 +84,6 @@
 ############################################################
 
 - name: "V-206614 | Enable logging collector"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_postgresql_conf }}"
     regexp: '^logging_collector'
@@ -98,7 +94,6 @@
 ############################################################
 
 - name: "V-206614 | Restart PostgreSQL"
-  become: true
   ansible.builtin.service:
     name: "{{ postgresql_srg_service_name }}"
     state: restarted

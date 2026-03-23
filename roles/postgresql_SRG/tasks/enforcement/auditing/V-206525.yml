@@ -32,7 +32,6 @@
 ############################################################
 
 - name: "V-206525 | Ensure shared_preload_libraries contains pgaudit"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*shared_preload_libraries\s*='
@@ -47,7 +46,6 @@
 ############################################################
 
 - name: "V-206525 | Configure pgaudit log classes"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log\s*='
@@ -62,7 +60,6 @@
 ############################################################
 
 - name: "V-206525 | Enable catalog auditing"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='

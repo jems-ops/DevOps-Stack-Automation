@@ -8,7 +8,6 @@
 ############################################################
 
 - name: "V-263604 | Check logging collector"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW logging_collector;"
   register: logging_collector

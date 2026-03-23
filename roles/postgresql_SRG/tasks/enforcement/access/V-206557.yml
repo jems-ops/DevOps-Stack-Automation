@@ -54,7 +54,6 @@
 ############################################################
 
 - name: "V-206557 | Ensure SCRAM password encryption"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*password_encryption\s*='
@@ -69,7 +68,6 @@
 ############################################################
 
 - name: "V-206557 | Enforce SCRAM for IPv4 localhost"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_hba_file }}"
     regexp: '^host\s+all\s+all\s+127\.0\.0\.1/32'
@@ -79,7 +77,6 @@
 
 
 - name: "V-206557 | Enforce SCRAM for IPv6 localhost"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_hba_file }}"
     regexp: '^host\s+all\s+all\s+::1/128'
@@ -93,7 +90,6 @@
 ############################################################
 
 - name: "V-206557 | Ensure postgres uses peer"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_hba_file }}"
     regexp: '^local\s+all\s+postgres'

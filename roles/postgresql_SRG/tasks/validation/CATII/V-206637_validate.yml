@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206637 | Verify error logging configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW log_min_error_statement;"
   register: error_logging

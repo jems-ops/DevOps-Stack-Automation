@@ -31,7 +31,6 @@
 ############################################################
 
 - name: "V-263605 | Verify logging collector enabled"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW logging_collector;"
   register: logging_collector

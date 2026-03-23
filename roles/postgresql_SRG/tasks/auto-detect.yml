@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "Auto-detect | Check candidate service status"
-  become: true
   ansible.builtin.systemd:
     name: "{{ item }}"
   register: postgresql_srg_service_check

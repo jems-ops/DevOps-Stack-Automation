@@ -61,7 +61,6 @@
 ############################
 
 - name: "V-206551 | Restrict PostgreSQL listening interface"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*listen_addresses\s*='
@@ -77,7 +76,6 @@
 ############################
 
 - name: "V-206551 | Disable replication slots"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*max_replication_slots\s*='
@@ -92,7 +90,6 @@
 ############################
 
 - name: "V-206551 | Disable WAL senders"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*max_wal_senders\s*='
@@ -107,7 +104,6 @@
 ############################
 
 - name: "V-206551 | Disable logical decoding"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*wal_level\s*='

@@ -5,7 +5,6 @@
 ############################################################
 
 - name: "V-206540 | Validate log directory permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_log_directory }}"
   register: v206540_logdir

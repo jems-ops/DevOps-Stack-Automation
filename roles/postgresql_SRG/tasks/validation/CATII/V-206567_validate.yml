@@ -52,7 +52,6 @@
 ############################################################
 
 - name: "V-206567 | Verify password_encryption is scram-sha-256"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -A -c "SHOW password_encryption;"
   register: v206567_pw_enc
@@ -75,7 +74,6 @@
 ############################################################
 
 - name: "V-206567 | Read active pg_hba.conf lines"
-  become: true
   ansible.builtin.shell: grep -Ev '^\s*#|^\s*$' {{ postgresql_srg_hba_file }}
   register: v206567_hba_lines
   changed_when: false

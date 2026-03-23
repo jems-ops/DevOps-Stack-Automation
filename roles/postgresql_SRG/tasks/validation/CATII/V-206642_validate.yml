@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206642 | Check PostgreSQL log destination"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_destination;"

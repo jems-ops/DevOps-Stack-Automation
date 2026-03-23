@@ -34,7 +34,6 @@
 ############################################################
 
 - name: "V-206524 | Gather SUPERUSER roles"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
@@ -48,7 +47,6 @@
 ############################################################
 
 - name: "V-206524 | Remove unauthorized SUPERUSER roles"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "ALTER ROLE {{ item }} NOSUPERUSER;"
@@ -65,7 +63,6 @@
 ############################################################
 
 - name: "V-206524 | Secure postgresql.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_conf_file }}"
     owner: postgres
@@ -75,7 +72,6 @@
 
 
 - name: "V-206524 | Secure pg_hba.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_hba_file }}"
     owner: postgres
@@ -89,7 +85,6 @@
 ############################################################
 
 - name: "V-206524 | Secure postgresql.auto.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
     owner: postgres

@@ -46,7 +46,6 @@
 ############################################################
 
 - name: "V-206580 | Enforce session timeout configuration"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?idle_session_timeout'

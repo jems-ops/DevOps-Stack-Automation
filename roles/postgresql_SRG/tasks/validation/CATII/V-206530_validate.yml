@@ -5,7 +5,6 @@
 ############################################################
 
 - name: V-206530 | Check log_line_prefix
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c "SHOW log_line_prefix;"

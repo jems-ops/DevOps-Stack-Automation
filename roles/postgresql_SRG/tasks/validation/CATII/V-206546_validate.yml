@@ -47,7 +47,6 @@
 ############################
 
 - name: "V-206546 | Get PostgreSQL data directory"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A -c "SHOW data_directory;"
@@ -73,7 +72,6 @@
 ############################
 
 - name: "V-206546 | Locate postgres binary"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_pg_bin_path }}/postgres"
   register: v206546_bin
@@ -98,7 +96,6 @@
 ############################
 
 - name: "V-206546 | Verify postgresql.conf location"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_conf_file }}"
   register: v206546_conf

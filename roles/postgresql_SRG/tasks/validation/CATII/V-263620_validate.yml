@@ -15,7 +15,6 @@
 ############################################################
 
 - name: "V-263620 | Check TLS private key"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
   register: postgresql_srg_tls_key

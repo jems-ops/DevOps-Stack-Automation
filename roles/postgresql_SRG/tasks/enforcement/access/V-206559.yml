@@ -34,7 +34,6 @@
 ############################################################
 
 - name: "V-206559 | Check for server.key"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/server.key"
   register: v206559_key
@@ -47,7 +46,6 @@
 ############################################################
 
 - name: "V-206559 | Secure server.key permissions"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/server.key"
     owner: postgres

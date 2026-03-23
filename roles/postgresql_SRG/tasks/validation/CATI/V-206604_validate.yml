@@ -9,7 +9,6 @@
 ############################################################
 
 - name: "V-206604 | Check listen_addresses"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c "SHOW listen_addresses;"
@@ -34,7 +33,6 @@
 ############################################################
 
 - name: "V-206604 | Check pg_hba.conf for remote entries"
-  become: true
   ansible.builtin.shell: |
     grep -Ev '^\s*#|^\s*$' {{ postgresql_srg_hba_file }} | grep -E 'host\s+'
   register: v206604_hba
@@ -47,7 +45,6 @@
 ############################################################
 
 - name: "V-206604 | Check pg_hba.conf for external access (active lines only)"
-  become: true
   ansible.builtin.shell: |
     awk '
       !/^\s*#/ && NF {
@@ -77,7 +74,6 @@
 ############################################################
 
 - name: "V-206604 | Check listening ports"
-  become: true
   ansible.builtin.shell: |
     ss -lntp | grep 5432 || true
   register: v206604_ports

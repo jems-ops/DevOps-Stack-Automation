@@ -40,7 +40,6 @@
 ############################################################
 
 - name: "V-263618 | Ensure SSH service is enabled for maintenance access"
-  become: true
   ansible.builtin.service:
     name: sshd
     state: started

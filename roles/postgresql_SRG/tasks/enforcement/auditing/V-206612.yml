@@ -59,7 +59,6 @@
 ############################################################
 
 - name: "V-206612 | Ensure pgaudit in shared_preload_libraries"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?shared_preload_libraries'
@@ -74,7 +73,6 @@
 ############################################################
 
 - name: "V-206612 | Configure pgaudit logging"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?pgaudit.log'
@@ -88,7 +86,6 @@
 ############################################################
 
 - name: "V-206612 | Enable logging collector"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?logging_collector'

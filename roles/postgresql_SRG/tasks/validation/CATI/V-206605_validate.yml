@@ -24,7 +24,6 @@
 ############################################################
 
 - name: "V-206605 | Check listen_addresses"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "SHOW listen_addresses;"
@@ -46,7 +45,6 @@
 ############################################################
 
 - name: "V-206605 | Check for remote host connections"
-  become: true
   ansible.builtin.shell: |
     awk '
       !/^\s*#/ && NF {

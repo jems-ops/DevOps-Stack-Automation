@@ -46,7 +46,6 @@
 ############################
 
 - name: "V-206549 | Get non-template databases"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A -c
@@ -75,7 +74,6 @@
   tags: ['V-206549', 'CAT II', 'check']
 
 - name: "V-206549 | Remove unauthorized databases"
-  become: true
   become_user: postgres
   ansible.builtin.shell: >
     psql -c "DROP DATABASE {{ item }};"
@@ -93,7 +91,6 @@
 ############################
 
 - name: "V-206549 | Get installed extensions"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }}
@@ -119,7 +116,6 @@
   tags: ['V-206549', 'CAT II', 'enforce']
 
 - name: "V-206549 | Remove unauthorized extensions"
-  become: true
   become_user: postgres
   ansible.builtin.shell: >
     psql -d {{ postgresql_srg_target_database }}

@@ -52,7 +52,6 @@
 ############################
 
 - name: "V-206541 | Protect postgresql.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_conf_file }}"
     owner: postgres
@@ -66,7 +65,6 @@
 ############################
 
 - name: "V-206541 | Protect PostgreSQL log directory"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_log_directory }}"
     owner: postgres
@@ -81,7 +79,6 @@
 ############################################################
 
 - name: "V-206541 | Check configuration file permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_conf_file }}"
   register: v206541_conf
@@ -89,7 +86,6 @@
 
 
 - name: "V-206541 | Check log directory permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_log_directory }}"
   register: v206541_logdir

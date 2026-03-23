@@ -54,7 +54,6 @@
 ############################################################
 
 - name: "V-263620 | Ensure TLS private key ownership"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/server.key"
     owner: postgres
@@ -64,7 +63,6 @@
 
 
 - name: "V-263620 | Ensure TLS private key permissions"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/server.key"
     mode: "0600"

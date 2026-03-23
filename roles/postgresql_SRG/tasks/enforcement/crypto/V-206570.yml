@@ -54,7 +54,6 @@
 ############################################################
 
 - name: "V-206570 | Ensure data directory ownership"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}"
     owner: postgres
@@ -69,7 +68,6 @@
 ############################################################
 
 - name: "V-206570 | Secure postgresql.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_conf_file }}"
     owner: postgres
@@ -79,7 +77,6 @@
 
 
 - name: "V-206570 | Secure pg_hba.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_hba_file }}"
     owner: postgres
@@ -93,7 +90,6 @@
 ############################################################
 
 - name: "V-206570 | Check auto.conf"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
   register: v206570_auto_conf
@@ -102,7 +98,6 @@
 
 
 - name: "V-206570 | Secure auto.conf if exists"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
     owner: postgres
@@ -117,7 +112,6 @@
 ############################################################
 
 - name: "V-206570 | Find top-level files only"
-  become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_data_dir }}"
     file_type: file
@@ -128,7 +122,6 @@
 
 
 - name: "V-206570 | Restrict top-level file permissions"
-  become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
     mode: "0600"

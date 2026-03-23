@@ -19,7 +19,6 @@
 ############################################################
 
 - name: "V-206522 | Enable connection logging"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_connections\s*='
@@ -34,7 +33,6 @@
 ############################################################
 
 - name: "V-206522 | Enable disconnection logging"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_disconnections\s*='
@@ -48,7 +46,6 @@
 ############################################################
 
 - name: "V-206522 | Configure log_line_prefix"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_line_prefix\s*='
@@ -62,7 +59,6 @@
 ############################################################
 
 - name: "V-206522 | Ensure pgaudit loads at startup"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*shared_preload_libraries\s*='
@@ -76,7 +72,6 @@
 ############################################################
 
 - name: "V-206522 | Configure pgaudit logging"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log\s*='

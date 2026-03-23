@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-263603 | Get login-enabled roles"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"

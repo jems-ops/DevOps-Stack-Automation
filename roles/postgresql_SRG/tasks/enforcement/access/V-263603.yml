@@ -44,7 +44,6 @@
 ############################################################
 
 - name: "V-263603 | Get all login-enabled roles"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
@@ -66,7 +65,6 @@
 ############################################################
 
 - name: "V-263603 | Disable unauthorized/orphaned users"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -c "ALTER ROLE {{ item }} NOLOGIN;"

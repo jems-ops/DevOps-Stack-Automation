@@ -6,7 +6,6 @@
 ############################################################
 
 - name: "V-263602 | Validate role expiration settings"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT rolname, rolvaliduntil FROM pg_roles;"

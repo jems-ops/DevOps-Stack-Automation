@@ -54,7 +54,6 @@
 ############################################################
 
 - name: "V-206555 | Scan for password references"
-  become: true
   ansible.builtin.shell: |
     grep -Ril "password=" \
     {{ postgresql_srg_conf_file }} \
@@ -72,7 +71,6 @@
 ############################################################
 
 - name: "V-206555 | Restrict permissions on DBMS files"
-  become: true
   ansible.builtin.file:
     path: "{{ item }}"
     mode: '0600'
@@ -87,7 +85,6 @@
 ############################################################
 
 - name: "V-206555 | Find .pgpass"
-  become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_pgpass_search_paths }}"
     patterns: ".pgpass"
@@ -99,7 +96,6 @@
 
 
 - name: "V-206555 | Secure .pgpass"
-  become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
     mode: "0600"

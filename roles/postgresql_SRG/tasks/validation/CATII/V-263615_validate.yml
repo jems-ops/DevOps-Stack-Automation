@@ -15,7 +15,6 @@
 ############################################################
 
 - name: "V-263615 | Check password encryption method"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW password_encryption;"
   register: postgresql_srg_password_encryption

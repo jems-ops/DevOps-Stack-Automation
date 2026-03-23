@@ -10,7 +10,6 @@
 ############################################################
 
 - name: "V-206556 | Check password_encryption"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "SHOW password_encryption;"
@@ -35,7 +34,6 @@
 ############################################################
 
 - name: "V-206556 | Detect weak password hashes"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -tAc "

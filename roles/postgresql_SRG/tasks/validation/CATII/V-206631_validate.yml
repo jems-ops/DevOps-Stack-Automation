@@ -41,7 +41,6 @@
 ############################################################
 
 - name: "V-206631 | Verify connection logging enabled"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_connections;"
@@ -50,7 +49,6 @@
   tags: ['V-206631', 'CAT II', 'check']
 
 - name: "V-206631 | Verify log line prefix"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_line_prefix;"

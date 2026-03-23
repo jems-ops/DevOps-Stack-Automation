@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206547 | Check function ownership"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }}

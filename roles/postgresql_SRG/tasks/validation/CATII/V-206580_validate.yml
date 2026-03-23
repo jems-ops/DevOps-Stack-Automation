@@ -46,7 +46,6 @@
 ############################################################
 
 - name: "V-206580 | Check idle session timeout"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW idle_session_timeout;"
@@ -55,7 +54,6 @@
   tags: ['V-206580', 'CAT II', 'check']
 
 - name: "V-206580 | Check idle transaction timeout"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW idle_in_transaction_session_timeout;"
@@ -64,7 +62,6 @@
   tags: ['V-206580', 'CAT II', 'check']
 
 - name: "V-206580 | Check statement timeout"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW statement_timeout;"

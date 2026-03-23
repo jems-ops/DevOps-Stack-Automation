@@ -43,7 +43,6 @@
 ############################################################
 
 - name: "V-206642 | Verify PostgreSQL logging collector"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW logging_collector;"

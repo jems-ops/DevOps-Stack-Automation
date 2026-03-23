@@ -79,7 +79,6 @@
     owner: postgres
     group: postgres
     mode: "0600"
-  become: true
   tags: ['V-206521', 'enforce', 'rbac']
 
 - name: "V-206521 | Render least-privilege SQL script"
@@ -89,7 +88,6 @@
     owner: postgres
     group: postgres
     mode: "0600"
-  become: true
   tags: ['V-206521', 'enforce']
 
 ############################################################
@@ -97,7 +95,6 @@
 ############################################################
 
 - name: "V-206521 | Ensure readonly role exists"
-  become: true
   become_user: postgres
   ansible.builtin.command: >-
     psql -d {{ postgresql_srg_target_database }}
@@ -114,7 +111,6 @@
   tags: ['V-206521', 'enforce', 'rbac']
 
 - name: "V-206521 | Execute least-privilege SQL script"
-  become: true
   become_user: postgres
   ansible.builtin.command: >-
     psql -d {{ postgresql_srg_target_database }}
@@ -135,7 +131,6 @@
 ############################################################
 
 - name: "V-206521 | Clean up temporary SQL scripts"
-  become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent

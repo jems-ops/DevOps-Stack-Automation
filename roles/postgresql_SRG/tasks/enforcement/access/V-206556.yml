@@ -52,7 +52,6 @@
 ############################################################
 
 - name: "V-206556 | Enforce SCRAM password encryption"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*password_encryption\s*='

@@ -5,7 +5,6 @@
 ############################################################
 
 - name: "V-206543 | Verify pgaudit loaded"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A -c "SHOW shared_preload_libraries;"
@@ -15,7 +14,6 @@
 
 
 - name: "V-206543 | Verify pgaudit extension installed"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -d {{ postgresql_srg_target_database }}
@@ -26,7 +24,6 @@
 
 
 - name: "V-206543 | Validate superuser restriction"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A -c "SELECT rolname FROM pg_roles WHERE rolsuper=true;"

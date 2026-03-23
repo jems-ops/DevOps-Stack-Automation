@@ -1,5 +1,4 @@
 - name: "V-206612 | Check pgaudit loaded"
-  become: true
   become_user: postgres
   ansible.builtin.shell: psql -tAc "SHOW shared_preload_libraries;"
   register: v206612_lib

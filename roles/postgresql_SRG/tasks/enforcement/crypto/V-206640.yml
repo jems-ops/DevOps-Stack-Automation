@@ -69,7 +69,6 @@
   tags: ['V-206640', 'CAT II', 'check']
 
 - name: "V-206640 | Verify PostgreSQL password hashing"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW password_encryption;"
   register: password_hash_method

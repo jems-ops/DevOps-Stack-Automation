@@ -35,7 +35,6 @@
 ############################################################
 
 - name: "V-206528 | Ensure pgaudit event classes enabled"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log\s*='
@@ -50,7 +49,6 @@
 ############################################################
 
 - name: "V-206528 | Ensure catalog auditing enabled"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log_catalog\s*='

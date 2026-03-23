@@ -10,7 +10,6 @@
 ############################################################
 
 - name: "V-206555 | Scan for password references (DBMS scope)"
-  become: true
   ansible.builtin.shell: |
     grep -Ril "password=" \
     {{ postgresql_srg_conf_file }} \
@@ -28,7 +27,6 @@
 ############################################################
 
 - name: "V-206555 | Check file permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ item }}"
   loop: "{{ v206555_password_files.stdout_lines | default([]) }}"
@@ -53,7 +51,6 @@
 ############################################################
 
 - name: "V-206555 | Find .pgpass files"
-  become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_pgpass_search_paths }}"
     patterns: ".pgpass"
@@ -65,7 +62,6 @@
 
 
 - name: "V-206555 | Validate .pgpass permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ item.path }}"
   loop: "{{ v206555_pgpass.files | default([]) }}"

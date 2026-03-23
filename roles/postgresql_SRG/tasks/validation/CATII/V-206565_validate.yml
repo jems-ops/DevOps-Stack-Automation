@@ -49,7 +49,6 @@
 ############################################################
 
 - name: "V-206565 | Verify PostgreSQL active sessions"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT pid, usename, backend_start FROM pg_stat_activity;"

@@ -29,7 +29,6 @@
 ############################################################
 
 - name: "V-206610 | Find PostgreSQL binaries"
-  become: true
   ansible.builtin.find:
     paths: /usr
     patterns: "pgsql-*"
@@ -61,7 +60,6 @@
 ############################################################
 
 - name: "V-206610 | Find data directories"
-  become: true
   ansible.builtin.find:
     paths: /var/lib/pgsql
     file_type: directory

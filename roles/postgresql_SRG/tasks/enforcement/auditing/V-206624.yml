@@ -44,7 +44,6 @@
 ############################################################
 
 - name: "V-206624 | Ensure pgaudit library loaded"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?shared_preload_libraries'
@@ -52,7 +51,6 @@
   tags: ['V-206624', 'CAT II', 'enforce']
 
 - name: "V-206624 | Enable role audit logging"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?pgaudit\.log\s*='

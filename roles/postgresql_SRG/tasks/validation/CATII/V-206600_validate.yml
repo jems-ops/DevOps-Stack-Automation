@@ -49,7 +49,6 @@
 ############################################################
 
 - name: "V-206600 | Identify superuser roles"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT rolname FROM pg_roles WHERE rolsuper = true;"
@@ -63,7 +62,6 @@
   tags: ['V-206600', 'CAT II', 'check']
 
 - name: "V-206600 | Identify SECURITY DEFINER functions"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "

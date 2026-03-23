@@ -13,7 +13,6 @@
     _srg_backup_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
 
 - name: Backup | Ensure backup directory exists
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_backup_dir }}"
     state: directory
@@ -32,7 +31,6 @@
             | flatten) }}
 
 - name: Backup | Check which config files exist
-  become: true
   ansible.builtin.stat:
     path: "{{ item }}"
   loop: "{{ _srg_backup_all_configs }}"
@@ -47,7 +45,6 @@
          | list }}
 
 - name: Backup | Create timestamped archive
-  become: true
   ansible.builtin.archive:
     path: "{{ _srg_backup_files }}"
     dest: "{{ postgresql_srg_backup_dir }}/srg-backup-{{ _srg_backup_timestamp }}.tar.gz"
@@ -83,7 +80,6 @@
 # --- Retention pruning ---------------------------------------------------
 
 - name: Backup | List existing backup archives
-  become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_backup_dir }}"
     patterns: "srg-backup-*.tar.gz"
@@ -91,7 +87,6 @@
   register: _srg_backup_archives
 
 - name: Backup | Prune old backups beyond retention count
-  become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent

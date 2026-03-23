@@ -39,7 +39,6 @@
 ############################################################
 
 - name: "V-206534 | Ensure pgaudit preloaded"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*shared_preload_libraries\s*='
@@ -53,7 +52,6 @@
 ############################################################
 
 - name: "V-206534 | Enable detailed pgaudit classes"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log\s*='
@@ -68,7 +66,6 @@
 ############################################################
 
 - name: "V-206534 | Enable logging of parameters"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*pgaudit\.log_parameter\s*='
@@ -82,7 +79,6 @@
 ############################################################
 
 - name: "V-206534 | Enable verbose error logging"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_error_verbosity\s*='
@@ -96,7 +92,6 @@
 ############################################################
 
 - name: "V-206534 | Log DDL statements"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_statement\s*='

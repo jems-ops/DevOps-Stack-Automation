@@ -49,7 +49,6 @@
 ############################################################
 
 - name: V-206565 | Enable connection logging
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_connections\s*='
@@ -62,7 +61,6 @@
     - cat2
 
 - name: V-206565 | Enable disconnection logging
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*log_disconnections\s*='
@@ -74,7 +72,6 @@
     - cat2
 
 - name: V-206565 | Ensure idle_session_timeout configured
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^\s*#?\s*idle_session_timeout\s*='

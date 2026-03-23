@@ -43,7 +43,6 @@
 # privileged actions.
 ############################################################
 - name: "V-206632 | Ensure pgaudit extension is enabled"
-  become: true
   ansible.builtin.lineinfile:
     path: "{{ postgresql_srg_conf_file }}"
     regexp: '^#?shared_preload_libraries'

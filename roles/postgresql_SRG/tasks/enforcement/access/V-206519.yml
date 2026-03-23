@@ -38,7 +38,6 @@
 ############################################################
 
 - name: "V-206519 | Gather current role connection limits"
-  become: true
   become_user: postgres
   ansible.builtin.command:
     cmd: psql -t -A -F', ' -c "SELECT rolname, rolconnlimit FROM pg_roles;"
@@ -65,7 +64,6 @@
 
 
 - name: "V-206519 | Enforce connection limits per role"
-  become: true
   become_user: postgres
   ansible.builtin.command:
     cmd: >

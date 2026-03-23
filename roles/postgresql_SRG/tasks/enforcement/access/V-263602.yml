@@ -46,7 +46,6 @@
 ############################################################
 
 - name: "V-263602 | Get roles without expiration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A -c
@@ -59,7 +58,6 @@
 ############################################################
 
 - name: "V-263602 | Enforce expiration (90 days)"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -c "ALTER ROLE {{ item }} VALID UNTIL NOW() + INTERVAL '90 days';"
@@ -73,7 +71,6 @@
 ############################################################
 
 - name: "V-263602 | Get expired roles"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -A -c
@@ -87,7 +84,6 @@
 ############################################################
 
 - name: "V-263602 | Disable expired accounts"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -c "ALTER ROLE {{ item }} NOLOGIN;"

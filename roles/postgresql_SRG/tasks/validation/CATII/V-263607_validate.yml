@@ -8,7 +8,6 @@
 ############################################################
 
 - name: "V-263607 | Check authentication configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: psql -t -c "SHOW hba_file;"
   register: pg_hba_file

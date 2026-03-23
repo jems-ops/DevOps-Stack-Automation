@@ -41,7 +41,6 @@
 ############################################################
 
 - name: "V-206538 | Ensure log directory protected"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_log_directory }}"
     owner: postgres
@@ -56,7 +55,6 @@
 ############################################################
 
 - name: "V-206538 | Find PostgreSQL log files"
-  become: true
   ansible.builtin.find:
     paths: "{{ postgresql_srg_log_directory }}"
     file_type: file
@@ -65,7 +63,6 @@
 
 
 - name: "V-206538 | Restrict log file permissions"
-  become: true
   ansible.builtin.file:
     path: "{{ item.path }}"
     owner: postgres

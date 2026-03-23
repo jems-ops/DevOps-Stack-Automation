@@ -44,7 +44,6 @@
 ############################################################
 
 - name: "V-206633 | Verify pgaudit extension installed"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT extname FROM pg_extension WHERE extname='pgaudit';"
@@ -53,7 +52,6 @@
   tags: ['V-206633', 'CAT II', 'check']
 
 - name: "V-206633 | Verify pgaudit logging configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW pgaudit.log;"
@@ -62,7 +60,6 @@
   tags: ['V-206633', 'CAT II', 'check']
 
 - name: "V-206633 | Verify error logging configuration"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW log_min_error_statement;"

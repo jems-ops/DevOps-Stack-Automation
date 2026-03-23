@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206551 | Check listen_addresses"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW listen_addresses;"
@@ -14,7 +13,6 @@
 
 
 - name: "V-206551 | Check WAL senders"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW max_wal_senders;"
@@ -24,7 +22,6 @@
 
 
 - name: "V-206551 | Check replication slots"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW max_replication_slots;"
@@ -34,7 +31,6 @@
 
 
 - name: "V-206551 | Check WAL level"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW wal_level;"

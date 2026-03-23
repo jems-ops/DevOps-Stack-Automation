@@ -33,7 +33,6 @@
 ############################################################
 
 - name: "V-206622 | Check shared_preload_libraries"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW shared_preload_libraries;"
@@ -51,7 +50,6 @@
 ############################################################
 
 - name: "V-206622 | Check pgaudit.log"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW pgaudit.log;"
@@ -69,7 +67,6 @@
 ############################################################
 
 - name: "V-206622 | Check logging_collector"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SHOW logging_collector;"
@@ -87,7 +84,6 @@
 ############################################################
 
 - name: "V-206622 | Check audit log entries"
-  become: true
   ansible.builtin.shell: >
     grep -i "AUDIT" {{ postgresql_srg_log_dir | default('/var/lib/pgsql') }}/*/data/log/* 2>/dev/null | tail -n 5
   register: audit_logs

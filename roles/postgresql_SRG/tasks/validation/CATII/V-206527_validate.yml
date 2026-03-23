@@ -5,7 +5,6 @@
 ############################################################
 
 - name: V-206527 | Gather session audit settings
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -t -A -c "SELECT current_setting('shared_preload_libraries')

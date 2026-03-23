@@ -4,7 +4,6 @@
 ############################################################
 
 - name: "V-206552 | Check server execution role membership"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT rolname FROM pg_roles WHERE rolname='pg_execute_server_program';"
@@ -14,7 +13,6 @@
 
 
 - name: "V-206552 | Check installed extensions"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT extname FROM pg_extension;"
@@ -24,7 +22,6 @@
 
 
 - name: "V-206552 | Check installed procedural languages"
-  become: true
   become_user: postgres
   ansible.builtin.command: >
     psql -t -c "SELECT lanname FROM pg_language;"

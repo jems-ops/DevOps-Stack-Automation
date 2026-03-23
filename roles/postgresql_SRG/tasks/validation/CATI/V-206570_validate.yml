@@ -13,7 +13,6 @@
 ############################################################
 
 - name: "V-206570 | Check data directory"
-  become: true
   ansible.builtin.stat:
     path: "{{ postgresql_srg_data_dir }}"
   register: v206570_stat
@@ -45,7 +44,6 @@
 ############################################################
 
 - name: "V-206570 | Check config file permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ item }}"
   loop:

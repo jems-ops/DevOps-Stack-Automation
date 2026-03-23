@@ -57,7 +57,6 @@
 ############################
 
 - name: "V-206552 | Remove unauthorized pg_execute_server_program role members"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "
@@ -84,7 +83,6 @@
 ############################
 
 - name: "V-206552 | Remove file_fdw extension if present"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -d {{ postgresql_srg_target_database }} -c \
@@ -98,7 +96,6 @@
 ############################
 
 - name: "V-206552 | Remove untrusted procedural languages"
-  become: true
   become_user: postgres
   ansible.builtin.shell: |
     psql -c "

@@ -48,7 +48,6 @@
 ############################
 
 - name: "V-206542 | Protect postgresql.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_conf_file }}"
     owner: postgres
@@ -62,7 +61,6 @@
 ############################
 
 - name: "V-206542 | Protect postgresql.auto.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_data_dir }}/postgresql.auto.conf"
     owner: postgres
@@ -76,7 +74,6 @@
 ############################
 
 - name: "V-206542 | Protect pg_hba.conf"
-  become: true
   ansible.builtin.file:
     path: "{{ postgresql_srg_hba_file }}"
     owner: postgres
@@ -90,7 +87,6 @@
 ############################################################
 
 - name: "V-206542 | Check file permissions"
-  become: true
   ansible.builtin.stat:
     path: "{{ item }}"
   loop:

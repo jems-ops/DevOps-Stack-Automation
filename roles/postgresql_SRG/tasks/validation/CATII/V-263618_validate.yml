@@ -7,7 +7,6 @@
 ############################################################
 
 - name: "V-263618 | Check PostgreSQL listening interfaces"
-  become: true
   become_user: postgres
   ansible.builtin.command:
     cmd: psql -t -c "SHOW listen_addresses;"
@@ -20,7 +19,6 @@
 
 
 - name: "V-263618 | Check PostgreSQL listening ports"
-  become: true
   ansible.builtin.command:
     cmd: ss -plnt
   register: v263618_ports

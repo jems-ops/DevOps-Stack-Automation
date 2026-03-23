@@ -38,7 +38,6 @@
 ############################################################
 
 - name: "Ensure PostgreSQL logging is enabled"
-  become: true
   lineinfile:
     path: "{{ postgresql_conf }}"
     regexp: "^{{ item.key }}"
@@ -51,14 +50,12 @@
     - { key: "log_directory", value: "'log'" }
 
 - name: "Ensure pgAudit is configured"
-  become: true
   lineinfile:
     path: "{{ postgresql_conf }}"
     regexp: "^pgaudit.log"
     line: "pgaudit.log = 'all'"
 
 - name: "Ensure log directory exists"
-  become: true
   file:
     path: "/var/lib/pgsql/data/log"
     state: directory
@@ -67,7 +64,6 @@
     mode: '0700'
 
 - name: "Restart PostgreSQL"
-  become: true
   service:
     name: "{{ postgresql_service }}"
     state: restarted
