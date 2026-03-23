@@ -69,30 +69,18 @@
 
 
 ############################################################
-# Ensure readonly role exists (idempotent via DO block)
+# Render SQL scripts to /tmp
 ############################################################
 
-- name: "V-206521 | Ensure readonly role exists"
+- name: "V-206521 | Render ensure-role SQL script"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/sql/v206521_ensure_role.sql.j2"
+    dest: /tmp/v206521_ensure_role.sql
+    owner: postgres
+    group: postgres
+    mode: "0600"
   become: true
-  become_user: postgres
-  ansible.builtin.command: >-
-    psql -d {{ postgresql_srg_target_database }} -c
-    "DO $$ BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{{ postgresql_srg_readonly_role }}') THEN
-        CREATE ROLE {{ postgresql_srg_readonly_role }} NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;
-        RAISE NOTICE 'Created role: {{ postgresql_srg_readonly_role }}';
-      ELSE
-        RAISE NOTICE 'Role already exists: {{ postgresql_srg_readonly_role }}';
-      END IF;
-    END $$;"
-  changed_when: false
   tags: ['V-206521', 'enforce', 'rbac']
-
-
-############################################################
-# Render and execute the least-privilege SQL script
-# (revoke PUBLIC, harden defaults, grant RBAC)
-############################################################
 
 - name: "V-206521 | Render least-privilege SQL script"
   ansible.builtin.template:
@@ -103,6 +91,27 @@
     mode: "0600"
   become: true
   tags: ['V-206521', 'enforce']
+
+############################################################
+# Execute SQL scripts via psql
+############################################################
+
+- name: "V-206521 | Ensure readonly role exists"
+  become: true
+  become_user: postgres
+  ansible.builtin.command: >-
+    psql -d {{ postgresql_srg_target_database }}
+    -f /tmp/v206521_ensure_role.sql
+    --set ON_ERROR_STOP=1
+  register: _v206521_role_result
+  changed_when: false
+  tags: ['V-206521', 'enforce', 'rbac']
+
+- name: "V-206521 | Display role creation result"
+  ansible.builtin.debug:
+    var: _v206521_role_result.stdout_lines
+  when: _v206521_role_result.stdout_lines | default([]) | length > 0
+  tags: ['V-206521', 'enforce', 'rbac']
 
 - name: "V-206521 | Execute least-privilege SQL script"
   become: true
@@ -121,9 +130,16 @@
   when: _v206521_result.stdout_lines | default([]) | length > 0
   tags: ['V-206521', 'enforce']
 
-- name: "V-206521 | Clean up temporary SQL script"
+############################################################
+# Clean up temporary SQL scripts
+############################################################
+
+- name: "V-206521 | Clean up temporary SQL scripts"
   become: true
   ansible.builtin.file:
-    path: /tmp/v206521_least_privilege.sql
+    path: "{{ item }}"
     state: absent
+  loop:
+    - /tmp/v206521_ensure_role.sql
+    - /tmp/v206521_least_privilege.sql
   tags: ['V-206521', 'enforce']
