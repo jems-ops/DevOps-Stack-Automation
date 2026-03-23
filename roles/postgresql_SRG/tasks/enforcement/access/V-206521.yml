@@ -98,11 +98,11 @@
 
 - name: "V-206521 | Ensure readonly role exists"
   become: true
-  ansible.builtin.shell: >-
-    su -s /bin/bash - postgres -c
-    'psql -d {{ postgresql_srg_target_database }}
+  become_user: postgres
+  ansible.builtin.command: >-
+    psql -d {{ postgresql_srg_target_database }}
     -f /tmp/v206521_ensure_role.sql
-    --set ON_ERROR_STOP=1'
+    --set ON_ERROR_STOP=1
   register: _v206521_role_result
   changed_when: false
   tags: ['V-206521', 'enforce', 'rbac']
@@ -115,11 +115,11 @@
 
 - name: "V-206521 | Execute least-privilege SQL script"
   become: true
-  ansible.builtin.shell: >-
-    su -s /bin/bash - postgres -c
-    'psql -d {{ postgresql_srg_target_database }}
+  become_user: postgres
+  ansible.builtin.command: >-
+    psql -d {{ postgresql_srg_target_database }}
     -f /tmp/v206521_least_privilege.sql
-    --set ON_ERROR_STOP=1'
+    --set ON_ERROR_STOP=1
   register: _v206521_result
   changed_when: false
   tags: ['V-206521', 'enforce']

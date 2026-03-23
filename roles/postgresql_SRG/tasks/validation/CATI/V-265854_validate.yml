@@ -13,8 +13,7 @@
 - name: "V-265854 | Gather PostgreSQL server version"
   become: true
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SHOW server_version;"
+  ansible.builtin.command: psql -tAc "SHOW server_version;"
   register: postgresql_srg_version
   changed_when: false
   failed_when: false
