@@ -1,36 +1,67 @@
 ---
 ############################################################
 # STIG Control: V-206520
-# Validation - Isolation-Based Justification
+# Validation — Authentication / Isolation
+#
+# Uses SQL script: files/sql/v206520_validate.sql
+# Output: key=value pairs parsed into a dict for assertions.
 ############################################################
 
-
 ############################################################
-# Check listen_addresses
+# 1. Copy and execute validation SQL script
 ############################################################
 
-- name: "V-206520 | Check listen_addresses"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SHOW listen_addresses;"
-  register: v206520_listen
+- name: "V-206520 | Copy validation SQL script"
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/sql/v206520_validate.sql"
+    dest: /tmp/v206520_validate.sql
+    owner: "{{ postgresql_srg_postgres_user }}"
+    group: "{{ postgresql_srg_postgres_user }}"
+    mode: "0600"
+  tags: ['V-206520', 'validate']
+
+- name: "V-206520 | Execute validation SQL script"
+  ansible.builtin.shell: >-
+    su -s /bin/bash - {{ postgresql_srg_postgres_user }} -c
+    'psql -tA -f /tmp/v206520_validate.sql'
+  register: _v206520_raw
   changed_when: false
   failed_when: false
   tags: ['V-206520', 'validate']
 
+############################################################
+# 2. Parse key=value output into a dict
+############################################################
+
+- name: "V-206520 | Parse validation results"
+  ansible.builtin.set_fact:
+    v206520: >-
+      {{ dict(_v206520_raw.stdout_lines | default([])
+              | select('match', '^\w+=.*')
+              | map('split', '=')
+              | map('list')) }}
+  tags: ['V-206520', 'validate']
+
+- name: "V-206520 | Display validation results"
+  ansible.builtin.debug:
+    var: v206520
+  tags: ['V-206520', 'validate']
+
+############################################################
+# 3. Assert localhost-only binding
+############################################################
 
 - name: "V-206520 | Assert localhost-only binding"
   ansible.builtin.assert:
     that:
-      - "'localhost' in v206520_listen.stdout"
-    fail_msg: "Database is not restricted to localhost"
-    success_msg: "Database restricted to localhost"
+      - "'localhost' in v206520.listen_addresses or '127.0.0.1' in v206520.listen_addresses"
+    success_msg: "Database restricted to localhost."
+    fail_msg: "Database is NOT restricted to localhost: {{ v206520.listen_addresses }}"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206520', 'validate']
 
-
 ############################################################
-# Check pg_hba for external access
+# 4. Check pg_hba for external access
 ############################################################
 
 - name: "V-206520 | Check pg_hba for external access"
@@ -42,19 +73,17 @@
   failed_when: false
   tags: ['V-206520', 'validate']
 
-
 - name: "V-206520 | Assert no external access"
   ansible.builtin.assert:
     that:
       - v206520_hba.stdout | trim == ""
-    fail_msg: "External DB access detected"
-    success_msg: "No external DB access configured"
+    success_msg: "No external DB access configured."
+    fail_msg: "External DB access detected!"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206520', 'validate']
 
-
 ############################################################
-# Validate authentication methods
+# 5. Validate authentication methods
 ############################################################
 
 - name: "V-206520 | Check authentication methods"
@@ -65,41 +94,36 @@
   failed_when: false
   tags: ['V-206520', 'validate']
 
-
 - name: "V-206520 | Assert only secure methods used"
   ansible.builtin.assert:
     that:
       - v206520_auth.stdout is not search('trust')
-    fail_msg: "Insecure authentication method detected (trust)"
-    success_msg: "Only secure authentication methods in use"
+    success_msg: "Only secure authentication methods in use."
+    fail_msg: "Insecure authentication method detected (trust)!"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206520', 'validate']
 
-
 ############################################################
-# Validate login roles
+# 6. Validate login roles are application/service accounts
 ############################################################
-
-- name: "V-206520 | Check login roles"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT rolname FROM pg_roles
-    WHERE rolcanlogin = true
-    AND rolname NOT IN ('postgres');"
-  register: v206520_roles
-  changed_when: false
-  failed_when: false
-  tags: ['V-206520', 'validate', 'rbac']
-
 
 - name: "V-206520 | Assert roles are application/service accounts"
   ansible.builtin.assert:
     that:
-      - v206520_roles.stdout_lines | length >= 0
-    success_msg: >
-      Login roles detected (reviewed as application/service accounts):
-      {{ v206520_roles.stdout_lines }}
-    fail_msg: "Unable to evaluate login roles"
+      - v206520.login_role_count | default('0') | int >= 0
+    success_msg: >-
+      {{ v206520.login_role_count | default('0') }} login role(s) detected:
+      {{ v206520.login_roles | default('none') }}
+    fail_msg: "Unable to evaluate login roles."
   ignore_errors: true
   tags: ['V-206520', 'validate', 'rbac']
+
+############################################################
+# 7. Clean up temporary SQL script
+############################################################
+
+- name: "V-206520 | Clean up validation SQL script"
+  ansible.builtin.file:
+    path: /tmp/v206520_validate.sql
+    state: absent
+  tags: ['V-206520', 'validate']
