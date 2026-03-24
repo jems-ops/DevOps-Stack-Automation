@@ -11,6 +11,36 @@
 ############################################################
 
 # ----------------------------------------------------------
+# 0. Pre-flight — verify db_name/db_user resolved for each service
+# ----------------------------------------------------------
+- name: "App DB Setup | Build resolved app DB list"
+  ansible.builtin.set_fact:
+    _resolved_app_dbs: >-
+      {{ postgresql_srg_application_services | default([])
+         | selectattr('db_name', 'defined')
+         | selectattr('db_user', 'defined')
+         | list }}
+  tags: ['app_db_setup', 'enforce']
+
+- name: "App DB Setup | Display resolved app DB entries"
+  ansible.builtin.debug:
+    msg: |-
+      Resolved {{ _resolved_app_dbs | length }} application DB entries:
+      {% for svc in _resolved_app_dbs %}
+        - {{ svc.name }}: db={{ svc.db_name }}, user={{ svc.db_user }}
+      {% endfor %}
+  tags: ['app_db_setup', 'enforce']
+
+- name: "App DB Setup | Fail if no app DB entries defined"
+  ansible.builtin.fail:
+    msg: >-
+      No application services have db_name/db_user defined in
+      postgresql_srg_application_services. pg_hba.conf will have
+      no app-specific entries. Check defaults/main.yml or host_vars.
+  when: _resolved_app_dbs | length == 0
+  tags: ['app_db_setup', 'enforce']
+
+# ----------------------------------------------------------
 # 1. Deploy pg_hba.conf from template
 # ----------------------------------------------------------
 - name: "App DB Setup | Deploy pg_hba.conf from template"
@@ -22,6 +52,36 @@
     mode: "0600"
     backup: true
   notify: Restart PostgreSQL
+  tags: ['app_db_setup', 'enforce']
+
+# ----------------------------------------------------------
+# 1b. Verify pg_hba.conf contains app-specific entries
+# ----------------------------------------------------------
+- name: "App DB Setup | Verify pg_hba.conf app entries — {{ item.name }}"
+  ansible.builtin.shell: >-
+    grep -c '{{ item.db_name }}.*{{ item.db_user }}' {{ postgresql_srg_hba_file }}
+  register: _hba_verify
+  changed_when: false
+  failed_when: false
+  loop: "{{ _resolved_app_dbs }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: ['app_db_setup', 'enforce']
+
+- name: "App DB Setup | Assert pg_hba.conf has entry — {{ item.item.name }}"
+  ansible.builtin.assert:
+    that:
+      - item.stdout | int > 0
+    success_msg: >-
+      pg_hba.conf contains entry for {{ item.item.name }}
+      ({{ item.item.db_name }}/{{ item.item.db_user }}): {{ item.stdout }} line(s).
+    fail_msg: >-
+      pg_hba.conf is MISSING entry for {{ item.item.name }}
+      ({{ item.item.db_name }}/{{ item.item.db_user }})!
+      Check postgresql_srg_application_services definition.
+  loop: "{{ _hba_verify.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   tags: ['app_db_setup', 'enforce']
 
 # ----------------------------------------------------------
