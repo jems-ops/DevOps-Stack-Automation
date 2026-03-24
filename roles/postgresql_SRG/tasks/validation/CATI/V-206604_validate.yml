@@ -9,9 +9,9 @@
 ############################################################
 
 - name: "V-206604 | Check listen_addresses"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -t -A -c "SHOW listen_addresses;"
+  ansible.builtin.shell: >-
+    su -s /bin/bash - postgres -c
+    "psql -tAc \"SHOW listen_addresses;\""
   register: v206604_listen
   changed_when: false
   tags: ['V-206604', 'CAT-I', 'validate', 'postgres', 'stig']
