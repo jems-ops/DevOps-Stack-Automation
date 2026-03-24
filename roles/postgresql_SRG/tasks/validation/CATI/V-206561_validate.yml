@@ -51,8 +51,9 @@
 ############################################################
 
 - name: "V-206561 | Check log_statement"
-  become_user: postgres
-  ansible.builtin.shell: psql -tAc "SHOW log_statement;"
+  ansible.builtin.shell: >-
+    su -s /bin/bash - {{ postgresql_srg_postgres_user }} -c
+    "psql -tAc \"SHOW log_statement;\""
   register: v206561_log_statement
   changed_when: false
   failed_when: false
