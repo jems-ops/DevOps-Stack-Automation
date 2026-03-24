@@ -21,9 +21,9 @@
   tags: ['V-265854', 'CAT-I', 'validate']
 
 - name: "V-265854 | Execute version SQL script"
-  become_user: postgres
-  ansible.builtin.command: >-
-    psql -tA -f /tmp/v265854_get_version.sql
+  ansible.builtin.shell: >-
+    su -s /bin/bash - postgres -c
+    'psql -tA -f /tmp/v265854_get_version.sql'
   register: _v265854_raw
   changed_when: false
   failed_when: false

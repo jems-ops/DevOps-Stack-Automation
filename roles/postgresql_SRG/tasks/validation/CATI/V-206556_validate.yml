@@ -21,9 +21,9 @@
   tags: ['V-206556', 'CAT-I', 'validate']
 
 - name: "V-206556 | Execute validation SQL script"
-  become_user: postgres
-  ansible.builtin.command: >-
-    psql -tA -f /tmp/v206556_validate.sql
+  ansible.builtin.shell: >-
+    su -s /bin/bash - postgres -c
+    'psql -tA -f /tmp/v206556_validate.sql'
   register: _v206556_raw
   changed_when: false
   failed_when: false

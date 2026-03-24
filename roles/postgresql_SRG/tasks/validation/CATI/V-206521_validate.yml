@@ -25,10 +25,10 @@
 ############################################################
 
 - name: "V-206521 | Execute validation SQL script"
-  become_user: postgres
-  ansible.builtin.command: >-
-    psql -tA -d {{ postgresql_srg_target_database }}
-    -f /tmp/v206521_validate.sql
+  ansible.builtin.shell: >-
+    su -s /bin/bash - postgres -c
+    'psql -tA -d {{ postgresql_srg_target_database }}
+    -f /tmp/v206521_validate.sql'
   register: _v206521_raw
   changed_when: false
   failed_when: false
