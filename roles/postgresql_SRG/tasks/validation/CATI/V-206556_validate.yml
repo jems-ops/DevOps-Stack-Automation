@@ -1,69 +1,84 @@
 ---
 ############################################################
 # STIG Control: V-206556
-# Validation
+# Validation — Password Encryption
+#
+# Uses SQL script: files/sql/v206556_validate.sql
+# Output: key=value pairs parsed into a dict for assertions.
 ############################################################
 
-
 ############################################################
-# Check password_encryption setting
+# 1. Copy and execute validation SQL script
 ############################################################
 
-- name: "V-206556 | Check password_encryption"
+- name: "V-206556 | Copy validation SQL script"
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/sql/v206556_validate.sql"
+    dest: /tmp/v206556_validate.sql
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  tags: ['V-206556', 'CAT-I', 'validate']
+
+- name: "V-206556 | Execute validation SQL script"
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "SHOW password_encryption;"
-  register: v206556_encryption
+  ansible.builtin.command: >-
+    psql -tA -f /tmp/v206556_validate.sql
+  register: _v206556_raw
   changed_when: false
   failed_when: false
-  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
+  tags: ['V-206556', 'CAT-I', 'validate']
 
+############################################################
+# 2. Parse key=value output into a dict
+############################################################
+
+- name: "V-206556 | Parse validation results"
+  ansible.builtin.set_fact:
+    v206556: >-
+      {{ dict(_v206556_raw.stdout_lines
+              | select('match', '^\w+=.*')
+              | map('split', '=')
+              | map('list')) }}
+  tags: ['V-206556', 'CAT-I', 'validate']
+
+- name: "V-206556 | Display validation results"
+  ansible.builtin.debug:
+    var: v206556
+  tags: ['V-206556', 'CAT-I', 'validate']
+
+############################################################
+# 3. Assert each check
+############################################################
 
 - name: "V-206556 | Assert SCRAM enabled"
   ansible.builtin.assert:
     that:
-      - "'scram-sha-256' in v206556_encryption.stdout"
-    fail_msg: "SCRAM password hashing is NOT enabled"
-    success_msg: "SCRAM password hashing is enabled"
+      - v206556.password_encryption == 'scram-sha-256'
+    success_msg: "SCRAM password hashing is enabled."
+    fail_msg: >-
+      SCRAM is NOT enabled!
+      Current setting: {{ v206556.password_encryption }}
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
+  tags: ['V-206556', 'CAT-I', 'validate']
 
-
-############################################################
-# Detect weak password hashes (SAFE)
-############################################################
-
-- name: "V-206556 | Detect weak password hashes"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT rolname
-    FROM pg_authid
-    WHERE rolpassword IS NOT NULL
-    AND rolpassword NOT LIKE 'SCRAM-SHA-256%';"
-  register: v206556_weak_hashes
-  changed_when: false
-  failed_when: false
-  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
-
-
-- name: "V-206556 | Normalize weak hash results"
-  ansible.builtin.set_fact:
-    v206556_weak_clean: >-
-      {{ v206556_weak_hashes.stdout_lines
-         | map('trim')
-         | reject('equalto', '')
-         | list }}
-  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
-
-
-- name: "V-206556 | Assert no weak hashes exist"
+- name: "V-206556 | Assert no weak password hashes"
   ansible.builtin.assert:
     that:
-      - v206556_weak_clean | length == 0
-    fail_msg: >
-      Weak password hashes detected:
-      {{ v206556_weak_clean }}
-    success_msg: "All roles use SCRAM password hashing"
+      - v206556.weak_hash_count | int == 0
+    success_msg: "All roles use SCRAM password hashing."
+    fail_msg: >-
+      {{ v206556.weak_hash_count }} role(s) with weak hashes:
+      {{ v206556.weak_hash_roles }}
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206556', 'CAT-I', 'validate', 'postgres', 'stig']
+  tags: ['V-206556', 'CAT-I', 'validate']
+
+############################################################
+# 4. Clean up temporary SQL script
+############################################################
+
+- name: "V-206556 | Clean up validation SQL script"
+  ansible.builtin.file:
+    path: /tmp/v206556_validate.sql
+    state: absent
+  tags: ['V-206556', 'CAT-I', 'validate']
