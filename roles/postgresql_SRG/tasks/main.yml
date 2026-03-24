@@ -34,6 +34,14 @@
   tags:
     - always
 
+- name: PostgreSQL SRG | Application Database Setup (pg_hba, SCRAM, DB/users)
+  ansible.builtin.include_tasks:
+    file: app_database_setup.yml
+    apply:
+      tags: [always]
+  tags:
+    - always
+
 - name: PostgreSQL SRG | Load Enforcement Tasks
   ansible.builtin.import_tasks: enforcement/main.yml
   when: postgresql_srg_enforcement_enabled | bool

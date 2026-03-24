@@ -1,0 +1,165 @@
+---
+############################################################
+# PostgreSQL SRG — Application Database Setup
+# Runs after backup, before enforcement.
+#
+# 1. Deploy pg_hba.conf from template
+# 2. Ensure password encryption is SCRAM
+# 3. Ensure application DB users exist
+# 4. Ensure application databases exist
+# 5. Validate DB login for each app user
+############################################################
+
+# ----------------------------------------------------------
+# 1. Deploy pg_hba.conf from template
+# ----------------------------------------------------------
+- name: "App DB Setup | Deploy pg_hba.conf from template"
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "{{ postgresql_srg_hba_file }}"
+    owner: "{{ postgresql_srg_postgres_user }}"
+    group: "{{ postgresql_srg_postgres_user }}"
+    mode: "0600"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['app_db_setup', 'enforce']
+
+# ----------------------------------------------------------
+# 2. Ensure password encryption is SCRAM
+# ----------------------------------------------------------
+- name: "App DB Setup | Ensure password_encryption = scram-sha-256"
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*password_encryption\s*='
+    line: "password_encryption = scram-sha-256"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['app_db_setup', 'enforce']
+
+# Flush handlers so PostgreSQL picks up pg_hba + encryption changes
+- name: "App DB Setup | Reload PostgreSQL configuration"
+  ansible.builtin.meta: flush_handlers
+  tags: ['app_db_setup', 'enforce']
+
+# ----------------------------------------------------------
+# 3. Ensure application DB users exist
+# ----------------------------------------------------------
+- name: "App DB Setup | Render ensure-users SQL script"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/sql/ensure_app_db_users.sql.j2"
+    dest: /tmp/ensure_app_db_users.sql
+    owner: "{{ postgresql_srg_postgres_user }}"
+    group: "{{ postgresql_srg_postgres_user }}"
+    mode: "0600"
+  tags: ['app_db_setup', 'enforce']
+
+- name: "App DB Setup | Execute ensure-users SQL script"
+  ansible.builtin.shell: >-
+    su -s /bin/bash - {{ postgresql_srg_postgres_user }} -c
+    'psql -f /tmp/ensure_app_db_users.sql --set ON_ERROR_STOP=1'
+  register: _app_users_result
+  changed_when: "'Created user' in _app_users_result.stdout"
+  tags: ['app_db_setup', 'enforce']
+
+- name: "App DB Setup | Display user provisioning result"
+  ansible.builtin.debug:
+    var: _app_users_result.stdout_lines
+  when: _app_users_result.stdout_lines | default([]) | length > 0
+  tags: ['app_db_setup', 'enforce']
+
+# ----------------------------------------------------------
+# 4. Ensure application databases exist
+# ----------------------------------------------------------
+- name: "App DB Setup | Ensure application database exists — {{ item.name }}"
+  ansible.builtin.shell: >-
+    su -s /bin/bash - {{ postgresql_srg_postgres_user }} -c
+    "psql -tAc \"SELECT 1 FROM pg_database WHERE datname = '{{ item.db_name }}'\"
+    | grep -q 1 ||
+    psql -c \"CREATE DATABASE {{ item.db_name }} OWNER {{ item.db_user }};\""
+  register: _app_db_result
+  changed_when: "'CREATE DATABASE' in _app_db_result.stdout"
+  loop: >-
+    {{ postgresql_srg_application_services | default([])
+       | selectattr('db_name', 'defined')
+       | selectattr('db_user', 'defined')
+       | list }}
+  loop_control:
+    label: "{{ item.name }} ({{ item.db_name }})"
+  tags: ['app_db_setup', 'enforce']
+
+# ----------------------------------------------------------
+# 5. Validate DB login for each app user
+# ----------------------------------------------------------
+- name: "App DB Setup | Render validation SQL script"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/sql/validate_app_db.sql.j2"
+    dest: /tmp/validate_app_db.sql
+    owner: "{{ postgresql_srg_postgres_user }}"
+    group: "{{ postgresql_srg_postgres_user }}"
+    mode: "0600"
+  tags: ['app_db_setup', 'validate']
+
+- name: "App DB Setup | Execute validation SQL script"
+  ansible.builtin.shell: >-
+    su -s /bin/bash - {{ postgresql_srg_postgres_user }} -c
+    'psql -tA -f /tmp/validate_app_db.sql'
+  register: _app_validate_raw
+  changed_when: false
+  tags: ['app_db_setup', 'validate']
+
+- name: "App DB Setup | Parse validation results"
+  ansible.builtin.set_fact:
+    app_db_validation: >-
+      {{ dict(_app_validate_raw.stdout_lines
+              | select('match', '^\w+=.*')
+              | map('split', '=')
+              | map('list')) }}
+  tags: ['app_db_setup', 'validate']
+
+- name: "App DB Setup | Display validation results"
+  ansible.builtin.debug:
+    var: app_db_validation
+  tags: ['app_db_setup', 'validate']
+
+- name: "App DB Setup | Assert SCRAM encryption enabled"
+  ansible.builtin.assert:
+    that:
+      - app_db_validation.password_encryption == 'scram-sha-256'
+    success_msg: "Password encryption is SCRAM-SHA-256."
+    fail_msg: "Password encryption is {{ app_db_validation.password_encryption }}!"
+  tags: ['app_db_setup', 'validate']
+
+- name: "App DB Setup | Assert app DB/user/connectivity — {{ item.name }}"
+  ansible.builtin.assert:
+    that:
+      - app_db_validation[item.db_user + '_db_exists'] == 'true'
+      - app_db_validation[item.db_user + '_user_exists'] == 'true'
+      - app_db_validation[item.db_user + '_can_connect'] == 'true'
+    success_msg: >-
+      {{ item.name }}: DB={{ item.db_name }} exists, user={{ item.db_user }} can login and connect.
+      Hash type: {{ app_db_validation[item.db_user + '_hash_type'] | default('N/A') }}.
+    fail_msg: >-
+      {{ item.name }} FAILED:
+      db_exists={{ app_db_validation[item.db_user + '_db_exists'] | default('N/A') }},
+      user_exists={{ app_db_validation[item.db_user + '_user_exists'] | default('N/A') }},
+      can_connect={{ app_db_validation[item.db_user + '_can_connect'] | default('N/A') }}
+  loop: >-
+    {{ postgresql_srg_application_services | default([])
+       | selectattr('db_name', 'defined')
+       | selectattr('db_user', 'defined')
+       | list }}
+  loop_control:
+    label: "{{ item.name }}"
+  tags: ['app_db_setup', 'validate']
+
+# ----------------------------------------------------------
+# 6. Clean up temporary SQL scripts
+# ----------------------------------------------------------
+- name: "App DB Setup | Clean up temporary SQL scripts"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/ensure_app_db_users.sql
+    - /tmp/validate_app_db.sql
+  tags: ['app_db_setup']

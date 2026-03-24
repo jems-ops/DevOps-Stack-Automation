@@ -1,0 +1,36 @@
+# Managed by Ansible - PostgreSQL SRG STIG Compliant
+# Generated: {{ ansible_date_time.iso8601 }}
+# DO NOT EDIT MANUALLY — changes will be overwritten by Ansible.
+
+# ===========================================================
+# Admin access (peer auth via Unix socket)
+# ===========================================================
+local   all             postgres                                peer
+
+# ===========================================================
+# Local Unix socket connections
+# ===========================================================
+local   all             all                                     peer
+
+# ===========================================================
+# Application-specific access (auto-generated from
+# postgresql_srg_application_services)
+# ===========================================================
+{% for svc in postgresql_srg_application_services | default([]) %}
+{% if svc.db_name is defined and svc.db_user is defined %}
+# {{ svc.name }}
+host    {{ svc.db_name }}    {{ svc.db_user }}    127.0.0.1/32    {{ postgresql_srg_auth_method }}
+host    {{ svc.db_name }}    {{ svc.db_user }}    ::1/128         {{ postgresql_srg_auth_method }}
+{% endif %}
+{% endfor %}
+
+# ===========================================================
+# Default fallback (localhost only, SCRAM enforced)
+# ===========================================================
+host    all             all             127.0.0.1/32            {{ postgresql_srg_auth_method }}
+host    all             all             ::1/128                 {{ postgresql_srg_auth_method }}
+
+# ===========================================================
+# Replication (local only)
+# ===========================================================
+local   replication     all                                     peer

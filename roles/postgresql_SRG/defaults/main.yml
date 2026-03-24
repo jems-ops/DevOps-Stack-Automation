@@ -83,6 +83,8 @@ postgresql_srg_protected_users: []
 # Fields:
 #   name            — display name in the summary report
 #   service_name    — systemd unit name
+#   db_name         — (optional) PostgreSQL database name for this app
+#   db_user         — (optional) PostgreSQL role/user for this app
 #   backup_configs  — (optional) list of config file paths to back up
 #   web_url         — (optional) base URL for web health check
 #   health_endpoint — (optional) path appended to web_url
@@ -94,6 +96,8 @@ postgresql_srg_protected_users: []
 postgresql_srg_application_services:
   - name: SonarQube
     service_name: sonarqube
+    db_name: sonarqube
+    db_user: sonar
     backup_configs:
       - /opt/sonarqube/conf/sonar.properties
       - /opt/sonarqube/conf/wrapper.conf
@@ -105,6 +109,8 @@ postgresql_srg_application_services:
     timeout: 30
   # - name: Bitbucket
   #   service_name: bitbucket
+  #   db_name: bitbucket
+  #   db_user: bitbucketuser
   #   backup_configs:
   #     - /var/atlassian/application-data/bitbucket/shared/bitbucket.properties
   #   web_url: "https://bitbucket.local"
@@ -115,6 +121,8 @@ postgresql_srg_application_services:
   #   timeout: 30
   # - name: Confluence
   #   service_name: confluence
+  #   db_name: confluence
+  #   db_user: confuser
   #   backup_configs:
   #     - /var/atlassian/application-data/confluence/confluence.cfg.xml
   #   web_url: "https://confluence.local"
@@ -123,6 +131,9 @@ postgresql_srg_application_services:
   #   healthy_value: RUNNING
   #   validate_certs: false
   #   timeout: 30
+
+# Authentication method for pg_hba.conf (STIG requires scram-sha-256)
+postgresql_srg_auth_method: scram-sha-256
 
 # PostgreSQL instance targeting
 postgresql_srg_postgres_user: postgres
