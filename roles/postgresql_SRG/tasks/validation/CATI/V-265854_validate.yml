@@ -1,67 +1,75 @@
 ---
 ############################################################
 # STIG Control: V-265854
-# Validation
+# Validation — Supported PostgreSQL Version
 #
-# Objective:
-# Ensure PostgreSQL version is vendor-supported
-############################################################
-############################################################
-# Gather PostgreSQL version (SAFE)
+# Uses SQL script: files/sql/get_version.sql
+# Output: key=value pairs parsed into a dict for assertions.
 ############################################################
 
-- name: "V-265854 | Gather PostgreSQL server version"
+############################################################
+# 1. Execute version SQL script
+############################################################
+
+- name: "V-265854 | Copy version SQL script"
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/sql/get_version.sql"
+    dest: /tmp/v265854_get_version.sql
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  tags: ['V-265854', 'CAT-I', 'validate']
+
+- name: "V-265854 | Execute version SQL script"
   become_user: postgres
-  ansible.builtin.command: psql -tAc "SHOW server_version;"
-  register: postgresql_srg_version
+  ansible.builtin.command: >-
+    psql -tA -f /tmp/v265854_get_version.sql
+  register: _v265854_raw
   changed_when: false
   failed_when: false
-  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig', 'version']
+  tags: ['V-265854', 'CAT-I', 'validate']
+
 ############################################################
-# Normalize version output
+# 2. Parse key=value output into a dict
 ############################################################
 
-- name: "V-265854 | Normalize version"
+- name: "V-265854 | Parse version results"
   ansible.builtin.set_fact:
-    postgresql_srg_version_clean: "{{ postgresql_srg_version.stdout | default('') | trim }}"
-  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig']
-############################################################
-# Extract major version (SAFE)
-############################################################
+    v265854: >-
+      {{ dict(_v265854_raw.stdout_lines
+              | select('match', '^\w+=.*')
+              | map('split', '=')
+              | map('list')) }}
+  tags: ['V-265854', 'CAT-I', 'validate']
 
-- name: "V-265854 | Extract major version"
-  ansible.builtin.set_fact:
-    postgresql_srg_major_version: >-
-      {{
-        (postgresql_srg_version_clean | regex_search('^([0-9]+)'))
-        if postgresql_srg_version_clean != '' else 'unknown'
-      }}
-  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig']
-############################################################
-# Define supported versions (OVERRIDABLE)
-############################################################
+- name: "V-265854 | Display version info"
+  ansible.builtin.debug:
+    msg: "PostgreSQL {{ v265854.server_version }} (major: {{ v265854.major_version }})"
+  tags: ['V-265854', 'CAT-I', 'validate']
 
-- name: "V-265854 | Define supported versions"
-  ansible.builtin.set_fact:
-    postgresql_srg_supported_versions: >-
-      {{
-        postgresql_srg_supported_versions
-        | default(['16', '15'])
-      }}
-  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig']
 ############################################################
-# Assert version is supported
+# 3. Assert version is supported
 ############################################################
 
 - name: "V-265854 | Assert supported PostgreSQL version"
   ansible.builtin.assert:
     that:
-      - postgresql_srg_major_version != 'unknown'
-      - postgresql_srg_major_version in postgresql_srg_supported_versions
-    fail_msg: >
+      - v265854.major_version != 'unknown'
+      - v265854.major_version in (postgresql_srg_supported_versions | default(['16', '15']))
+    success_msg: >-
+      PostgreSQL version {{ v265854.server_version }} is supported.
+    fail_msg: >-
       STIG V-265854 FAILED:
-      Unsupported or undetected PostgreSQL version: {{ postgresql_srg_version_clean }}.
-      Supported versions: {{ postgresql_srg_supported_versions }}.
-    success_msg: >
-      PostgreSQL version {{ postgresql_srg_version_clean }} is supported.
-  tags: ['V-265854', 'CAT-I', 'validate', 'postgres', 'stig', 'critical']
+      Unsupported PostgreSQL version {{ v265854.server_version }}.
+      Supported: {{ postgresql_srg_supported_versions | default(['16', '15']) }}.
+  tags: ['V-265854', 'CAT-I', 'validate', 'critical']
+
+############################################################
+# 4. Clean up temporary SQL script
+############################################################
+
+- name: "V-265854 | Clean up version SQL script"
+  ansible.builtin.file:
+    path: /tmp/v265854_get_version.sql
+    state: absent
+  tags: ['V-265854', 'CAT-I', 'validate']

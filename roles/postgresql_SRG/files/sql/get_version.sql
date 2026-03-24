@@ -1,5 +1,10 @@
 -- ============================================================
--- Get PostgreSQL server version (used by V-265854 validation)
--- Output: single line with version string, e.g. "16.4"
+-- V-265854 — PostgreSQL Version Validation
+-- Output: key=value pairs for Ansible parsing
 -- ============================================================
-SELECT current_setting('server_version');
+
+-- Full version string (e.g. 16.4)
+SELECT 'server_version=' || current_setting('server_version');
+
+-- Major version only (e.g. 16)
+SELECT 'major_version=' || split_part(current_setting('server_version'), '.', 1);

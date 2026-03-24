@@ -1,166 +1,122 @@
 ---
 ############################################################
 # STIG Control: V-206521
-# Validation - Least Privilege Enforcement (FINAL)
+# Validation — Least Privilege Enforcement
+#
+# Uses SQL template: files/sql/v206521_validate.sql.j2
+# Output: key=value pairs parsed into a dict for assertions.
 ############################################################
 
+############################################################
+# 1. Render validation SQL script
+############################################################
+
+- name: "V-206521 | Render validation SQL script"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/sql/v206521_validate.sql.j2"
+    dest: /tmp/v206521_validate.sql
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  tags: ['V-206521', 'validate']
 
 ############################################################
-# Check PUBLIC CREATE on database
+# 2. Execute validation SQL script
 ############################################################
 
-- name: "V-206521 | Check PUBLIC CREATE on database"
+- name: "V-206521 | Execute validation SQL script"
   become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT has_database_privilege('public',
-    '{{ postgresql_srg_target_database }}', 'CREATE');"
-  register: v206521_db_create
+  ansible.builtin.command: >-
+    psql -tA -d {{ postgresql_srg_target_database }}
+    -f /tmp/v206521_validate.sql
+  register: _v206521_raw
   changed_when: false
   failed_when: false
   tags: ['V-206521', 'validate']
 
-
-- name: "V-206521 | Assert CREATE revoked"
-  ansible.builtin.assert:
-    that:
-      - v206521_db_create.stdout | trim == "f"
-  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521', 'validate']
-
-
 ############################################################
-# Check schema CREATE privilege
+# 3. Parse key=value output into a dict
 ############################################################
 
-- name: "V-206521 | Check PUBLIC CREATE on schemas"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT nspname
-    FROM pg_namespace
-    WHERE has_schema_privilege('public', oid, 'CREATE')
-    AND nspname NOT IN ('pg_catalog', 'information_schema');"
-  register: v206521_schema_create
-  changed_when: false
-  failed_when: false
-  tags: ['V-206521', 'validate']
-
-
-- name: "V-206521 | Normalize schema results"
+- name: "V-206521 | Parse validation results"
   ansible.builtin.set_fact:
-    v206521_schema_create_clean: >-
-      {{ v206521_schema_create.stdout_lines
-         | map('trim')
-         | reject('equalto', '')
-         | list }}
+    v206521: >-
+      {{ dict(_v206521_raw.stdout_lines
+              | select('match', '^\w+=.*')
+              | map('split', '=')
+              | map('list')) }}
   tags: ['V-206521', 'validate']
 
+- name: "V-206521 | Display validation results"
+  ansible.builtin.debug:
+    var: v206521
+  tags: ['V-206521', 'validate']
 
-- name: "V-206521 | Assert CREATE restricted"
+############################################################
+# 4. Assert each check
+############################################################
+
+- name: "V-206521 | Assert CREATE revoked on database"
   ansible.builtin.assert:
     that:
-      - v206521_schema_create_clean | length == 0
+      - v206521.db_create_revoked == 'true'
+    success_msg: "PUBLIC CREATE on database is revoked."
+    fail_msg: "PUBLIC still has CREATE on {{ postgresql_srg_target_database }}!"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206521', 'validate']
 
-
-############################################################
-# Check DEFAULT PRIVILEGES (FIXED)
-############################################################
-
-- name: "V-206521 | Check default privilege leaks"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT count(*)
-    FROM pg_default_acl
-    WHERE defaclacl::text ~ '=/';"
-  register: v206521_default_acl
-  changed_when: false
-  failed_when: false
-  tags: ['V-206521', 'validate', 'critical']
-
+- name: "V-206521 | Assert no schema CREATE leaks"
+  ansible.builtin.assert:
+    that:
+      - v206521.schema_create_leaks | int == 0
+    success_msg: "No schema CREATE leaks for PUBLIC."
+    fail_msg: "PUBLIC has CREATE on {{ v206521.schema_create_leaks }} schema(s)!"
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521', 'validate']
 
 - name: "V-206521 | Assert default privileges hardened"
   ansible.builtin.assert:
     that:
-      - v206521_default_acl.stdout | trim == "0"
+      - v206521.default_acl_leaks | int == 0
+    success_msg: "Default privileges are hardened (no anonymous grants)."
+    fail_msg: "Found {{ v206521.default_acl_leaks }} default privilege leak(s)!"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206521', 'validate', 'critical']
-
-
-############################################################
-# Validate future RBAC grants (NEW 🔥)
-############################################################
-
-- name: "V-206521 | Check default SELECT grants for readonly role"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT count(*)
-    FROM pg_default_acl
-    WHERE defaclacl::text LIKE '%{{ postgresql_srg_readonly_role }}%';"
-  register: v206521_rbac_default
-  changed_when: false
-  failed_when: false
-  tags: ['V-206521', 'validate', 'rbac']
-
 
 - name: "V-206521 | Assert RBAC default privileges configured"
   ansible.builtin.assert:
     that:
-      - v206521_rbac_default.stdout | int >= 0
+      - v206521.rbac_default_grants | int >= 0
+    success_msg: "RBAC default grants present ({{ v206521.rbac_default_grants }})."
+    fail_msg: "No RBAC default grants found for {{ postgresql_srg_readonly_role }}!"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206521', 'validate', 'rbac']
-
-
-############################################################
-# OPTIONAL: Existing table access
-############################################################
-
-- name: "V-206521 | Check PUBLIC table access"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT count(*)
-    FROM information_schema.role_table_grants
-    WHERE grantee = 'public';"
-  register: v206521_table_public
-  changed_when: false
-  failed_when: false
-  when: postgresql_srg_revoke_existing_objects | default(false)
-  tags: ['V-206521', 'validate', 'optional']
-
-
-- name: "V-206521 | Assert no PUBLIC table access"
-  ansible.builtin.assert:
-    that:
-      - v206521_table_public.stdout | trim == "0"
-  when: postgresql_srg_revoke_existing_objects | default(false)
-  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
-  tags: ['V-206521', 'validate', 'optional']
-
-
-############################################################
-# RBAC role exists
-############################################################
-
-- name: "V-206521 | Check readonly role"
-  become_user: postgres
-  ansible.builtin.shell: |
-    psql -tAc "
-    SELECT 1 FROM pg_roles
-    WHERE rolname='{{ postgresql_srg_readonly_role }}';"
-  register: v206521_readonly_role
-  changed_when: false
-  failed_when: false
-  tags: ['V-206521', 'validate', 'rbac']
-
 
 - name: "V-206521 | Assert readonly role exists"
   ansible.builtin.assert:
     that:
-      - v206521_readonly_role.stdout | trim == "1"
+      - v206521.readonly_role_exists == 'true'
+    success_msg: "Readonly role {{ postgresql_srg_readonly_role }} exists."
+    fail_msg: "Readonly role {{ postgresql_srg_readonly_role }} NOT found!"
   ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
   tags: ['V-206521', 'validate', 'rbac']
+
+- name: "V-206521 | Assert no PUBLIC table grants"
+  ansible.builtin.assert:
+    that:
+      - v206521.public_table_grants | default('0') | int == 0
+    success_msg: "No PUBLIC table grants found."
+    fail_msg: "PUBLIC has grants on {{ v206521.public_table_grants }} table(s)!"
+  when: postgresql_srg_revoke_existing_objects | default(false)
+  ignore_errors: "{{ not postgresql_srg_fail_on_error | default(false) }}"
+  tags: ['V-206521', 'validate', 'optional']
+
+############################################################
+# 5. Clean up temporary SQL script
+############################################################
+
+- name: "V-206521 | Clean up validation SQL script"
+  ansible.builtin.file:
+    path: /tmp/v206521_validate.sql
+    state: absent
+  tags: ['V-206521', 'validate']
