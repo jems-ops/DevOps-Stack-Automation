@@ -93,44 +93,9 @@ postgresql_srg_protected_users: []
 #   validate_certs  — (optional) validate TLS certs, default false
 #   timeout         — (optional) HTTP timeout in seconds, default 30
 #
-postgresql_srg_application_services:
-  - name: SonarQube
-    service_name: sonarqube
-    db_name: sonarqube
-    db_user: sonar
-    backup_configs:
-      - /opt/sonarqube/conf/sonar.properties
-      - /opt/sonarqube/conf/wrapper.conf
-    web_url: "https://{{ groups['sonarqube'][0] }}"
-    health_endpoint: /api/system/status
-    healthy_field: status
-    healthy_value: UP
-    validate_certs: false
-    timeout: 30
-  # - name: Bitbucket
-  #   service_name: bitbucket
-  #   db_name: bitbucket
-  #   db_user: bitbucketuser
-  #   backup_configs:
-  #     - /var/atlassian/application-data/bitbucket/shared/bitbucket.properties
-  #   web_url: "https://bitbucket.local"
-  #   health_endpoint: /status
-  #   healthy_field: state
-  #   healthy_value: RUNNING
-  #   validate_certs: false
-  #   timeout: 30
-  # - name: Confluence
-  #   service_name: confluence
-  #   db_name: confluence
-  #   db_user: confuser
-  #   backup_configs:
-  #     - /var/atlassian/application-data/confluence/confluence.cfg.xml
-  #   web_url: "https://confluence.local"
-  #   health_endpoint: /status
-  #   healthy_field: state
-  #   healthy_value: RUNNING
-  #   validate_certs: false
-  #   timeout: 30
+# Override this in host_vars/<hostname>.yml for each host.
+# See host_vars/sonar.local.yml for a complete example.
+postgresql_srg_application_services: []
 
 # Authentication method for pg_hba.conf (STIG requires scram-sha-256)
 postgresql_srg_auth_method: scram-sha-256
@@ -212,14 +177,9 @@ postgresql_srg_log_line_prefix: "%m %H %p %u %d %c %h %r %a %e "
 
 # Application database users — keep in sync with postgresql_srg_hba_application_entries.
 # Add one entry per application service account that must be permitted to log in.
+# Override in host_vars with the actual roles for each host.
 postgresql_srg_approved_login_roles:
   - postgres
-  - sonar           # SonarQube
-  # - bitbucketuser # Bitbucket
-  # - confuser      # Confluence
-  # - satellite     # Red Hat Satellite
-  - stig_validate_role
-  - stig_limited
 
 ############################################################
 # V-206521 — Access Control Enforcement
@@ -435,12 +395,9 @@ postgresql_srg_allowed_packages:
 ############################################################
 # List every application database that is permitted on this instance.
 # Add one entry per application that shares this PostgreSQL server.
+# Override in host_vars with the actual databases for each host.
 postgresql_srg_allowed_databases:
   - postgres
-  - sonarqube       # SonarQube
-  - bitbucket     # Atlassian Bitbucket
-  - confluence    # Atlassian Confluence
-  - satellite     # Red Hat Satellite
 
 # Safety guard: set to true ONLY after confirming postgresql_srg_allowed_databases
 # is complete. When false, unauthorized databases are reported but NOT dropped.
