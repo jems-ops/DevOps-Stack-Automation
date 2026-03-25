@@ -54,10 +54,15 @@ postgresql_srg_approved_login_roles:
 ############################################################
 # Allowed Databases
 # Databases permitted on this instance (V-206549).
+# Add entries for each app sharing this PostgreSQL server.
 ############################################################
 postgresql_srg_allowed_databases:
   - postgres
   - sonarqube
+  # Uncomment if these apps share this PostgreSQL instance:
+  # - bitbucket
+  # - confluence
+  # - satellite
 
 ############################################################
 # Feature Toggles

@@ -1,0 +1,72 @@
+---
+############################################################
+# confluence.local — Host-Specific PostgreSQL SRG Variables
+#
+# Atlassian Confluence Data Center with PostgreSQL backend.
+# These override role defaults in roles/postgresql_SRG/defaults/main.yml.
+############################################################
+
+############################################################
+# Application Services
+############################################################
+postgresql_srg_application_services:
+  - name: Confluence
+    service_name: confluence
+    db_name: confluence
+    db_user: confuser
+    backup_configs:
+      - /var/atlassian/application-data/confluence/confluence.cfg.xml
+    web_url: "https://confluence.local"
+    health_endpoint: /status
+    healthy_field: state
+    healthy_value: RUNNING
+    validate_certs: false
+    timeout: 30
+
+############################################################
+# Approved Login Roles
+############################################################
+postgresql_srg_approved_login_roles:
+  - postgres
+  - confuser
+  - stig_validate_role
+
+############################################################
+# Allowed Databases
+############################################################
+postgresql_srg_allowed_databases:
+  - postgres
+  - confluence
+
+############################################################
+# Feature Toggles
+############################################################
+postgresql_srg_pgaudit_enabled: true
+postgresql_srg_fips_required: false
+postgresql_srg_allow_removal: false
+postgresql_srg_selinux_required: true
+
+############################################################
+# Per-Control Toggles — CAT I (all enabled)
+############################################################
+postgresql_srg_v206520_enabled: true    # Authentication / isolation
+postgresql_srg_v206521_enabled: true    # Least-privilege access control
+postgresql_srg_v206545_enabled: true    # Installation account control
+postgresql_srg_v206555_enabled: true    # Password storage security
+postgresql_srg_v206556_enabled: true    # SCRAM password hashing
+postgresql_srg_v206557_enabled: true    # Password transmission protection
+postgresql_srg_v206559_enabled: true    # PKI private key protection
+postgresql_srg_v206561_enabled: true    # No authentication secret display
+postgresql_srg_v206562_enabled: true    # FIPS 140-2 validated modules
+postgresql_srg_v206570_enabled: true    # Data-at-rest protection
+postgresql_srg_v206604_enabled: true    # Data-in-transit confidentiality
+postgresql_srg_v206605_enabled: true    # Information confidentiality
+postgresql_srg_v265854_enabled: true    # Supported DBMS version
+postgresql_srg_v233495_enabled: true    # NSA-approved cryptography
+
+############################################################
+# Per-Control Toggles — CAT II (enable as validated)
+############################################################
+postgresql_srg_v206549_enabled: false   # Remove demo/sample databases
+postgresql_srg_v206550_enabled: false   # Remove unused components
+postgresql_srg_v206611_enabled: false   # Security patch maintenance
