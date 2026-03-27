@@ -1,0 +1,37 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for stig_freeipa
+
+############################################################
+# STIG Enforcement (all controls)
+############################################################
+
+- name: "STIG FreeIPA | Run all enforcement tasks"
+  ansible.builtin.include_tasks: enforcement/main.yml
+  tags:
+    - enforcement
+
+############################################################
+# Flush handlers before validation so restarts take effect
+############################################################
+
+- name: "STIG FreeIPA | Flush handlers before validation"
+  ansible.builtin.meta: flush_handlers
+
+############################################################
+# STIG Validation (all controls)
+############################################################
+
+- name: "STIG FreeIPA | Run all validation tasks"
+  ansible.builtin.include_tasks: validation/main.yml
+  tags:
+    - validation
+
+############################################################
+# Post-STIG Health Check
+############################################################
+
+- name: "STIG FreeIPA | Run post-STIG health check"
+  ansible.builtin.include_tasks: post-health-check.yml
+  tags:
+    - health-check

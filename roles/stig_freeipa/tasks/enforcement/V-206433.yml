@@ -1,0 +1,118 @@
+---
+############################################################
+# STIG Control: V-206433
+# SRG ID: SRG-APP-000516-WSR-000174
+# Rule Title: The web server must be tuned to handle expected traffic and prevent DoS conditions
+# Severity: CAT II
+# Status: NOT A FINDING
+#
+# Finding Details:
+# The web server and supporting components were not fully tuned to handle
+# expected operational workload. Apache configuration lacked explicit worker
+# and connection limits (e.g., MaxRequestWorkers, ServerLimit, Timeout).
+#
+# FreeIPA Directory Server (389-DS) tuning parameters were not configured
+# under cn=config, and no corresponding entries were present in:
+# /etc/dirsrv/slapd-*/dse.ldif
+#
+# OS-level file descriptor limits (ulimit -n) were set too low (1024),
+# increasing the risk of resource exhaustion and potential DoS conditions.
+#
+# Fix Text:
+# Analyze expected user traffic and tune all system layers:
+# - Apache worker/process limits
+# - Directory Server (389-DS) connection limits
+# - OS resource limits (file descriptors)
+#
+# Implementation Summary:
+# - Apache tuned via /etc/httpd/conf.d/tuning.conf
+# - FreeIPA LDAP (389-DS) tuned using ldapmodify under cn=config
+# - OS file descriptor limits increased to 65536
+# - systemd limits aligned with OS limits
+#
+# Manual Procedure:
+# Verify Apache configuration:
+#   grep -E 'MaxRequestWorkers|ServerLimit|Timeout' /etc/httpd/conf.d/
+#
+# Verify OS limits:
+#   ulimit -n
+#
+# Verify LDAP tuning:
+#   grep nsslapd-maxdescriptors /etc/dirsrv/slapd-*/dse.ldif
+#
+# Expected Result:
+# - Apache has defined worker and timeout limits
+# - OS limits >= 65536
+# - LDAP configured with nsslapd-maxdescriptors
+#
+# Comments:
+# Apache, FreeIPA (389-DS), and OS resource limits have been tuned to handle
+# expected operational workload. LDAP configuration persisted via dse.ldif.
+# These changes prevent resource exhaustion and mitigate DoS conditions.
+#
+############################################################
+
+############################
+# Apache Tuning
+############################
+- name: "V-206433 | Configure Apache DoS tuning"
+  copy:
+    dest: /etc/httpd/conf.d/tuning.conf
+    content: |
+      # STIG V-206433 Apache Tuning
+      ServerLimit 150
+      MaxRequestWorkers 150
+      Timeout 60
+      KeepAlive On
+      KeepAliveTimeout 30
+  notify: restart httpd
+
+############################
+# OS Limits (File Descriptors)
+############################
+- name: "V-206433 | Configure system file descriptor limits"
+  copy:
+    dest: /etc/security/limits.d/99-freeipa.conf
+    content: |
+      * soft nofile 65536
+      * hard nofile 65536
+
+############################
+# systemd Limits
+############################
+- name: "V-206433 | Configure systemd DefaultLimitNOFILE"
+  lineinfile:
+    path: /etc/systemd/system.conf
+    regexp: '^DefaultLimitNOFILE'
+    line: 'DefaultLimitNOFILE=65536'
+  notify: reload systemd
+
+############################
+# FreeIPA LDAP (389-DS) Tuning
+############################
+- name: "V-206433 | Create LDAP tuning LDIF"
+  copy:
+    dest: /tmp/freeipa_tuning.ldif
+    content: |
+      dn: cn=config
+      changetype: modify
+      replace: nsslapd-maxdescriptors
+      nsslapd-maxdescriptors: 65536
+
+- name: "V-206433 | Detect 389-DS LDAPI socket"
+  ansible.builtin.shell: "ls /var/run/slapd-*.socket 2>/dev/null | head -1"
+  register: ldapi_socket
+  changed_when: false
+  failed_when: false
+
+- name: "V-206433 | Apply LDAP tuning via LDAPI"
+  command: >
+    ldapmodify -Y EXTERNAL -H ldapi://{{ ldapi_socket.stdout | regex_replace('/', '%2f') }}
+    -f /tmp/freeipa_tuning.ldif
+  register: ldapmodify_result
+  changed_when: "'modifying entry' in ldapmodify_result.stdout"
+  failed_when:
+    - ldapmodify_result.rc != 0
+    - "'Type or value exists' not in ldapmodify_result.stderr"
+    - "'No such attribute' not in ldapmodify_result.stderr"
+  when: ldapi_socket.stdout | length > 0

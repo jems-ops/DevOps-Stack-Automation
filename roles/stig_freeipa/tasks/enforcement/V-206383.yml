@@ -1,0 +1,95 @@
+---
+############################################################
+# STIG Control: V-206383
+# SRG ID: SRG-APP-000141-WSR-000075
+# Severity: CAT II
+#
+# Title:
+# The web server must have Web Distributed Authoring (WebDAV) disabled.
+#
+# Status: NOT A FINDING (if validated)
+#
+# Finding Details:
+# WebDAV functionality allows remote users to create, modify,
+# and delete content on the web server. If enabled, this may
+# allow unauthorized file manipulation and increase attack surface.
+#
+# Apache WebDAV is typically enabled through modules such as:
+#   - mod_dav
+#   - mod_dav_fs
+#
+# Fix:
+# Ensure WebDAV modules are not loaded and no DAV directives
+# are configured in Apache.
+#
+# Manual Procedure:
+# 1. Check loaded modules:
+#    httpd -M | grep -i dav
+#
+# 2. Check configuration:
+#    grep -Ri "DAV" /etc/httpd/
+#
+# 3. Test HTTP methods:
+#    curl -k -X OPTIONS https://<host> -i
+#
+# Expected:
+#    - No DAV modules loaded
+#    - No "DAV On" directives
+#    - No DAV methods exposed
+#
+# Comments:
+# FreeIPA does not require WebDAV functionality. This task
+# validates that WebDAV is not enabled and provides
+# informational output for compliance verification.
+############################################################
+
+########################################
+# Disable DAV modules if config exists
+########################################
+
+- name: "V-206383 | Check if 00-dav.conf exists"
+  ansible.builtin.stat:
+    path: /etc/httpd/conf.modules.d/00-dav.conf
+  register: stig_v206383_dav_conf
+
+- name: "V-206383 | Comment out DAV module LoadModule lines"
+  ansible.builtin.replace:
+    path: /etc/httpd/conf.modules.d/00-dav.conf
+    regexp: '^(LoadModule.*dav.*)$'
+    replace: '# \1  # Disabled by STIG V-206383'
+    backup: yes
+  when: stig_v206383_dav_conf.stat.exists
+  notify: restart httpd
+
+########################################
+# Remove any DAV On directives
+########################################
+
+- name: "V-206383 | Remove DAV On directives from configs"
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '^([^#]*DAV\s+On.*)$'
+    replace: '# \1  # Disabled by STIG V-206383'
+  with_fileglob:
+    - /etc/httpd/conf.d/*.conf
+    - /etc/httpd/conf/httpd.conf
+  notify: restart httpd
+
+########################################
+# Verify remediation
+########################################
+
+- name: "V-206383 | Verify DAV modules no longer loaded"
+  ansible.builtin.command: httpd -M
+  register: stig_v206383_modules_post
+  changed_when: false
+  failed_when: false
+
+- name: "V-206383 | Report enforcement result"
+  ansible.builtin.debug:
+    msg: >-
+      {% if stig_v206383_modules_post.stdout_lines | select('search', 'dav') | list | length == 0 %}
+      ✅ V-206383 ENFORCED: WebDAV modules disabled
+      {% else %}
+      ⚠️ V-206383: DAV modules still detected after remediation — manual review required
+      {% endif %}

@@ -1,0 +1,46 @@
+---
+- name: Apply STIG Hardening to FreeIPA Server
+  hosts: freeipa
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - name: Display STIG hardening information
+      debug:
+        msg: |
+          🔒 FreeIPA STIG Hardening Playbook
+          📅 Execution time: {{ ansible_date_time.iso8601 }}
+          🖥️  Target server: {{ inventory_hostname }} ({{ ansible_host }})
+          👤 User: {{ ansible_user }}
+
+    - name: Verify FreeIPA services are running before STIG
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+      register: freeipa_svc_check
+      loop:
+        - httpd
+        - "pki-tomcatd@pki-tomcat"
+      check_mode: yes
+      changed_when: false
+
+  roles:
+    - stig_freeipa
+
+  post_tasks:
+    - name: Display STIG completion message
+      debug:
+        msg: |
+          ✅ FreeIPA STIG Hardening Complete!
+
+          📊 Summary:
+          • Target: {{ inventory_hostname }} ({{ ansible_host }})
+          • STIG Controls Applied:
+            - V-264341: Web server audit logging (CAT II)
+
+          📋 Compliance Status:
+          • V-264341: {{ freeipa_srg_v_app_000805_status | default('CHECK OUTPUT ABOVE') }}
+
+          🔧 Next Steps:
+          1. Review validation results above
+          2. Generate STIG compliance report if needed
+          3. Remediate any OPEN findings

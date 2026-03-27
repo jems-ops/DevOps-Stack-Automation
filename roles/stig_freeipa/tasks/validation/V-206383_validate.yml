@@ -1,0 +1,45 @@
+---
+############################################################
+# STIG Control: V-206383 (Validation)
+############################################################
+
+- name: "V-206383 | Validate DAV modules"
+  command: httpd -M
+  register: stig_v206383_validate_modules
+  changed_when: false
+
+- name: "V-206383 | Validate DAV directives"
+  ansible.builtin.shell: "grep -Ri '^[^#]*DAV' /etc/httpd/ --include='*.conf' || true"
+  register: stig_v206383_validate_config
+  changed_when: false
+  failed_when: false
+
+- name: "V-206383 | Test HTTP methods (OPTIONS)"
+  command: curl -k -X OPTIONS https://{{ inventory_hostname }} -i
+  register: stig_v206383_validate_http
+  changed_when: false
+  failed_when: false
+
+- name: "V-206383 | Extract active DAV modules"
+  ansible.builtin.set_fact:
+    stig_v206383_active_dav: "{{ stig_v206383_validate_modules.stdout_lines | select('search', 'dav_module') | list }}"
+
+- name: "V-206383 | Determine compliance"
+  set_fact:
+    stig_v206383_non_compliant: >-
+      {{
+        (stig_v206383_active_dav | length > 0)
+        or
+        (stig_v206383_validate_config.stdout | trim != "")
+        or
+        ('DAV:' in stig_v206383_validate_http.stdout)
+      }}
+
+- name: "V-206383 | Report result"
+  debug:
+    msg: >-
+      {% if stig_v206383_non_compliant %}
+      ❌ V-206383 NON-COMPLIANT: WebDAV detected (modules, config, or HTTP methods)
+      {% else %}
+      ✅ V-206383 COMPLIANT: WebDAV not enabled (modules absent, no directives, no HTTP exposure)
+      {% endif %}

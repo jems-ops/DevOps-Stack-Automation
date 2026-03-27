@@ -1,0 +1,87 @@
+---
+############################################################
+# STIG Control: V-264341
+#
+# Rule Title:
+# The web server must automatically generate audit records
+# of the enforcement actions.
+#
+# Severity: CAT II
+#
+# Validation:
+# - Verify Apache logging directives
+# - Verify log files exist
+# - Verify auditd is active
+# - Verify FreeIPA Tomcat logging exists
+#
+# Expected Result:
+# - CustomLog and ErrorLog configured
+# - Logs present under /var/log/httpd
+# - auditd running
+# - PKI Tomcat logs present
+############################################################
+
+- name: "V-264341 | Check CustomLog directive"
+  ansible.builtin.shell: "grep -i '^CustomLog' {{ freeipa_srg_httpd_conf }}"
+  register: freeipa_srg_customlog_check
+  changed_when: false
+  failed_when: false
+
+- name: "V-264341 | Check ErrorLog directive"
+  ansible.builtin.shell: "grep -i '^ErrorLog' {{ freeipa_srg_httpd_conf }}"
+  register: freeipa_srg_errorlog_check
+  changed_when: false
+  failed_when: false
+
+- name: "V-264341 | Check access log exists"
+  ansible.builtin.stat:
+    path: /var/log/httpd/access_log
+  register: freeipa_srg_access_log
+
+- name: "V-264341 | Check error log exists"
+  ansible.builtin.stat:
+    path: /var/log/httpd/error_log
+  register: freeipa_srg_error_log
+
+- name: "V-264341 | Check auditd status"
+  ansible.builtin.command: systemctl is-active auditd
+  register: freeipa_srg_auditd_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-264341 | Check PKI Tomcat log directory"
+  ansible.builtin.stat:
+    path: /var/log/pki/pki-tomcat
+  register: freeipa_srg_tomcat_logs
+
+############################################################
+# FINAL STIG RESULT
+############################################################
+
+- name: "V-264341 | Evaluate STIG compliance"
+  ansible.builtin.set_fact:
+    freeipa_srg_v_app_000805_status: >-
+      {{
+        'NOT A FINDING'
+        if (
+          freeipa_srg_customlog_check.rc == 0 and
+          freeipa_srg_errorlog_check.rc == 0 and
+          freeipa_srg_access_log.stat.exists and
+          freeipa_srg_error_log.stat.exists and
+          freeipa_srg_auditd_status.stdout == "active" and
+          freeipa_srg_tomcat_logs.stat.exists
+        )
+        else 'OPEN'
+      }}
+
+- name: "V-264341 | Report result"
+  ansible.builtin.debug:
+    msg:
+      - "STIG ID: V-264341"
+      - "Status: {{ freeipa_srg_v_app_000805_status }}"
+      - "CustomLog: {{ freeipa_srg_customlog_check.stdout | default('NOT FOUND') }}"
+      - "ErrorLog: {{ freeipa_srg_errorlog_check.stdout | default('NOT FOUND') }}"
+      - "Access Log Exists: {{ freeipa_srg_access_log.stat.exists }}"
+      - "Error Log Exists: {{ freeipa_srg_error_log.stat.exists }}"
+      - "Auditd Status: {{ freeipa_srg_auditd_status.stdout }}"
+      - "Tomcat Logs Present: {{ freeipa_srg_tomcat_logs.stat.exists }}"

@@ -1,0 +1,19 @@
+############################################################
+# STIG Control: V-206374 - Validation
+############################################################
+
+- name: "V-206374 | Check .htaccess access (HTTP code)"
+  shell: curl -k -s -o /dev/null -w "%{http_code}" https://localhost/.htaccess || true
+  register: v206374_htaccess
+  changed_when: false
+  failed_when: false
+
+- name: "V-206374 | Check AuthUserFile usage"
+  shell: grep -Ri "^[^#]*AuthUserFile" /etc/httpd/ || true
+  register: v206374_auth
+  changed_when: false
+  failed_when: false
+
+- name: "V-206374 | Result"
+  debug:
+    msg: "{{ 'NOT A FINDING - .ht* access denied (403) and no AuthUserFile configured' if (v206374_htaccess.stdout == '403' and v206374_auth.stdout == '') else 'FINDING - Local user management detected' }}"

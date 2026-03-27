@@ -1,0 +1,46 @@
+---
+############################################################
+# STIG FreeIPA - All Enforcement Tasks
+############################################################
+
+- name: "V-264341 | Enforce web server audit logging"
+  ansible.builtin.include_tasks: V-264341.yml
+  tags:
+    - V-264341
+    - CAT-II
+
+- name: "V-206412 | Enforce minimal server identity in headers"
+  ansible.builtin.include_tasks: V-206412.yml
+  tags:
+    - V-206412
+    - CAT-II
+
+- name: "V-206433 | Enforce DoS prevention tuning"
+  ansible.builtin.include_tasks: V-206433.yml
+  tags:
+    - V-206433
+    - CAT-II
+
+- name: "V-206437 | Enforce cookie protection flags"
+  ansible.builtin.include_tasks: V-206437.yml
+  tags:
+    - V-206437
+    - CAT-II
+
+- name: "V-206374 | Enforce no local user management"
+  ansible.builtin.include_tasks: V-206374.yml
+  tags:
+    - V-206374
+    - CAT-II
+
+- name: "V-206380 | Enforce disable ExecCGI / shell programs"
+  ansible.builtin.include_tasks: V-206380.yml
+  tags:
+    - V-206380
+    - CAT-II
+
+- name: "V-206383 | Enforce WebDAV disabled"
+  ansible.builtin.include_tasks: V-206383.yml
+  tags:
+    - V-206383
+    - CAT-II

@@ -1,0 +1,26 @@
+- name: "V-206380 | Check for ExecCGI (ignore binaries, active only)"
+  shell: grep -RInI "^[^#]*ExecCGI" /etc/httpd/conf /etc/httpd/conf.d || true
+  register: v206380_exec_cgi
+  changed_when: false
+  failed_when: false
+
+- name: "V-206380 | Check for CGI handlers"
+  shell: grep -RInI "^[^#]*cgi-script" /etc/httpd/conf /etc/httpd/conf.d || true
+  register: v206380_cgi_handler
+  changed_when: false
+  failed_when: false
+
+- name: "V-206380 | Check for executable MIME types"
+  shell: grep -RInI "application/x-httpd-cgi" /etc/httpd/conf /etc/httpd/conf.d || true
+  register: v206380_mime
+  changed_when: false
+  failed_when: false
+
+- name: "V-206380 | Validation result"
+  debug:
+    msg: >
+      {{
+        "NOT A FINDING: No active ExecCGI, CGI handlers, or executable MIME types detected. Apache does not allow OS shell execution."
+        if v206380_exec_cgi.stdout == "" and v206380_cgi_handler.stdout == "" and v206380_mime.stdout == ""
+        else "FINDING: One or more CGI or shell execution configurations detected. Review Apache configuration."
+      }}

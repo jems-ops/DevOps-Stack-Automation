@@ -1,0 +1,27 @@
+---
+############################################################
+# STIG Control: V-206412 (Validation)
+############################################################
+
+- name: "V-206412 | Validate Server header exposure"
+  command: curl -k -I https://{{ inventory_hostname }}
+  register: stig_v206412_header_check
+  changed_when: false
+  failed_when: false
+
+- name: "V-206412 | Debug header output"
+  debug:
+    var: stig_v206412_header_check.stdout_lines
+
+- name: "V-206412 | Check for version leakage"
+  set_fact:
+    stig_v206412_non_compliant: "{{ 'Apache/' in stig_v206412_header_check.stdout }}"
+
+- name: "V-206412 | Report compliance"
+  debug:
+    msg: >-
+      {% if stig_v206412_non_compliant %}
+      ❌ V-206412 NON-COMPLIANT: Server version info exposed
+      {% else %}
+      ✅ V-206412 COMPLIANT: Server header minimized
+      {% endif %}

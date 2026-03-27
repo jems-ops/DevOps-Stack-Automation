@@ -1,0 +1,165 @@
+---
+############################################################
+# Post-STIG Health Check
+# Verifies all FreeIPA services are healthy after hardening
+############################################################
+
+########################################
+# 1. Core Services
+########################################
+
+- name: "Health Check | Verify httpd is running"
+  ansible.builtin.systemd:
+    name: httpd
+  register: hc_httpd
+  failed_when: hc_httpd.status.ActiveState != "active"
+
+- name: "Health Check | Verify pki-tomcatd is running"
+  ansible.builtin.systemd:
+    name: "pki-tomcatd@pki-tomcat"
+  register: hc_tomcat
+  failed_when: hc_tomcat.status.ActiveState != "active"
+
+- name: "Health Check | Verify 389-DS (dirsrv) is running"
+  ansible.builtin.shell: "systemctl is-active 'dirsrv@*'"
+  register: hc_dirsrv
+  changed_when: false
+  failed_when: hc_dirsrv.stdout != "active"
+
+- name: "Health Check | Verify named (DNS) is running"
+  ansible.builtin.systemd:
+    name: named
+  register: hc_named
+  failed_when: hc_named.status.ActiveState != "active"
+
+- name: "Health Check | Verify krb5kdc (Kerberos) is running"
+  ansible.builtin.systemd:
+    name: krb5kdc
+  register: hc_kerberos
+  failed_when: hc_kerberos.status.ActiveState != "active"
+
+- name: "Health Check | Verify auditd is running"
+  ansible.builtin.command: systemctl is-active auditd
+  register: hc_auditd
+  changed_when: false
+  failed_when: hc_auditd.stdout != "active"
+
+- name: "Health Check | Verify ipa service status"
+  ansible.builtin.command: ipactl status
+  register: hc_ipa_status
+  changed_when: false
+  failed_when: hc_ipa_status.rc != 0
+
+########################################
+# 2. Port Connectivity
+########################################
+
+- name: "Health Check | Verify HTTPS (443) is listening"
+  ansible.builtin.wait_for:
+    port: 443
+    host: "{{ ansible_host }}"
+    timeout: 10
+
+- name: "Health Check | Verify LDAP (389) is listening"
+  ansible.builtin.wait_for:
+    port: 389
+    host: "{{ ansible_host }}"
+    timeout: 10
+
+- name: "Health Check | Verify LDAPS (636) is listening"
+  ansible.builtin.wait_for:
+    port: 636
+    host: "{{ ansible_host }}"
+    timeout: 10
+
+- name: "Health Check | Verify Kerberos (88) is listening"
+  ansible.builtin.wait_for:
+    port: 88
+    host: "{{ ansible_host }}"
+    timeout: 10
+
+- name: "Health Check | Verify DNS (53) is listening"
+  ansible.builtin.wait_for:
+    port: 53
+    host: "{{ ansible_host }}"
+    timeout: 10
+
+- name: "Health Check | Verify Dogtag CA (8443) is listening"
+  ansible.builtin.wait_for:
+    port: 8443
+    host: "{{ ansible_host }}"
+    timeout: 10
+
+########################################
+# 3. Web UI / API Reachability
+########################################
+
+- name: "Health Check | Verify FreeIPA Web UI is reachable"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/ipa/ui/"
+    validate_certs: no
+    status_code: [200, 301, 302, 303]
+    timeout: 30
+  register: hc_webui
+
+- name: "Health Check | Verify Dogtag CA API is reachable"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}:8443/ca/ee/ca"
+    validate_certs: no
+    status_code: [200, 301, 302, 303]
+    timeout: 30
+  register: hc_ca
+
+########################################
+# 4. Log Files Exist
+########################################
+
+- name: "Health Check | Verify critical log files exist"
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: hc_logs
+  loop:
+    - /var/log/httpd/access_log
+    - /var/log/httpd/error_log
+    - /var/log/pki/pki-tomcat
+    - /var/log/dirsrv
+  failed_when: not hc_logs.stat.exists
+
+########################################
+# 5. Summary Report
+########################################
+
+- name: "Health Check | Summary"
+  ansible.builtin.debug:
+    msg: |
+      ============================================
+      🏥 FreeIPA Post-STIG Health Check Report
+      ============================================
+
+      🔧 Services:
+      • httpd:          {{ hc_httpd.status.ActiveState }}
+      • pki-tomcatd:    {{ hc_tomcat.status.ActiveState }}
+      • 389-DS:         {{ hc_dirsrv.stdout }}
+      • named (DNS):    {{ hc_named.status.ActiveState }}
+      • krb5kdc:        {{ hc_kerberos.status.ActiveState }}
+      • auditd:         {{ hc_auditd.stdout }}
+      • ipactl:         {{ 'OK' if hc_ipa_status.rc == 0 else 'FAILED' }}
+
+      🌐 Ports:
+      • HTTPS (443):    ✅
+      • LDAP (389):     ✅
+      • LDAPS (636):    ✅
+      • Kerberos (88):  ✅
+      • DNS (53):       ✅
+      • CA (8443):      ✅
+
+      🖥️  Web Endpoints:
+      • FreeIPA UI:     {{ hc_webui.status }}
+      • Dogtag CA:      {{ hc_ca.status }}
+
+      📋 Logs:
+      • All critical log paths verified ✅
+
+      ============================================
+      ✅ All health checks PASSED
+      ============================================

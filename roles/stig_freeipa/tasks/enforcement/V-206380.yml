@@ -1,0 +1,76 @@
+############################################################
+# STIG Control: V-206380
+# SRG ID: SRG-APP-000141-WSR-000081
+# Title: The web server must have MIME types that invoke OS
+#        shell programs disabled
+# Severity: CAT II
+# Status: Enforced
+#
+# Finding Details:
+# Apache configurations that include "Options ExecCGI" or
+# CGI-related handlers allow execution of CGI scripts. These
+# scripts can invoke OS shell programs via HTTP requests,
+# introducing risk of remote code execution (RCE) and
+# unauthorized system access.
+#
+# Fix:
+# Remove all directives enabling CGI execution, including:
+# - "ExecCGI" from Options directives
+# - "AddHandler cgi-script"
+# - Executable MIME mappings (application/x-httpd-cgi)
+#
+# Do NOT replace entire Options directive with "Options None"
+# unless explicitly required, as this may disrupt legitimate
+# Apache functionality (e.g., FollowSymLinks).
+#
+# Manual Procedure:
+# 1. Check for active ExecCGI:
+#    grep -RInI "^[^#]*ExecCGI" /etc/httpd/conf /etc/httpd/conf.d
+#
+# 2. Check for CGI handlers:
+#    grep -RInI "^[^#]*cgi-script" /etc/httpd/conf /etc/httpd/conf.d
+#
+# 3. Check for executable MIME types:
+#    grep -RInI "application/x-httpd-cgi" /etc/httpd/conf /etc/httpd/conf.d
+#
+# 4. Remove any findings and restart Apache:
+#    systemctl restart httpd
+#
+# Expected Result:
+# - No active "ExecCGI" directive
+# - No CGI handlers (cgi-script)
+# - No executable MIME type mappings
+#
+# Comments:
+# Presence of CGI-related modules (e.g., mod_cgi, mod_cgid)
+# is not a finding unless explicitly enabled in configuration.
+# This control enforces least functionality while preserving
+# required Apache features for FreeIPA.
+############################################################
+
+- name: "V-206380 | Remove ExecCGI from Options directives"
+  replace:
+    path: "{{ item }}"
+    regexp: '\bExecCGI\b'
+    replace: ''
+  loop: "{{ lookup('ansible.builtin.fileglob', '/etc/httpd/conf/*.conf', wantlist=True)
+            + lookup('ansible.builtin.fileglob', '/etc/httpd/conf.d/*.conf', wantlist=True) }}"
+  notify: restart httpd
+
+- name: "V-206380 | Remove CGI script handlers"
+  lineinfile:
+    path: "{{ item }}"
+    regexp: '^\s*AddHandler\s+cgi-script'
+    state: absent
+  loop: "{{ lookup('ansible.builtin.fileglob', '/etc/httpd/conf/*.conf', wantlist=True)
+            + lookup('ansible.builtin.fileglob', '/etc/httpd/conf.d/*.conf', wantlist=True) }}"
+  notify: restart httpd
+
+- name: "V-206380 | Remove executable MIME type mappings"
+  lineinfile:
+    path: "{{ item }}"
+    regexp: '^\s*AddType\s+application/x-httpd-cgi'
+    state: absent
+  loop: "{{ lookup('ansible.builtin.fileglob', '/etc/httpd/conf/*.conf', wantlist=True)
+            + lookup('ansible.builtin.fileglob', '/etc/httpd/conf.d/*.conf', wantlist=True) }}"
+  notify: restart httpd

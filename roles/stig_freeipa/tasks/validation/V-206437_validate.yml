@@ -1,0 +1,45 @@
+---
+############################################################
+# STIG Control: V-206437 (Validation)
+############################################################
+
+# Config-level validation (primary check)
+- name: "V-206437 | Check cookie_security.conf directive"
+  ansible.builtin.shell: "grep -i 'Header always edit Set-Cookie' /etc/httpd/conf.d/cookie_security.conf"
+  register: stig_v206437_conf_check
+  changed_when: false
+  failed_when: false
+
+# Runtime validation (GET request to IPA UI to trigger cookies)
+- name: "V-206437 | Check Set-Cookie headers at runtime"
+  ansible.builtin.shell: "curl -k -s -D - -o /dev/null https://{{ ansible_host }}/ipa/ui/ | grep -i Set-Cookie"
+  register: stig_v206437_runtime_check
+  changed_when: false
+  failed_when: false
+
+- name: "V-206437 | Debug results"
+  ansible.builtin.debug:
+    msg:
+      - "Config directive: {{ stig_v206437_conf_check.stdout | default('NOT FOUND') }}"
+      - "Runtime cookies: {{ stig_v206437_runtime_check.stdout_lines | default([]) }}"
+
+- name: "V-206437 | Determine compliance"
+  ansible.builtin.set_fact:
+    stig_v206437_status: >-
+      {{
+        'NOT A FINDING'
+        if (
+          stig_v206437_conf_check.rc == 0 and
+          'HttpOnly' in stig_v206437_conf_check.stdout and
+          'Secure' in stig_v206437_conf_check.stdout
+        )
+        else 'OPEN'
+      }}
+
+- name: "V-206437 | Report compliance"
+  ansible.builtin.debug:
+    msg:
+      - "STIG ID: V-206437"
+      - "Status: {{ stig_v206437_status }}"
+      - "Config enforced: {{ stig_v206437_conf_check.rc == 0 }}"
+      - "Runtime cookies with flags: {{ stig_v206437_runtime_check.stdout_lines | default([]) | select('search', 'HttpOnly') | list | length > 0 }}"

@@ -1,0 +1,46 @@
+---
+############################################################
+# STIG FreeIPA - All Validation Tasks
+############################################################
+
+- name: "V-264341 | Validate web server audit logging"
+  ansible.builtin.include_tasks: V-264341_validate.yml
+  tags:
+    - V-264341
+    - CAT-II
+
+- name: "V-206412 | Validate minimal server identity in headers"
+  ansible.builtin.include_tasks: V-206412_validate.yml
+  tags:
+    - V-206412
+    - CAT-II
+
+- name: "V-206433 | Validate DoS prevention tuning"
+  ansible.builtin.include_tasks: V-206433_validate.yml
+  tags:
+    - V-206433
+    - CAT-II
+
+- name: "V-206437 | Validate cookie protection flags"
+  ansible.builtin.include_tasks: V-206437_validate.yml
+  tags:
+    - V-206437
+    - CAT-II
+
+- name: "V-206374 | Validate no local user management"
+  ansible.builtin.include_tasks: V-206374_validate.yml
+  tags:
+    - V-206374
+    - CAT-II
+
+- name: "V-206380 | Validate ExecCGI disabled"
+  ansible.builtin.include_tasks: V-206380_validate.yml
+  tags:
+    - V-206380
+    - CAT-II
+
+- name: "V-206383 | Validate WebDAV disabled"
+  ansible.builtin.include_tasks: V-206383_validate.yml
+  tags:
+    - V-206383
+    - CAT-II

@@ -1,0 +1,227 @@
+---
+- name: Display FreeIPA installation information
+  debug:
+    msg: |
+      🔧 Installing FreeIPA Server
+      🏛️  Domain: {{ freeipa_domain }}
+      🌐 Realm: {{ freeipa_realm }}
+      🖥️  Hostname: {{ freeipa_hostname }}
+      📍 Server IP: {{ inventory_hostname }}
+
+- name: Set hostname for FreeIPA server
+  hostname:
+    name: "{{ freeipa_hostname }}"
+
+- name: Remove any existing /etc/hosts entries for this IP
+  lineinfile:
+    path: /etc/hosts
+    regexp: "^{{ ansible_host | default(ansible_default_ipv4.address) }}\\s"
+    state: absent
+    backup: yes
+
+- name: Add FreeIPA hostname to /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_host | default(ansible_default_ipv4.address) }} {{ freeipa_hostname }} {{ freeipa_dns_alias }}"
+    state: present
+
+- name: Verify hostname resolves correctly
+  command: hostname --fqdn
+  register: fqdn_check
+  changed_when: false
+  failed_when: fqdn_check.stdout != freeipa_hostname
+
+- name: Install required packages for FreeIPA
+  dnf:
+    name: "{{ freeipa_packages }}"
+    state: present
+
+- name: Install Apache (httpd) packages for FreeIPA Web UI
+  dnf:
+    name: "{{ freeipa_httpd_packages }}"
+    state: present
+
+- name: Install Tomcat packages for Dogtag PKI/CA
+  dnf:
+    name: "{{ freeipa_tomcat_packages }}"
+    state: present
+
+- name: Configure firewall for FreeIPA services
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ freeipa_firewall_services }}"
+
+- name: Check if FreeIPA is already installed
+  stat:
+    path: /etc/ipa/default.conf
+  register: freeipa_installed
+
+- name: Install FreeIPA server with DNS
+  command: >
+    ipa-server-install
+    --realm {{ freeipa_realm }}
+    --domain {{ freeipa_domain }}
+    --ds-password {{ freeipa_ds_password }}
+    --admin-password {{ freeipa_admin_password }}
+    --hostname {{ freeipa_hostname }}
+    --ip-address {{ ansible_host }}
+    --setup-dns
+    --auto-forwarders
+    --auto-reverse
+    --unattended
+  when: not freeipa_installed.stat.exists
+  register: freeipa_install
+  timeout: "{{ freeipa_install_timeout }}"
+
+- name: Wait for FreeIPA services to be ready
+  wait_for:
+    port: 443
+    host: "{{ ansible_host }}"
+    timeout: 300
+  when: freeipa_install is changed
+
+- name: Ensure Apache (httpd) is enabled and running
+  systemd:
+    name: httpd
+    enabled: yes
+    state: started
+
+- name: Verify Apache is serving FreeIPA Web UI
+  uri:
+    url: "https://{{ ansible_host }}"
+    validate_certs: no
+    status_code: [200, 301, 302, 303]
+    timeout: 30
+  register: freeipa_httpd_check
+  retries: 5
+  delay: 10
+  until: freeipa_httpd_check is succeeded
+
+- name: Ensure Tomcat (pki-tomcatd) is enabled and running
+  systemd:
+    name: "pki-tomcatd@pki-tomcat"
+    enabled: yes
+    state: started
+
+- name: Verify Dogtag CA is responding
+  uri:
+    url: "https://{{ ansible_host }}:{{ freeipa_tomcat_https_port }}/ca/ee/ca"
+    validate_certs: no
+    status_code: [200, 301, 302, 303]
+    timeout: 30
+  register: freeipa_ca_check
+  retries: 5
+  delay: 10
+  until: freeipa_ca_check is succeeded
+
+- name: Harden Apache SSL configuration
+  lineinfile:
+    path: /etc/httpd/conf.d/ssl.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    backup: yes
+  loop:
+    - regexp: "^SSLProtocol"
+      line: "SSLProtocol {{ freeipa_httpd_ssl_protocols }}"
+    - regexp: "^SSLCipherSuite"
+      line: "SSLCipherSuite {{ freeipa_httpd_ssl_ciphers }}"
+  notify: restart httpd
+
+- name: Configure Tomcat JVM options
+  lineinfile:
+    path: /etc/pki/pki-tomcat/tomcat.conf
+    regexp: "^JAVA_OPTS="
+    line: "JAVA_OPTS=\"{{ freeipa_tomcat_java_opts }}\""
+    backup: yes
+  notify: restart pki-tomcatd
+
+- name: Create Keycloak service account for LDAP binding
+  ipa_user:
+    name: "{{ freeipa_keycloak_bind_user }}"
+    givenname: Keycloak
+    sn: Service
+    mail: "{{ freeipa_keycloak_bind_user }}@{{ freeipa_domain }}"
+    password: "{{ freeipa_keycloak_bind_password }}"
+    ipa_host: "{{ freeipa_hostname }}"
+    ipa_user: admin
+    ipa_pass: "{{ freeipa_admin_password }}"
+    state: present
+
+- name: Create SonarQube groups
+  ipa_group:
+    name: "{{ item }}"
+    description: "{{ item.replace('-', ' ').title() }} group for SonarQube"
+    ipa_host: "{{ freeipa_hostname }}"
+    ipa_user: admin
+    ipa_pass: "{{ freeipa_admin_password }}"
+    state: present
+  loop: "{{ freeipa_sonar_groups }}"
+
+- name: Create test users for SonarQube
+  ipa_user:
+    name: "{{ item.name }}"
+    givenname: "{{ item.givenname }}"
+    sn: "{{ item.sn }}"
+    mail: "{{ item.name }}@{{ freeipa_domain }}"
+    password: "{{ item.password }}"
+    ipa_host: "{{ freeipa_hostname }}"
+    ipa_user: admin
+    ipa_pass: "{{ freeipa_admin_password }}"
+    state: present
+  loop: "{{ freeipa_test_users }}"
+
+- name: Add users to appropriate groups
+  ipa_group:
+    name: "{{ item.group }}"
+    user: "{{ item.users }}"
+    append: true
+    ipa_host: "{{ freeipa_hostname }}"
+    ipa_user: admin
+    ipa_pass: "{{ freeipa_admin_password }}"
+    state: present
+  loop: "{{ freeipa_group_memberships }}"
+
+- name: Display FreeIPA configuration
+  debug:
+    msg: |
+      ✅ FreeIPA Server Installation Complete!
+
+      📋 Server Configuration:
+      • Domain: {{ freeipa_domain }}
+      • Realm: {{ freeipa_realm }}
+      • Hostname: {{ freeipa_hostname }}
+      • Admin Username: admin
+      • Admin Password: {{ freeipa_admin_password }}
+
+      👥 Created Groups:
+      • sonar-admins (SonarQube Administrators)
+      • sonar-users (SonarQube Users)
+      • sonar-developers (SonarQube Developers)
+
+      👤 Created Users:
+      • sonar-admin (SonarAdmin123!) → sonar-admins
+      • sonar-user (SonarUser123!) → sonar-users
+      • sonar-dev (SonarDev123!) → sonar-users, sonar-developers
+      • {{ freeipa_keycloak_bind_user }} → Service account for Keycloak
+
+      🌐 Access:
+      • Web UI: https://{{ freeipa_hostname }} or https://{{ ansible_host }}
+      • LDAP Server: {{ ansible_host }}:389 (StartTLS) / 636 (LDAPS)
+      • Kerberos: {{ freeipa_realm }}
+
+      🔧 Next Steps:
+      1. Configure Keycloak to connect to FreeIPA LDAP
+      2. Set up SAML client for SonarQube
+      3. Test SSO authentication flow
+
+- name: Display DNS configuration note
+  debug:
+    msg: |
+      📝 DNS Configuration Note:
+      Add the following to your local machines' /etc/hosts:
+      {{ ansible_host }} {{ freeipa_hostname }} {{ freeipa_dns_alias }}
+
+      Access via: https://{{ freeipa_dns_alias }} or https://{{ freeipa_hostname }}

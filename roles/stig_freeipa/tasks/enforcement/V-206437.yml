@@ -1,0 +1,87 @@
+---
+############################################################
+# STIG Control: V-206437
+# SRG ID: SRG-APP-000439-WSR-000154
+# Severity: CAT II
+#
+# Title:
+# Cookies must be protected from client-side access.
+#
+# Status: OPEN → REMEDIATED
+#
+# Finding Details:
+# Cookies transmitted by the web server without proper
+# security attributes may be accessed by client-side scripts
+# or transmitted over unencrypted channels. This can expose
+# sensitive session information such as authentication tokens
+# and session identifiers.
+#
+# If the HttpOnly flag is not set, cookies may be accessed
+# via JavaScript, increasing the risk of session hijacking
+# through cross-site scripting (XSS) attacks.
+#
+# If the Secure flag is not set, cookies may be transmitted
+# over unencrypted HTTP connections, exposing them to
+# interception.
+#
+# Fix:
+# Configure the web server to append HttpOnly and Secure
+# flags to all Set-Cookie headers.
+#
+# Manual Procedure:
+# 1. Run:
+#    curl -k -I https://<host> | grep -i set-cookie
+#
+# 2. Verify:
+#    - Cookies include "HttpOnly"
+#    - Cookies include "Secure"
+#
+# Expected Result:
+#    Set-Cookie: <cookie_name>=<value>; ...; HttpOnly; Secure
+#
+# Comments:
+# FreeIPA typically sets secure cookie attributes by default
+# (e.g., ipa_session). This control enforces a global Apache
+# safeguard to ensure compliance regardless of application
+# behavior.
+############################################################
+
+- name: "V-206437 | Verify httpd (includes mod_headers) is installed"
+  ansible.builtin.command: rpm -q httpd
+  register: v206437_httpd_check
+  changed_when: false
+  failed_when: v206437_httpd_check.rc != 0
+
+- name: "V-206437 | Ensure mod_headers module is loaded"
+  lineinfile:
+    path: /etc/httpd/conf.modules.d/00-base.conf
+    regexp: '^LoadModule headers_module'
+    line: 'LoadModule headers_module modules/mod_headers.so'
+    state: present
+  notify: restart httpd
+
+- name: "V-206437 | Enforce HttpOnly and Secure cookie flags"
+  copy:
+    dest: /etc/httpd/conf.d/cookie_security.conf
+    content: |
+      ############################################################
+      # STIG V-206437 - Cookie Security Hardening
+      # Applied globally to all Set-Cookie headers
+      ############################################################
+      <IfModule mod_headers.c>
+        Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure"
+      </IfModule>
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart httpd
+
+- name: "V-206437 | Ensure FreeIPA ipa.conf also enforces cookie flags"
+  ansible.builtin.lineinfile:
+    path: /etc/httpd/conf.d/ipa.conf
+    insertafter: '</IfModule>'
+    line: '  Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure"'
+    regexp: 'Header always edit Set-Cookie'
+    state: present
+  notify: restart httpd
+  ignore_errors: true

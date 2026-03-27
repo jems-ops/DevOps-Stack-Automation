@@ -1,0 +1,48 @@
+############################################################
+# STIG Control: V-206374
+# SRG ID: SRG-APP-000141-WSR-000015
+# Title: The web server must not perform user management
+# Severity: CAT II
+# Status: Enforced
+#
+# Finding Details:
+# Use of local authentication mechanisms such as .htpasswd
+# or "AuthUserFile" indicates that the web server is performing
+# user management instead of relying on centralized services.
+#
+# Fix:
+# - Deny access to .ht* files (.htaccess, .htpasswd)
+# - Remove any AuthUserFile directives
+#
+# Manual Procedure:
+# grep -Ri AuthUserFile /etc/httpd/
+# curl -k -I https://<host>/.htaccess
+#
+# Expected Result:
+# - No AuthUserFile configured
+# - HTTP 403 returned for .htaccess/.htpasswd
+#
+# Comments:
+# Authentication is centrally managed (FreeIPA / LDAP).
+############################################################
+
+- name: "V-206374 | Deny access to .ht* files"
+  blockinfile:
+    path: /etc/httpd/conf/httpd.conf
+    block: |
+      <Files ".ht*">
+          Require all denied
+      </Files>
+    marker: "# {mark} ANSIBLE STIG V-206374"
+    create: yes
+  notify: restart httpd
+
+- name: "V-206374 | Remove AuthUserFile directives"
+  replace:
+    path: "{{ item }}"
+    regexp: '^[^#]*AuthUserFile.*'
+    replace: ''
+  with_fileglob:
+    - /etc/httpd/conf.d/*.conf
+    - /etc/httpd/conf/httpd.conf
+  notify: restart httpd

@@ -1,0 +1,87 @@
+---
+############################################################
+# STIG Control: V-206412
+# SRG ID: SRG-APP-000266-WSR-000159
+# Severity: CAT II
+#
+# Title:
+# Warning and error messages must minimize web server identity.
+#
+# Status: OPEN → REMEDIATED
+#
+# Finding Details:
+# The Apache web server exposes detailed information in HTTP
+# response headers, including version, OS, OpenSSL, and modules.
+# This information can be used by attackers for fingerprinting
+# and exploitation planning.
+#
+# Even though network protections (VLANs, firewalls, auth flows)
+# exist, STIG requires application-level hardening to minimize
+# disclosure.
+#
+# Fix:
+# Configure Apache to suppress version and module information
+# using ServerTokens, ServerSignature, and mod_headers.
+#
+# Manual Procedure:
+# 1. Run:
+#    curl -k -I https://<host>
+# 2. Verify that:
+#    - No version or module info is present
+#    - Server header is minimal (e.g., "Apache")
+#
+# Expected:
+#    Server: Apache
+#
+# Comments:
+# This control ensures attackers cannot fingerprint the web
+# server based on response headers or error messages.
+############################################################
+
+- name: "V-206412 | Verify httpd (mod_headers) is installed"
+  ansible.builtin.command: rpm -q httpd
+  register: v206412_httpd_check
+  changed_when: false
+  failed_when: v206412_httpd_check.rc != 0
+
+- name: "V-206412 | Ensure mod_headers module is loaded"
+  lineinfile:
+    path: /etc/httpd/conf.modules.d/00-base.conf
+    regexp: '^LoadModule headers_module'
+    line: 'LoadModule headers_module modules/mod_headers.so'
+    state: present
+  notify: restart httpd
+
+- name: "V-206412 | Set ServerTokens to Prod"
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^ServerTokens'
+    line: 'ServerTokens Prod'
+    create: yes
+  notify: restart httpd
+
+- name: "V-206412 | Set ServerSignature Off"
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^ServerSignature'
+    line: 'ServerSignature Off'
+    create: yes
+  notify: restart httpd
+
+- name: "V-206412 | Create security.conf for header hardening"
+  copy:
+    dest: /etc/httpd/conf.d/security.conf
+    content: |
+      ############################################################
+      # STIG V-206412 - Header Hardening
+      ############################################################
+      ServerTokens Prod
+      ServerSignature Off
+
+      # Remove detailed Server header
+      Header always unset Server
+      Header always set Server "Apache"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart httpd

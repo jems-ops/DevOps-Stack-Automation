@@ -12,7 +12,7 @@ nginx-proxy ansible_host=192.168.201.15
 sonar.local ansible_host=192.168.201.16
 
 [freeipa]
-freeipa.local ansible_host=192.168.201.13
+freeipa.local ansible_host=192.168.56.14
 
 [keycloak]
 keycloak.local ansible_host=192.168.201.12

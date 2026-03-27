@@ -1,0 +1,100 @@
+---
+# Default variables for FreeIPA server installation
+
+# FreeIPA domain and realm
+freeipa_domain: freeipa.local
+freeipa_realm: FREEIPA.LOCAL
+
+# FreeIPA server FQDN (must be under freeipa_domain)
+freeipa_hostname: "ipa.{{ freeipa_domain }}"
+
+# DNS alias for browser/client access
+freeipa_dns_alias: freeipa.local
+
+# FreeIPA admin credentials
+freeipa_admin_password: FreeIPA123!
+freeipa_ds_password: DirectoryServer123!
+
+# Keycloak LDAP bind account
+freeipa_keycloak_bind_user: keycloak-bind
+freeipa_keycloak_bind_password: KeycloakBind123!
+
+# FreeIPA packages
+freeipa_packages:
+  - ipa-server
+  - ipa-server-dns
+  - bind
+  - bind-dyndb-ldap
+
+# Apache (httpd) - serves FreeIPA Web UI and API
+freeipa_httpd_packages:
+  - httpd
+  - mod_ssl
+  - mod_wsgi
+  - mod_auth_gssapi
+  - mod_session
+  - mod_lookup_identity
+
+# Tomcat - runs Dogtag PKI/CA for FreeIPA certificate management
+freeipa_tomcat_packages:
+  - tomcat
+  - pki-ca
+  - pki-kra
+
+# Apache configuration
+freeipa_httpd_ssl_protocols: "TLSv1.2 TLSv1.3"
+freeipa_httpd_ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+
+# Tomcat configuration
+freeipa_tomcat_java_opts: "-Xms256m -Xmx512m"
+freeipa_tomcat_ajp_port: 8009
+freeipa_tomcat_https_port: 8443
+
+# Firewall services
+freeipa_firewall_services:
+  - freeipa-ldap
+  - freeipa-ldaps
+  - freeipa-replication
+  - dns
+  - ntp
+  - http
+  - https
+  - kerberos
+  - kpasswd
+
+# Installation timeout (seconds)
+freeipa_install_timeout: 1800
+
+# SonarQube groups to create
+freeipa_sonar_groups:
+  - sonar-admins
+  - sonar-users
+  - sonar-developers
+
+# Test users
+freeipa_test_users:
+  - name: sonar-admin
+    givenname: SonarQube
+    sn: Administrator
+    password: SonarAdmin123!
+  - name: sonar-user
+    givenname: SonarQube
+    sn: User
+    password: SonarUser123!
+  - name: sonar-dev
+    givenname: SonarQube
+    sn: Developer
+    password: SonarDev123!
+
+# Group memberships
+freeipa_group_memberships:
+  - group: sonar-admins
+    users:
+      - sonar-admin
+  - group: sonar-users
+    users:
+      - sonar-user
+      - sonar-dev
+  - group: sonar-developers
+    users:
+      - sonar-dev

@@ -1,0 +1,15 @@
+---
+- name: restart ipa
+  service:
+    name: ipa
+    state: restarted
+
+- name: restart httpd
+  systemd:
+    name: httpd
+    state: restarted
+
+- name: restart pki-tomcatd
+  systemd:
+    name: "pki-tomcatd@pki-tomcat"
+    state: restarted

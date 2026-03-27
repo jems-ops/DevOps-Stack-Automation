@@ -1,0 +1,78 @@
+---
+############################################################
+# STIG Control: V-264341
+#
+# Rule Title:
+# The web server must automatically generate audit records
+# of the enforcement actions.
+#
+# Severity: CAT II
+#
+# Status: NOT A FINDING (if validated)
+#
+# Description:
+# The web server must generate audit records for enforcement
+# actions to support accountability and forensic analysis.
+#
+# Implementation Summary:
+# - Apache logging enabled via CustomLog and ErrorLog
+# - Logs stored under /var/log/httpd
+# - FreeIPA PKI Tomcat logs stored under /var/log/pki/pki-tomcat
+# - System auditing enabled via auditd
+#
+# Manual Check:
+# grep -i 'CustomLog\|ErrorLog' /etc/httpd/conf/httpd.conf
+# ls -l /var/log/httpd/
+# ls -l /var/log/pki/pki-tomcat/
+# systemctl status auditd
+#
+# Expected Result:
+# - Logging directives configured
+# - Logs actively generated
+# - auditd service running
+#
+# Comments:
+# Logging mechanisms ensure enforcement actions, access events,
+# and configuration changes are recorded.
+############################################################
+
+- name: "V-APP-000805 | Ensure FreeIPA web logging and auditd are configured"
+  become: true
+  block:
+
+    ########################################################
+    # Apache Logging
+    ########################################################
+
+    - name: "Ensure CustomLog directive is configured"
+      ansible.builtin.lineinfile:
+        path: "{{ freeipa_srg_httpd_conf }}"
+        regexp: '^CustomLog'
+        line: 'CustomLog "/var/log/httpd/access_log" combined'
+        create: yes
+      notify: restart httpd
+
+    - name: "Ensure ErrorLog directive is configured"
+      ansible.builtin.lineinfile:
+        path: "{{ freeipa_srg_httpd_conf }}"
+        regexp: '^ErrorLog'
+        line: 'ErrorLog "/var/log/httpd/error_log"'
+        create: yes
+      notify: restart httpd
+
+    ########################################################
+    # Auditd Package (only install here)
+    ########################################################
+
+    - name: "Check if auditd is already installed"
+      ansible.builtin.command: rpm -q audit
+      register: auditd_installed
+      changed_when: false
+      failed_when: false
+
+    - name: "Ensure auditd is installed"
+      ansible.builtin.package:
+        name: audit
+        state: present
+      notify: restart auditd
+      when: auditd_installed.rc != 0

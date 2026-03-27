@@ -1,0 +1,28 @@
+---
+############################################################
+# Handlers - STIG FreeIPA
+############################################################
+
+- name: restart httpd
+  become: true
+  ansible.builtin.service:
+    name: httpd
+    state: restarted
+
+- name: reload httpd
+  become: true
+  ansible.builtin.service:
+    name: httpd
+    state: reloaded
+
+- name: restart auditd
+  become: true
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+    enabled: true
+
+- name: reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: yes
