@@ -10,6 +10,13 @@
   ansible.builtin.include_tasks: enforcement/main.yml
   tags:
     - enforcement
+    - V-264341
+    - V-206374
+    - V-206412
+    - V-206437
+    - V-206380
+    - V-206383
+    - V-206433
 
 ############################################################
 # Flush handlers before validation so restarts take effect
@@ -26,12 +33,25 @@
   ansible.builtin.include_tasks: validation/main.yml
   tags:
     - validation
+    - V-264341
+    - V-206374
+    - V-206412
+    - V-206437
+    - V-206380
+    - V-206383
+    - V-206433
 
 ############################################################
 # Post-STIG Health Check
 ############################################################
 
 - name: "STIG FreeIPA | Run post-STIG health check"
-  ansible.builtin.include_tasks: post-health-check.yml
+  ansible.builtin.include_tasks:
+    file: post-health-check.yml
+    apply:
+      tags:
+        - health-check
+        - enforcement
   tags:
     - health-check
+    - enforcement
