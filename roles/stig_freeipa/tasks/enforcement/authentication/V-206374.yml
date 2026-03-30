@@ -5,44 +5,41 @@
 # Severity: CAT II
 # Status: Enforced
 #
-# Finding Details:
-# Use of local authentication mechanisms such as .htpasswd
-# or "AuthUserFile" indicates that the web server is performing
-# user management instead of relying on centralized services.
-#
 # Fix:
-# - Deny access to .ht* files (.htaccess, .htpasswd)
-# - Remove any AuthUserFile directives
-#
-# Manual Procedure:
-# grep -Ri AuthUserFile /etc/httpd/
-# curl -k -I https://<host>/.htaccess
-#
-# Expected Result:
-# - No AuthUserFile configured
-# - HTTP 403 returned for .htaccess/.htpasswd
-#
-# Comments:
-# Authentication is centrally managed (FreeIPA / LDAP).
+# - Deny access to .ht* files
+# - Remove AuthUserFile directives
 ############################################################
 
-- name: "V-206374 | Deny access to .ht* files"
+- name: "V-206374 | Ensure .ht* files are denied"
   blockinfile:
     path: /etc/httpd/conf/httpd.conf
     block: |
-      <Files ".ht*">
+      <FilesMatch "^\.ht">
           Require all denied
-      </Files>
+      </FilesMatch>
     marker: "# {mark} ANSIBLE STIG V-206374"
     create: yes
   notify: restart httpd
 
+# ---------------------------------------------------------
+# Dynamically discover valid httpd config files
+# ---------------------------------------------------------
+
+- name: "V-206374 | Find httpd configuration files"
+  find:
+    paths: /etc/httpd
+    patterns: "*.conf"
+    recurse: yes
+  register: httpd_conf_files
+
+# ---------------------------------------------------------
+# Remove AuthUserFile safely
+# ---------------------------------------------------------
+
 - name: "V-206374 | Remove AuthUserFile directives"
   replace:
-    path: "{{ item }}"
-    regexp: '^[^#]*AuthUserFile.*'
+    path: "{{ item.path }}"
+    regexp: '^\s*AuthUserFile\s+.*'
     replace: ''
-  with_fileglob:
-    - /etc/httpd/conf.d/*.conf
-    - /etc/httpd/conf/httpd.conf
+  loop: "{{ httpd_conf_files.files }}"
   notify: restart httpd

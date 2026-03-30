@@ -1,19 +1,83 @@
+---
 ############################################################
-# STIG Control: V-206374 - Validation
+# STIG Control: V-206374
+# SRG ID: SRG-APP-000141-WSR-000015
+# Title: The web server must not perform user management
+# Severity: CAT II
+#
+# Validation Description:
+# - Verify .ht* files are not accessible (HTTP 403)
+# - Ensure no AuthUserFile directives exist in httpd configs
+#
+# Validation Commands:
+# curl -k -I https://localhost/.htaccess
+# grep -Rsi '^\s*AuthUserFile' /etc/httpd
+#
+# Expected Result:
+# - HTTP response = 403
+# - No AuthUserFile entries found
+#
+# Passing Criteria:
+# - .htaccess returns HTTP 403
+# - No AuthUserFile directive exists
+#
+# Failing Criteria:
+# - .htaccess accessible (200/301/etc)
+# - AuthUserFile directive present
+#
+# Status Output:
+# NOT A FINDING if compliant, otherwise FINDING
 ############################################################
 
+# ---------------------------------------------------------
+# Check .htaccess access (HTTP response)
+# ---------------------------------------------------------
 - name: "V-206374 | Check .htaccess access (HTTP code)"
-  shell: curl -k -s -o /dev/null -w "%{http_code}" https://localhost/.htaccess || true
-  register: v206374_htaccess
+  shell: "curl -k -s -o /dev/null -w '%{http_code}' https://localhost/.htaccess || true"
+  register: v206374_http_check
   changed_when: false
   failed_when: false
 
-- name: "V-206374 | Check AuthUserFile usage"
-  shell: grep -Ri "^[^#]*AuthUserFile" /etc/httpd/ || true
-  register: v206374_auth
+# ---------------------------------------------------------
+# Find any AuthUserFile usage
+# ---------------------------------------------------------
+- name: "V-206374 | Search for AuthUserFile directives"
+  find:
+    paths: /etc/httpd
+    patterns: "*.conf"
+    recurse: yes
+  register: v206374_conf_files
+
+- name: "V-206374 | Check AuthUserFile in configs"
+  shell: 'grep -si "^\s*AuthUserFile" {{ item.path }} || true'
+  loop: "{{ v206374_conf_files.files }}"
+  register: v206374_auth_results
   changed_when: false
   failed_when: false
 
-- name: "V-206374 | Result"
+# ---------------------------------------------------------
+# Aggregate results
+# ---------------------------------------------------------
+- name: "V-206374 | Aggregate AuthUserFile findings"
+  set_fact:
+    v206374_auth_found: >-
+      {{ v206374_auth_results.results
+         | selectattr('stdout', '!=', '')
+         | list }}
+
+# ---------------------------------------------------------
+# Final Compliance Result
+# ---------------------------------------------------------
+- name: "V-206374 | Compliance Result"
   debug:
-    msg: "{{ 'NOT A FINDING - .ht* access denied (403) and no AuthUserFile configured' if (v206374_htaccess.stdout == '403' and v206374_auth.stdout == '') else 'FINDING - Local user management detected' }}"
+    msg: >-
+      {% if v206374_http_check.stdout == '403' and v206374_auth_found | length == 0 %}
+      NOT A FINDING:
+      - .htaccess access denied (HTTP 403)
+      - No AuthUserFile directives detected
+      {% else %}
+      FINDING:
+      - HTTP Status: {{ v206374_http_check.stdout }}
+      - AuthUserFile Findings:
+      {{ v206374_auth_found | map(attribute='stdout') | list }}
+      {% endif %}
