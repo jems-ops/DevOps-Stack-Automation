@@ -8,73 +8,83 @@
 ############################################################
 
 - name: "V-264341 | Enforce web server audit logging"
-  ansible.builtin.include_tasks: auditing/V-264341.yml
-  tags:
-    - V-264341
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: auditing/V-264341.yml
+    apply:
+      tags: [V-264341, enforcement]
+  tags: [V-264341, enforcement]
 
 - name: "V-222998 | Enforce audit logging for Tomcat bin"
-  ansible.builtin.include_tasks: auditing/V-222998.yml
-  tags:
-    - V-222998
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: auditing/V-222998.yml
+    apply:
+      tags: [V-222998, enforcement]
+  tags: [V-222998, enforcement]
 
 - name: "V-222999 | Enforce audit logging for Tomcat conf"
-  ansible.builtin.include_tasks: auditing/V-222999.yml
-  tags:
-    - V-222999
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: auditing/V-222999.yml
+    apply:
+      tags: [V-222999, enforcement]
+  tags: [V-222999, enforcement]
 
 - name: "V-223000 | Enforce audit logging for Tomcat lib"
-  ansible.builtin.include_tasks: auditing/V-223000.yml
-  tags:
-    - V-223000
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: auditing/V-223000.yml
+    apply:
+      tags: [V-223000, enforcement]
+  tags: [V-223000, enforcement]
 
 ############################################################
 # Authentication & Authorization
 ############################################################
 
 - name: "V-206374 | Enforce no local user management"
-  ansible.builtin.include_tasks: authentication/V-206374.yml
-  tags:
-    - V-206374
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: authentication/V-206374.yml
+    apply:
+      tags: [V-206374, enforcement]
+  tags: [V-206374, enforcement]
 
 ############################################################
 # Security Hardening (Confidentiality & Integrity)
 ############################################################
 
 - name: "V-206412 | Enforce minimal server identity in headers"
-  ansible.builtin.include_tasks: security-hardening/V-206412.yml
-  tags:
-    - V-206412
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: security-hardening/V-206412.yml
+    apply:
+      tags: [V-206412, enforcement]
+  tags: [V-206412, enforcement]
 
 - name: "V-206437 | Enforce cookie protection flags"
-  ansible.builtin.include_tasks: security-hardening/V-206437.yml
-  tags:
-    - V-206437
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: security-hardening/V-206437.yml
+    apply:
+      tags: [V-206437, enforcement]
+  tags: [V-206437, enforcement]
 
 - name: "V-206380 | Enforce disable ExecCGI / shell programs"
-  ansible.builtin.include_tasks: security-hardening/V-206380.yml
-  tags:
-    - V-206380
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: security-hardening/V-206380.yml
+    apply:
+      tags: [V-206380, enforcement]
+  tags: [V-206380, enforcement]
 
 - name: "V-206383 | Enforce WebDAV disabled"
-  ansible.builtin.include_tasks: security-hardening/V-206383.yml
-  tags:
-    - V-206383
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: security-hardening/V-206383.yml
+    apply:
+      tags: [V-206383, enforcement]
+  tags: [V-206383, enforcement]
 
 ############################################################
 # Availability
 ############################################################
 
 - name: "V-206433 | Enforce DoS prevention tuning"
-  ansible.builtin.include_tasks: availability/V-206433.yml
-  tags:
-    - V-206433
-    - enforcement
+  ansible.builtin.include_tasks:
+    file: availability/V-206433.yml
+    apply:
+      tags: [V-206433, enforcement]
+  tags: [V-206433, enforcement]

@@ -20,6 +20,21 @@
 # - Key "tomcat" is present
 ############################################################
 
+- name: "V-223000 | Resolve Tomcat lib path"
+  ansible.builtin.shell: |
+    for p in /var/lib/pki/pki-tomcat/lib /usr/share/pki/server/lib; do
+      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
+    done
+    exit 1
+  register: v223000_lib_resolved
+  changed_when: false
+  failed_when: v223000_lib_resolved.stdout == ""
+
+- name: "V-223000 | Set Tomcat lib path"
+  set_fact:
+    tomcat_lib_path: "{{ v223000_lib_resolved.stdout | trim }}"
+  when: tomcat_lib_path is not defined
+
 - name: "V-223000 | Validate audit rule for Tomcat lib"
   shell: "auditctl -l | grep '{{ tomcat_lib_path }}' || true"
   register: audit_lib_check

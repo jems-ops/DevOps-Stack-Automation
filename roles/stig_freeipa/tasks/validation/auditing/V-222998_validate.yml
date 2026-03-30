@@ -33,6 +33,21 @@
 # Returns NOT A FINDING if compliant, otherwise FINDING
 ############################################################
 
+- name: "V-222998 | Resolve Tomcat bin path"
+  ansible.builtin.shell: |
+    for p in /var/lib/pki/pki-tomcat/bin /usr/share/pki/server/bin /usr/share/tomcat/bin; do
+      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
+    done
+    exit 1
+  register: v222998_bin_resolved
+  changed_when: false
+  failed_when: v222998_bin_resolved.stdout == ""
+
+- name: "V-222998 | Set Tomcat bin path"
+  set_fact:
+    tomcat_bin_path: "{{ v222998_bin_resolved.stdout | trim }}"
+  when: tomcat_bin_path is not defined
+
 - name: "V-222998 | Validate audit rule for Tomcat bin"
   shell: "auditctl -l | grep '{{ tomcat_bin_path }}' || true"
   register: audit_check
