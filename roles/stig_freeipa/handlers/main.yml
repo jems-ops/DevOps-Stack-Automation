@@ -24,3 +24,8 @@
   become: true
   ansible.builtin.systemd:
     daemon_reload: yes
+
+- name: reload audit rules
+  become: true
+  ansible.builtin.command: augenrules --load
+  changed_when: true

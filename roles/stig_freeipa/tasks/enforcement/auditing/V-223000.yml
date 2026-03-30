@@ -32,10 +32,62 @@
 # Uses persistent audit rules via /etc/audit/rules.d/
 ############################################################
 
-- name: "V-223000 | Ensure audit rule exists for Tomcat lib"
+# ---------------------------------------------------------
+# Detect FreeIPA / PKI Tomcat lib path (symlink)
+# ---------------------------------------------------------
+- name: "V-223000 | Check PKI Tomcat lib path"
+  stat:
+    path: /var/lib/pki/pki-tomcat/lib
+  register: v223000_pki_lib
+
+# ---------------------------------------------------------
+# Resolve real path (IMPORTANT: avoid auditing symlink)
+# ---------------------------------------------------------
+- name: "V-223000 | Resolve real Tomcat lib path"
+  command: readlink -f /var/lib/pki/pki-tomcat/lib
+  register: v223000_lib_real
+  changed_when: false
+  when: v223000_pki_lib.stat.exists
+
+# ---------------------------------------------------------
+# Fallback (standard Tomcat)
+# ---------------------------------------------------------
+- name: "V-223000 | Set fallback Tomcat lib path"
+  set_fact:
+    v223000_lib_path: "/usr/share/tomcat/lib"
+  when: not v223000_pki_lib.stat.exists
+
+- name: "V-223000 | Set resolved Tomcat lib path"
+  set_fact:
+    v223000_lib_path: "{{ v223000_lib_real.stdout }}"
+  when: v223000_pki_lib.stat.exists
+
+# ---------------------------------------------------------
+# Configure persistent audit rule
+# ---------------------------------------------------------
+- name: "V-223000 | Configure audit rule for Tomcat lib"
   lineinfile:
     path: /etc/audit/rules.d/tomcat.rules
-    line: "-w {{ tomcat_lib_path }} -p wa -k tomcat"
+    line: "-w {{ v223000_lib_path }} -p wa -k tomcat"
     create: yes
     state: present
-  notify: restart auditd
+    mode: '0640'
+  notify: reload audit rules
+
+# ---------------------------------------------------------
+# Verify rule (informational)
+# ---------------------------------------------------------
+- name: "V-223000 | Verify audit rule present"
+  shell: "grep -w '{{ v223000_lib_path }}' /etc/audit/rules.d/tomcat.rules || true"
+  register: v223000_rule_check
+  changed_when: false
+
+- name: "V-223000 | Enforcement Result"
+  debug:
+    msg: >-
+      {% if v223000_rule_check.stdout != "" %}
+      NOT A FINDING: Audit rule configured for {{ v223000_lib_path }}
+      {% else %}
+      FINDING: Audit rule missing for {{ v223000_lib_path }}
+      {% endif %}
+

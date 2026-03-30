@@ -30,10 +30,62 @@
 # Uses persistent audit rules via /etc/audit/rules.d/
 ############################################################
 
-- name: "V-222998 | Ensure audit rule exists for Tomcat bin"
+# ---------------------------------------------------------
+# Detect FreeIPA / PKI Tomcat (symlink-aware)
+# ---------------------------------------------------------
+- name: "V-222998 | Check PKI Tomcat path"
+  stat:
+    path: /var/lib/pki/pki-tomcat/bin
+  register: v222998_pki_bin
+
+# ---------------------------------------------------------
+# Resolve real path (important for symlink)
+# ---------------------------------------------------------
+- name: "V-222998 | Resolve real Tomcat bin path"
+  command: readlink -f /var/lib/pki/pki-tomcat/bin
+  register: v222998_bin_real
+  changed_when: false
+  when: v222998_pki_bin.stat.exists
+
+# ---------------------------------------------------------
+# Fallback (standard Tomcat)
+# ---------------------------------------------------------
+- name: "V-222998 | Set fallback Tomcat bin path"
+  set_fact:
+    v222998_bin_path: "/usr/share/tomcat/bin"
+  when: not v222998_pki_bin.stat.exists
+
+- name: "V-222998 | Set resolved Tomcat bin path"
+  set_fact:
+    v222998_bin_path: "{{ v222998_bin_real.stdout }}"
+  when: v222998_pki_bin.stat.exists
+
+# ---------------------------------------------------------
+# Ensure audit rule is present (persistent)
+# ---------------------------------------------------------
+- name: "V-222998 | Configure audit rule for Tomcat bin"
   lineinfile:
     path: /etc/audit/rules.d/tomcat.rules
-    line: "-w {{ tomcat_bin_path }} -p wa -k tomcat"
+    line: "-w {{ v222998_bin_path }} -p wa -k tomcat"
     create: yes
     state: present
-  notify: restart auditd
+    mode: '0640'
+  notify: reload audit rules
+
+# ---------------------------------------------------------
+# Validate rule exists (informational)
+# ---------------------------------------------------------
+- name: "V-222998 | Verify audit rule present"
+  shell: "grep -w '{{ v222998_bin_path }}' /etc/audit/rules.d/tomcat.rules || true"
+  register: v222998_rule_check
+  changed_when: false
+
+- name: "V-222998 | Enforcement Result"
+  debug:
+    msg: >-
+      {% if v222998_rule_check.stdout != "" %}
+      NOT A FINDING: Audit rule configured for {{ v222998_bin_path }}
+      {% else %}
+      FINDING: Audit rule missing for {{ v222998_bin_path }}
+      {% endif %}
+

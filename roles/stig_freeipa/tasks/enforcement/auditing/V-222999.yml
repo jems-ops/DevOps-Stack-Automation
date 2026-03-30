@@ -28,10 +28,61 @@
 # Persistent rule added under /etc/audit/rules.d/
 ############################################################
 
-- name: "V-222999 | Ensure audit rule exists for Tomcat conf"
+# ---------------------------------------------------------
+# Detect FreeIPA / PKI Tomcat conf path
+# ---------------------------------------------------------
+- name: "V-222999 | Check PKI Tomcat conf path"
+  stat:
+    path: /var/lib/pki/pki-tomcat/conf
+  register: v222999_pki_conf
+
+# ---------------------------------------------------------
+# Resolve real path (symlink-aware)
+# ---------------------------------------------------------
+- name: "V-222999 | Resolve real Tomcat conf path"
+  command: readlink -f /var/lib/pki/pki-tomcat/conf
+  register: v222999_conf_real
+  changed_when: false
+  when: v222999_pki_conf.stat.exists
+
+# ---------------------------------------------------------
+# Fallback (standard Tomcat)
+# ---------------------------------------------------------
+- name: "V-222999 | Set fallback Tomcat conf path"
+  set_fact:
+    v222999_conf_path: "/etc/tomcat/conf"
+  when: not v222999_pki_conf.stat.exists
+
+- name: "V-222999 | Set resolved Tomcat conf path"
+  set_fact:
+    v222999_conf_path: "{{ v222999_conf_real.stdout }}"
+  when: v222999_pki_conf.stat.exists
+
+# ---------------------------------------------------------
+# Configure persistent audit rule
+# ---------------------------------------------------------
+- name: "V-222999 | Configure audit rule for Tomcat conf"
   lineinfile:
     path: /etc/audit/rules.d/tomcat.rules
-    line: "-w {{ tomcat_conf_path }} -p wa -k tomcat"
+    line: "-w {{ v222999_conf_path }} -p wa -k tomcat"
     create: yes
     state: present
-  notify: restart auditd
+    mode: '0640'
+  notify: reload audit rules
+
+# ---------------------------------------------------------
+# Verify rule (informational)
+# ---------------------------------------------------------
+- name: "V-222999 | Verify audit rule present"
+  shell: "grep -w '{{ v222999_conf_path }}' /etc/audit/rules.d/tomcat.rules || true"
+  register: v222999_rule_check
+  changed_when: false
+
+- name: "V-222999 | Enforcement Result"
+  debug:
+    msg: >-
+      {% if v222999_rule_check.stdout != "" %}
+      NOT A FINDING: Audit rule configured for {{ v222999_conf_path }}
+      {% else %}
+      FINDING: Audit rule missing for {{ v222999_conf_path }}
+      {% endif %}
