@@ -30,22 +30,24 @@
 # Uses persistent audit rules via /etc/audit/rules.d/
 ############################################################
 
-- name: "V-222998 | Detect PKI Tomcat CATALINA_HOME"
+- name: "V-222998 | Resolve real path for Tomcat bin (follows symlinks)"
   ansible.builtin.shell: |
-    if [ -d /usr/share/pki/server ]; then
-      echo /usr/share/pki/server
-    elif [ -d /var/lib/pki/pki-tomcat ]; then
-      echo /var/lib/pki/pki-tomcat
-    else
-      grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service 2>/dev/null | awk -F= '{print $2}' | head -1
+    for p in /var/lib/pki/pki-tomcat/bin /usr/share/pki/server/bin /usr/share/tomcat/bin; do
+      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
+    done
+    # Fallback: standard Tomcat
+    if [ -f /etc/systemd/system/tomcat.service ]; then
+      CATALINA=$(grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service 2>/dev/null | awk -F= '{print $2}' | head -1)
+      [ -n "$CATALINA" ] && readlink -f "$CATALINA/bin" && exit 0
     fi
-  register: catalina_home
+    exit 1
+  register: tomcat_bin_resolved
   changed_when: false
-  failed_when: catalina_home.stdout == ""
+  failed_when: tomcat_bin_resolved.stdout == ""
 
 - name: "V-222998 | Set Tomcat bin path"
   set_fact:
-    tomcat_bin_path: "{{ catalina_home.stdout }}/bin"
+    tomcat_bin_path: "{{ tomcat_bin_resolved.stdout | trim }}"
 
 - name: "V-222998 | Ensure audit rule exists for Tomcat bin"
   lineinfile:

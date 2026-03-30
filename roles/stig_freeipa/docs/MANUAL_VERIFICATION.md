@@ -209,33 +209,33 @@ curl -k -X OPTIONS https://localhost -i 2>/dev/null | grep -i "DAV:"
 **Severity:** CAT II
 **SRG:** SRG-APP-000504-AS-000229
 
+> **Note:** FreeIPA PKI Tomcat uses symlinks. Audit rules must target the
+> resolved (real) path since auditd monitors actual filesystem objects.
+
 ```bash
-# Step 1: Detect CATALINA_HOME (works across FreeIPA variants)
-CATALINA_HOME=$(
-  if [ -d /usr/share/pki/server ]; then echo /usr/share/pki/server;
-  elif [ -d /var/lib/pki/pki-tomcat ]; then echo /var/lib/pki/pki-tomcat;
-  elif [ -f /etc/systemd/system/tomcat.service ]; then
-    grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service | awk -F= '{print $2}' | head -1;
-  elif [ -f /etc/sysconfig/tomcat ]; then
-    grep CATALINA_HOME /etc/sysconfig/tomcat | awk -F= '{print $2}' | tr -d '"' | head -1;
-  fi
-)
-echo "Detected CATALINA_HOME: $CATALINA_HOME"
-# Expected: a valid path (e.g. /usr/share/pki/server or /var/lib/pki/pki-tomcat)
+# Step 1: Resolve the real path for Tomcat bin (follows symlinks)
+BIN_PATH=$(readlink -f /var/lib/pki/pki-tomcat/bin 2>/dev/null || readlink -f /usr/share/tomcat/bin 2>/dev/null)
+echo "Resolved bin path: $BIN_PATH"
+# Expected: /usr/share/tomcat/bin
 
-# Step 2: Verify bin directory exists
-ls -ld "$CATALINA_HOME/bin" 2>/dev/null || echo "bin/ not found at $CATALINA_HOME"
+# Step 2: Verify the resolved directory exists
+ls -ld "$BIN_PATH"
+# Expected: directory exists
 
-# Step 3: Check persistent audit rule
+# Step 3: Check persistent audit rule targets the real path
 cat /etc/audit/rules.d/tomcat.rules 2>/dev/null | grep bin
-# Expected: -w <CATALINA_HOME>/bin -p wa -k tomcat
+# Expected: -w /usr/share/tomcat/bin -p wa -k tomcat
 
 # Step 4: Check active audit rules
 auditctl -l | grep bin | grep tomcat
-# Expected: -w <CATALINA_HOME>/bin -p wa -k tomcat
+# Expected: -w /usr/share/tomcat/bin -p wa -k tomcat
+
+# Verify the symlink chain
+ls -la /var/lib/pki/pki-tomcat/bin
+# Expected: lrwxrwxrwx ... /var/lib/pki/pki-tomcat/bin -> /usr/share/tomcat/bin
 ```
 
-**Pass criteria:** Audit rule exists for Tomcat bin directory with `-p wa -k tomcat` flags.
+**Pass criteria:** Audit rule exists for the resolved real path of Tomcat bin with `-p wa -k tomcat` flags.
 
 ---
 
@@ -244,29 +244,33 @@ auditctl -l | grep bin | grep tomcat
 **Severity:** CAT II
 **SRG:** SRG-APP-000504-AS-000229
 
+> **Note:** FreeIPA PKI Tomcat `conf/` symlinks to `/etc/pki/pki-tomcat`.
+> The resolved path is already the real directory.
+
 ```bash
-# Step 1: Detect conf path (FreeIPA PKI conf is at /etc/pki/pki-tomcat)
-CONF_PATH=$(
-  if [ -d /etc/pki/pki-tomcat ]; then echo /etc/pki/pki-tomcat;
-  elif [ -n "$CATALINA_HOME" ] && [ -d "$CATALINA_HOME/conf" ]; then echo "$CATALINA_HOME/conf";
-  fi
-)
-echo "Detected conf path: $CONF_PATH"
+# Step 1: Resolve the real path for Tomcat conf
+CONF_PATH=$(readlink -f /var/lib/pki/pki-tomcat/conf 2>/dev/null || readlink -f /etc/pki/pki-tomcat 2>/dev/null)
+echo "Resolved conf path: $CONF_PATH"
+# Expected: /etc/pki/pki-tomcat
 
-# Step 2: Verify conf directory exists
+# Step 2: Verify the resolved directory exists
 ls -ld "$CONF_PATH"
-# Expected: directory exists, contains server.xml, ca/, Catalina/, etc.
+# Expected: directory exists, contains ca/, Catalina/, server.xml, etc.
 
-# Step 3: Check persistent audit rule
+# Step 3: Check persistent audit rule targets the real path
 cat /etc/audit/rules.d/tomcat.rules 2>/dev/null | grep conf
-# Expected: -w <CONF_PATH> -p wa -k tomcat
+# Expected: -w /etc/pki/pki-tomcat -p wa -k tomcat
 
 # Step 4: Check active audit rules
 auditctl -l | grep conf | grep tomcat
-# Expected: -w <CONF_PATH> -p wa -k tomcat
+# Expected: -w /etc/pki/pki-tomcat -p wa -k tomcat
+
+# Verify the symlink chain
+ls -la /var/lib/pki/pki-tomcat/conf
+# Expected: lrwxrwxrwx ... /var/lib/pki/pki-tomcat/conf -> /etc/pki/pki-tomcat
 ```
 
-**Pass criteria:** Audit rule exists for Tomcat conf directory with `-p wa -k tomcat` flags.
+**Pass criteria:** Audit rule exists for the resolved real path of Tomcat conf with `-p wa -k tomcat` flags.
 
 ---
 
@@ -275,29 +279,29 @@ auditctl -l | grep conf | grep tomcat
 **Severity:** CAT II
 **SRG:** SRG-APP-000504-AS-000229
 
+> **Note:** FreeIPA PKI Tomcat `lib/` symlinks to `/usr/share/pki/server/lib`.
+
 ```bash
-# Step 1: Detect lib path (reuse CATALINA_HOME from V-222998)
-CATALINA_HOME=$(
-  if [ -d /usr/share/pki/server ]; then echo /usr/share/pki/server;
-  elif [ -d /var/lib/pki/pki-tomcat ]; then echo /var/lib/pki/pki-tomcat;
-  elif [ -f /etc/systemd/system/tomcat.service ]; then
-    grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service | awk -F= '{print $2}' | head -1;
-  elif [ -f /etc/sysconfig/tomcat ]; then
-    grep CATALINA_HOME /etc/sysconfig/tomcat | awk -F= '{print $2}' | tr -d '"' | head -1;
-  fi
-)
-echo "Detected CATALINA_HOME: $CATALINA_HOME"
+# Step 1: Resolve the real path for Tomcat lib
+LIB_PATH=$(readlink -f /var/lib/pki/pki-tomcat/lib 2>/dev/null || readlink -f /usr/share/pki/server/lib 2>/dev/null)
+echo "Resolved lib path: $LIB_PATH"
+# Expected: /usr/share/pki/server/lib
 
-# Step 2: Verify lib directory exists
-ls -ld "$CATALINA_HOME/lib" 2>/dev/null || echo "lib/ not found at $CATALINA_HOME"
+# Step 2: Verify the resolved directory exists
+ls -ld "$LIB_PATH"
+# Expected: directory exists, contains jar files
 
-# Step 3: Check persistent audit rule
+# Step 3: Check persistent audit rule targets the real path
 cat /etc/audit/rules.d/tomcat.rules 2>/dev/null | grep lib
-# Expected: -w <CATALINA_HOME>/lib -p wa -k tomcat
+# Expected: -w /usr/share/pki/server/lib -p wa -k tomcat
 
 # Step 4: Check active audit rules
 auditctl -l | grep lib | grep tomcat
-# Expected: -w <CATALINA_HOME>/lib -p wa -k tomcat
+# Expected: -w /usr/share/pki/server/lib -p wa -k tomcat
+
+# Verify the symlink chain
+ls -la /var/lib/pki/pki-tomcat/lib
+# Expected: lrwxrwxrwx ... /var/lib/pki/pki-tomcat/lib -> /usr/share/pki/server/lib
 ```
 
-**Pass criteria:** Audit rule exists for Tomcat lib directory with `-p wa -k tomcat` flags.
+**Pass criteria:** Audit rule exists for the resolved real path of Tomcat lib with `-p wa -k tomcat` flags.
