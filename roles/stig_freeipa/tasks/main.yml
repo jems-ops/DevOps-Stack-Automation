@@ -3,6 +3,22 @@
 # tasks file for stig_freeipa
 
 ############################################################
+# Resolve Tomcat paths (shared, runs once)
+############################################################
+
+- name: "STIG FreeIPA | Resolve Tomcat paths"
+  ansible.builtin.include_tasks:
+    file: resolve-tomcat-paths.yml
+    apply:
+      tags: [enforcement, validation, V-222998, V-222999, V-223000]
+  tags:
+    - enforcement
+    - validation
+    - V-222998
+    - V-222999
+    - V-223000
+
+############################################################
 # STIG Enforcement (all controls)
 ############################################################
 

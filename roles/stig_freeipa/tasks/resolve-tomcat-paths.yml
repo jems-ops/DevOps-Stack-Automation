@@ -1,0 +1,47 @@
+---
+############################################################
+# Resolve FreeIPA PKI Tomcat paths (follows symlinks)
+#
+# Sets facts: tomcat_bin_path, tomcat_conf_path, tomcat_lib_path
+# Skips if already defined (idempotent)
+############################################################
+
+- name: "Resolve Tomcat bin path"
+  ansible.builtin.shell: |
+    for p in /var/lib/pki/pki-tomcat/bin /usr/share/pki/server/bin /usr/share/tomcat/bin; do
+      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
+    done
+    exit 1
+  register: _tomcat_bin_resolved
+  changed_when: false
+  failed_when: _tomcat_bin_resolved.stdout == ""
+  when: tomcat_bin_path is not defined
+
+- name: "Resolve Tomcat conf path"
+  ansible.builtin.shell: |
+    for p in /var/lib/pki/pki-tomcat/conf /etc/pki/pki-tomcat; do
+      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
+    done
+    exit 1
+  register: _tomcat_conf_resolved
+  changed_when: false
+  failed_when: _tomcat_conf_resolved.stdout == ""
+  when: tomcat_conf_path is not defined
+
+- name: "Resolve Tomcat lib path"
+  ansible.builtin.shell: |
+    for p in /var/lib/pki/pki-tomcat/lib /usr/share/pki/server/lib; do
+      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
+    done
+    exit 1
+  register: _tomcat_lib_resolved
+  changed_when: false
+  failed_when: _tomcat_lib_resolved.stdout == ""
+  when: tomcat_lib_path is not defined
+
+- name: "Set Tomcat path facts"
+  ansible.builtin.set_fact:
+    tomcat_bin_path: "{{ (_tomcat_bin_resolved.stdout | default('')) | trim or tomcat_bin_path }}"
+    tomcat_conf_path: "{{ (_tomcat_conf_resolved.stdout | default('')) | trim or tomcat_conf_path }}"
+    tomcat_lib_path: "{{ (_tomcat_lib_resolved.stdout | default('')) | trim or tomcat_lib_path }}"
+  when: tomcat_bin_path is not defined or tomcat_conf_path is not defined or tomcat_lib_path is not defined

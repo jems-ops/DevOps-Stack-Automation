@@ -32,21 +32,6 @@
 # NOT A FINDING if compliant, otherwise FINDING
 ############################################################
 
-- name: "V-222999 | Resolve Tomcat conf path"
-  ansible.builtin.shell: |
-    for p in /var/lib/pki/pki-tomcat/conf /etc/pki/pki-tomcat; do
-      if [ -e "$p" ]; then readlink -f "$p"; exit 0; fi
-    done
-    exit 1
-  register: v222999_conf_resolved
-  changed_when: false
-  failed_when: v222999_conf_resolved.stdout == ""
-
-- name: "V-222999 | Set Tomcat conf path"
-  set_fact:
-    tomcat_conf_path: "{{ v222999_conf_resolved.stdout | trim }}"
-  when: tomcat_conf_path is not defined
-
 - name: "V-222999 | Validate audit rule for Tomcat conf"
   shell: "auditctl -l | grep '{{ tomcat_conf_path }}' || true"
   register: audit_conf_check
