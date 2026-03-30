@@ -1,0 +1,55 @@
+---
+############################################################
+# STIG Control: V-222999
+# SRG ID: SRG-APP-000504-AS-000229
+# Rule ID: SV-222999r961827
+# Severity: CAT II
+#
+# Title:
+# Changes to $CATALINA_BASE/conf/ folder must be logged.
+#
+# Description:
+# The Tomcat conf directory contains configuration files.
+# Changes must be audited for forensic visibility and integrity.
+#
+# Finding Details:
+# If audit rules do not include:
+# -w $CATALINA_BASE/conf -p wa -k tomcat
+# then this is a finding.
+#
+# Implementation:
+# Configure auditd to monitor write and attribute changes
+# to the Tomcat conf directory.
+#
+# Manual Procedure:
+# auditctl -l | grep conf
+#
+# Comments:
+# Persistent rule added under /etc/audit/rules.d/
+############################################################
+
+- name: "V-222999 | Detect PKI Tomcat CATALINA_BASE"
+  ansible.builtin.shell: |
+    if [ -d /var/lib/pki/pki-tomcat ]; then
+      echo /var/lib/pki/pki-tomcat
+    elif [ -d /etc/pki/pki-tomcat ]; then
+      echo /etc/pki/pki-tomcat
+    else
+      grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service 2>/dev/null | awk -F= '{print $2}' | head -1
+    fi
+  register: catalina_base
+  changed_when: false
+  failed_when: catalina_base.stdout == ""
+
+- name: "V-222999 | Set Tomcat conf path"
+  set_fact:
+    tomcat_conf_path: >-
+      {{ '/etc/pki/pki-tomcat' if '/var/lib/pki' in catalina_base.stdout else catalina_base.stdout + '/conf' }}
+
+- name: "V-222999 | Ensure audit rule exists for Tomcat conf"
+  lineinfile:
+    path: /etc/audit/rules.d/tomcat.rules
+    line: "-w {{ tomcat_conf_path }} -p wa -k tomcat"
+    create: yes
+    state: present
+  notify: restart auditd

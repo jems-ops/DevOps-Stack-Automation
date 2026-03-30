@@ -1,0 +1,56 @@
+---
+############################################################
+# STIG Control: V-222998
+# SRG ID: SRG-APP-000504-AS-000229
+# Rule ID: SV-222998r961827
+# Severity: CAT II
+#
+# Title:
+# Changes to $CATALINA_HOME/bin folder must be logged.
+#
+# Description:
+# The Tomcat bin directory contains startup/control scripts.
+# Any modification must be audited for forensic visibility.
+#
+# Finding Details:
+# If audit rules do not include:
+# -w $CATALINA_HOME/bin -p wa -k tomcat
+# then this is a finding.
+#
+# Implementation:
+# Configure auditd to watch Tomcat bin directory for write/attribute changes.
+#
+# Manual Procedure:
+# auditctl -l | grep $CATALINA_HOME/bin
+#
+# Expected:
+# -w <path>/bin -p wa -k tomcat
+#
+# Comments:
+# Uses persistent audit rules via /etc/audit/rules.d/
+############################################################
+
+- name: "V-222998 | Detect PKI Tomcat CATALINA_HOME"
+  ansible.builtin.shell: |
+    if [ -d /usr/share/pki/server ]; then
+      echo /usr/share/pki/server
+    elif [ -d /var/lib/pki/pki-tomcat ]; then
+      echo /var/lib/pki/pki-tomcat
+    else
+      grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service 2>/dev/null | awk -F= '{print $2}' | head -1
+    fi
+  register: catalina_home
+  changed_when: false
+  failed_when: catalina_home.stdout == ""
+
+- name: "V-222998 | Set Tomcat bin path"
+  set_fact:
+    tomcat_bin_path: "{{ catalina_home.stdout }}/bin"
+
+- name: "V-222998 | Ensure audit rule exists for Tomcat bin"
+  lineinfile:
+    path: /etc/audit/rules.d/tomcat.rules
+    line: "-w {{ tomcat_bin_path }} -p wa -k tomcat"
+    create: yes
+    state: present
+  notify: restart auditd

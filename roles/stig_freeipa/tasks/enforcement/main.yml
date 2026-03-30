@@ -13,6 +13,24 @@
     - V-264341
     - enforcement
 
+- name: "V-222998 | Enforce audit logging for Tomcat bin"
+  ansible.builtin.include_tasks: auditing/V-222998.yml
+  tags:
+    - V-222998
+    - enforcement
+
+- name: "V-222999 | Enforce audit logging for Tomcat conf"
+  ansible.builtin.include_tasks: auditing/V-222999.yml
+  tags:
+    - V-222999
+    - enforcement
+
+- name: "V-223000 | Enforce audit logging for Tomcat lib"
+  ansible.builtin.include_tasks: auditing/V-223000.yml
+  tags:
+    - V-223000
+    - enforcement
+
 ############################################################
 # Authentication & Authorization
 ############################################################

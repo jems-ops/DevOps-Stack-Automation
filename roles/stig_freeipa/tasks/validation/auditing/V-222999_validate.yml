@@ -1,0 +1,47 @@
+---
+############################################################
+# STIG Control: V-222999
+# SRG ID: SRG-APP-000504-AS-000229
+# Rule ID: SV-222999r961827
+# Severity: CAT II
+#
+# Title:
+# Changes to $CATALINA_BASE/conf/ folder must be logged.
+#
+# Validation Description:
+# Verify auditd is configured to log write and attribute
+# changes for the Tomcat conf directory.
+#
+# Validation Command:
+# auditctl -l | grep $CATALINA_BASE/conf
+#
+# Expected Result:
+# -w <CATALINA_BASE>/conf -p wa -k tomcat
+#
+# Passing Criteria:
+# - Audit rule exists for Tomcat conf directory
+# - Permission flags include "wa"
+# - Audit key "tomcat" is present
+#
+# Failing Criteria:
+# - No audit rule found
+# - Missing "wa" permission flags
+# - Missing or incorrect audit key
+#
+# Status Output:
+# NOT A FINDING if compliant, otherwise FINDING
+############################################################
+
+- name: "V-222999 | Validate audit rule for Tomcat conf"
+  shell: "auditctl -l | grep '{{ tomcat_conf_path }}' || true"
+  register: audit_conf_check
+  changed_when: false
+
+- name: "V-222999 | Compliance Result"
+  debug:
+    msg: >-
+      {% if ('-p wa' in audit_conf_check.stdout) and ('-k tomcat' in audit_conf_check.stdout) %}
+      NOT A FINDING: Audit rule properly configured for {{ tomcat_conf_path }}
+      {% else %}
+      FINDING: Audit rule missing or incorrect for {{ tomcat_conf_path }}
+      {% endif %}

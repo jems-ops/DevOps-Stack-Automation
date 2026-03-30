@@ -1,12 +1,4 @@
-# FreeIPA STIG Manual Verification Guide
-
-SSH into the FreeIPA server to run these commands:
-
-```bash
-ssh vagrant@192.168.56.14
-```
-
----
+## Manual Logs
 
 ## V-264341 — Web Server Must Generate Audit Records
 
@@ -209,3 +201,103 @@ curl -k -X OPTIONS https://localhost -i 2>/dev/null | grep -i "DAV:"
 ```
 
 **Pass criteria:** DAV modules not loaded, no DAV directives, no DAV methods in HTTP OPTIONS response.
+
+---
+
+## V-222998 — Changes to Tomcat bin/ Folder Must Be Logged
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000504-AS-000229
+
+```bash
+# Step 1: Detect CATALINA_HOME (works across FreeIPA variants)
+CATALINA_HOME=$(
+  if [ -d /usr/share/pki/server ]; then echo /usr/share/pki/server;
+  elif [ -d /var/lib/pki/pki-tomcat ]; then echo /var/lib/pki/pki-tomcat;
+  elif [ -f /etc/systemd/system/tomcat.service ]; then
+    grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service | awk -F= '{print $2}' | head -1;
+  elif [ -f /etc/sysconfig/tomcat ]; then
+    grep CATALINA_HOME /etc/sysconfig/tomcat | awk -F= '{print $2}' | tr -d '"' | head -1;
+  fi
+)
+echo "Detected CATALINA_HOME: $CATALINA_HOME"
+# Expected: a valid path (e.g. /usr/share/pki/server or /var/lib/pki/pki-tomcat)
+
+# Step 2: Verify bin directory exists
+ls -ld "$CATALINA_HOME/bin" 2>/dev/null || echo "bin/ not found at $CATALINA_HOME"
+
+# Step 3: Check persistent audit rule
+cat /etc/audit/rules.d/tomcat.rules 2>/dev/null | grep bin
+# Expected: -w <CATALINA_HOME>/bin -p wa -k tomcat
+
+# Step 4: Check active audit rules
+auditctl -l | grep bin | grep tomcat
+# Expected: -w <CATALINA_HOME>/bin -p wa -k tomcat
+```
+
+**Pass criteria:** Audit rule exists for Tomcat bin directory with `-p wa -k tomcat` flags.
+
+---
+
+## V-222999 — Changes to Tomcat conf/ Folder Must Be Logged
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000504-AS-000229
+
+```bash
+# Step 1: Detect conf path (FreeIPA PKI conf is at /etc/pki/pki-tomcat)
+CONF_PATH=$(
+  if [ -d /etc/pki/pki-tomcat ]; then echo /etc/pki/pki-tomcat;
+  elif [ -n "$CATALINA_HOME" ] && [ -d "$CATALINA_HOME/conf" ]; then echo "$CATALINA_HOME/conf";
+  fi
+)
+echo "Detected conf path: $CONF_PATH"
+
+# Step 2: Verify conf directory exists
+ls -ld "$CONF_PATH"
+# Expected: directory exists, contains server.xml, ca/, Catalina/, etc.
+
+# Step 3: Check persistent audit rule
+cat /etc/audit/rules.d/tomcat.rules 2>/dev/null | grep conf
+# Expected: -w <CONF_PATH> -p wa -k tomcat
+
+# Step 4: Check active audit rules
+auditctl -l | grep conf | grep tomcat
+# Expected: -w <CONF_PATH> -p wa -k tomcat
+```
+
+**Pass criteria:** Audit rule exists for Tomcat conf directory with `-p wa -k tomcat` flags.
+
+---
+
+## V-223000 — Changes to Tomcat lib/ Folder Must Be Logged
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000504-AS-000229
+
+```bash
+# Step 1: Detect lib path (reuse CATALINA_HOME from V-222998)
+CATALINA_HOME=$(
+  if [ -d /usr/share/pki/server ]; then echo /usr/share/pki/server;
+  elif [ -d /var/lib/pki/pki-tomcat ]; then echo /var/lib/pki/pki-tomcat;
+  elif [ -f /etc/systemd/system/tomcat.service ]; then
+    grep -i 'catalina.home\|catalina.base' /etc/systemd/system/tomcat.service | awk -F= '{print $2}' | head -1;
+  elif [ -f /etc/sysconfig/tomcat ]; then
+    grep CATALINA_HOME /etc/sysconfig/tomcat | awk -F= '{print $2}' | tr -d '"' | head -1;
+  fi
+)
+echo "Detected CATALINA_HOME: $CATALINA_HOME"
+
+# Step 2: Verify lib directory exists
+ls -ld "$CATALINA_HOME/lib" 2>/dev/null || echo "lib/ not found at $CATALINA_HOME"
+
+# Step 3: Check persistent audit rule
+cat /etc/audit/rules.d/tomcat.rules 2>/dev/null | grep lib
+# Expected: -w <CATALINA_HOME>/lib -p wa -k tomcat
+
+# Step 4: Check active audit rules
+auditctl -l | grep lib | grep tomcat
+# Expected: -w <CATALINA_HOME>/lib -p wa -k tomcat
+```
+
+**Pass criteria:** Audit rule exists for Tomcat lib directory with `-p wa -k tomcat` flags.

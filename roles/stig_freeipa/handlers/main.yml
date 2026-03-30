@@ -17,10 +17,8 @@
 
 - name: restart auditd
   become: true
-  ansible.builtin.service:
-    name: auditd
-    state: restarted
-    enabled: true
+  ansible.builtin.command: service auditd restart
+  changed_when: true
 
 - name: reload systemd
   become: true

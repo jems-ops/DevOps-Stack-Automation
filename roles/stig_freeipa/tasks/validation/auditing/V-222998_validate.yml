@@ -1,0 +1,48 @@
+---
+############################################################
+# STIG Control: V-222998
+# SRG ID: SRG-APP-000504-AS-000229
+# Rule ID: SV-222998r961827
+# Severity: CAT II
+#
+# Title:
+# Changes to $CATALINA_HOME/bin folder must be logged.
+#
+# Validation Description:
+# Verify that auditd is configured to log write and attribute
+# changes for the Tomcat bin directory.
+#
+# Validation Command:
+# auditctl -l | grep $CATALINA_HOME/bin
+#
+# Expected Result:
+# Output should include:
+# -w <CATALINA_HOME>/bin -p wa -k tomcat
+#
+# Passing Criteria:
+# - Audit rule exists for Tomcat bin directory
+# - Permission flags include "wa"
+# - Key "tomcat" is present
+#
+# Failing Criteria:
+# - No audit rule found for Tomcat bin
+# - Missing required permission flags (wa)
+# - Incorrect or missing audit key
+#
+# Status Output:
+# Returns NOT A FINDING if compliant, otherwise FINDING
+############################################################
+
+- name: "V-222998 | Validate audit rule for Tomcat bin"
+  shell: "auditctl -l | grep '{{ tomcat_bin_path }}' || true"
+  register: audit_check
+  changed_when: false
+
+- name: "V-222998 | Compliance Result"
+  debug:
+    msg: >-
+      {% if ('-p wa' in audit_check.stdout) and ('-k tomcat' in audit_check.stdout) %}
+      NOT A FINDING: Audit rule properly configured for {{ tomcat_bin_path }}
+      {% else %}
+      FINDING: Audit rule missing or incorrectly configured for {{ tomcat_bin_path }}
+      {% endif %}
