@@ -48,29 +48,45 @@
 # required Apache features for FreeIPA.
 ############################################################
 
+# ---------------------------------------------------------
+# Discover httpd config files dynamically
+# ---------------------------------------------------------
+- name: "V-206380 | Find httpd configuration files"
+  find:
+    paths: /etc/httpd
+    patterns: "*.conf"
+    recurse: yes
+  register: v206380_conf_files
+
+# ---------------------------------------------------------
+# Remove ExecCGI from Options directives (safe)
+# ---------------------------------------------------------
 - name: "V-206380 | Remove ExecCGI from Options directives"
   replace:
-    path: "{{ item }}"
-    regexp: '\bExecCGI\b'
-    replace: ''
-  loop: "{{ lookup('ansible.builtin.fileglob', '/etc/httpd/conf/*.conf', wantlist=True)
-            + lookup('ansible.builtin.fileglob', '/etc/httpd/conf.d/*.conf', wantlist=True) }}"
+    path: "{{ item.path }}"
+    regexp: '(^\s*Options\s+.*)\bExecCGI\b'
+    replace: '\1'
+  loop: "{{ v206380_conf_files.files }}"
   notify: restart httpd
 
-- name: "V-206380 | Remove CGI script handlers"
+# ---------------------------------------------------------
+# Remove CGI script handlers
+# ---------------------------------------------------------
+- name: "V-206380 | Remove AddHandler cgi-script"
   lineinfile:
-    path: "{{ item }}"
-    regexp: '^\s*AddHandler\s+cgi-script'
+    path: "{{ item.path }}"
+    regexp: '^\s*AddHandler\s+cgi-script.*'
     state: absent
-  loop: "{{ lookup('ansible.builtin.fileglob', '/etc/httpd/conf/*.conf', wantlist=True)
-            + lookup('ansible.builtin.fileglob', '/etc/httpd/conf.d/*.conf', wantlist=True) }}"
+  loop: "{{ v206380_conf_files.files }}"
   notify: restart httpd
 
-- name: "V-206380 | Remove executable MIME type mappings"
+# ---------------------------------------------------------
+# Remove executable MIME mappings
+# ---------------------------------------------------------
+- name: "V-206380 | Remove application/x-httpd-cgi MIME types"
   lineinfile:
-    path: "{{ item }}"
-    regexp: '^\s*AddType\s+application/x-httpd-cgi'
+    path: "{{ item.path }}"
+    regexp: '^\s*AddType\s+application/x-httpd-cgi.*'
     state: absent
-  loop: "{{ lookup('ansible.builtin.fileglob', '/etc/httpd/conf/*.conf', wantlist=True)
-            + lookup('ansible.builtin.fileglob', '/etc/httpd/conf.d/*.conf', wantlist=True) }}"
+  loop: "{{ v206380_conf_files.files }}"
   notify: restart httpd

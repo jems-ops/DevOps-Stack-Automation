@@ -1,28 +1,19 @@
 ---
 ############################################################
 # STIG Control: V-206380
-# Title: The web server must not allow execution of OS commands
-# Severity: CAT II
-#
 # Validation Description:
-# - Ensure ExecCGI is not enabled
-# - Ensure no CGI handlers configured
-# - Ensure no executable MIME types present
+# - Verify no ExecCGI directive exists
+# - Verify no CGI handlers exist
+# - Verify no executable MIME mappings exist
 #
 # Expected Result:
-# - No ExecCGI directive
-# - No cgi-script handler
-# - No application/x-httpd-cgi MIME type
-#
-# Passing Criteria:
-# - No active CGI or shell execution configuration found
-#
-# Failing Criteria:
-# - Any CGI or ExecCGI directive detected
+# - No matches for ExecCGI
+# - No matches for cgi-script
+# - No matches for application/x-httpd-cgi
 ############################################################
 
 # ---------------------------------------------------------
-# Discover httpd config files dynamically
+# Discover config files
 # ---------------------------------------------------------
 - name: "V-206380 | Find httpd configuration files"
   find:
@@ -32,7 +23,7 @@
   register: v206380_conf_files
 
 # ---------------------------------------------------------
-# Check ExecCGI
+# ExecCGI check
 # ---------------------------------------------------------
 - name: "V-206380 | Check for ExecCGI"
   shell: "grep -si '^[[:space:]]*Options.*ExecCGI' {{ item.path }} || true"
@@ -42,7 +33,7 @@
   failed_when: false
 
 # ---------------------------------------------------------
-# Check CGI handlers
+# CGI handler check
 # ---------------------------------------------------------
 - name: "V-206380 | Check for CGI handlers"
   shell: "grep -si 'cgi-script' {{ item.path }} || true"
@@ -52,7 +43,7 @@
   failed_when: false
 
 # ---------------------------------------------------------
-# Check executable MIME types
+# MIME check
 # ---------------------------------------------------------
 - name: "V-206380 | Check for executable MIME types"
   shell: "grep -si 'application/x-httpd-cgi' {{ item.path }} || true"
@@ -62,13 +53,13 @@
   failed_when: false
 
 # ---------------------------------------------------------
-# Aggregate findings
+# Aggregate results
 # ---------------------------------------------------------
 - name: "V-206380 | Aggregate findings"
   set_fact:
-    v206380_exec_found: "{{ v206380_exec_results.results | selectattr('stdout', '!=', '') | list }}"
-    v206380_handler_found: "{{ v206380_handler_results.results | selectattr('stdout', '!=', '') | list }}"
-    v206380_mime_found: "{{ v206380_mime_results.results | selectattr('stdout', '!=', '') | list }}"
+    v206380_exec_found: "{{ v206380_exec_results.results | selectattr('stdout','!=','') | list }}"
+    v206380_handler_found: "{{ v206380_handler_results.results | selectattr('stdout','!=','') | list }}"
+    v206380_mime_found: "{{ v206380_mime_results.results | selectattr('stdout','!=','') | list }}"
 
 # ---------------------------------------------------------
 # Final result
@@ -76,13 +67,13 @@
 - name: "V-206380 | Compliance Result"
   debug:
     msg: >-
-      {% if v206380_exec_found | length == 0
-         and v206380_handler_found | length == 0
-         and v206380_mime_found | length == 0 %}
+      {% if v206380_exec_found|length == 0
+         and v206380_handler_found|length == 0
+         and v206380_mime_found|length == 0 %}
       NOT A FINDING:
-      - No ExecCGI directives found
-      - No CGI handlers configured
-      - No executable MIME types detected
+      - No ExecCGI detected
+      - No CGI handlers present
+      - No executable MIME mappings found
       {% else %}
       FINDING:
       - ExecCGI: {{ v206380_exec_found | map(attribute='stdout') | list }}
