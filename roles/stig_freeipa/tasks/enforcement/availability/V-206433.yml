@@ -42,14 +42,12 @@
 #
 # Expected Result:
 # - Apache has defined worker and timeout limits
-# - OS limits >= 65536
-# - LDAP configured with nsslapd-maxdescriptors
+# - OS limits >= 65536 - important but not aligned with this STIG
+# - LDAP configured with nsslapd-maxdescriptors - important but not aligned with this STIG
 #
 # Comments:
-# Apache, FreeIPA (389-DS), and OS resource limits have been tuned to handle
-# expected operational workload. LDAP configuration persisted via dse.ldif.
-# These changes prevent resource exhaustion and mitigate DoS conditions.
-#
+# Apache is tuned with appropriate worker limits, timeouts, and connection handling settings to prevent resource exhaustion and mitigate DoS conditions under expected traffic loads.
+
 ############################################################
 
 ############################
@@ -59,60 +57,11 @@
   copy:
     dest: /etc/httpd/conf.d/tuning.conf
     content: |
-      # STIG V-206433 Apache Tuning
+      # STIG V-206433 Apache DoS Tuning
       ServerLimit 150
       MaxRequestWorkers 150
       Timeout 60
       KeepAlive On
       KeepAliveTimeout 30
+      MaxKeepAliveRequests 100
   notify: restart httpd
-
-############################
-# OS Limits (File Descriptors)
-############################
-- name: "V-206433 | Configure system file descriptor limits"
-  copy:
-    dest: /etc/security/limits.d/99-freeipa.conf
-    content: |
-      * soft nofile 65536
-      * hard nofile 65536
-
-############################
-# systemd Limits
-############################
-- name: "V-206433 | Configure systemd DefaultLimitNOFILE"
-  lineinfile:
-    path: /etc/systemd/system.conf
-    regexp: '^DefaultLimitNOFILE'
-    line: 'DefaultLimitNOFILE=65536'
-  notify: reload systemd
-
-############################
-# FreeIPA LDAP (389-DS) Tuning
-############################
-- name: "V-206433 | Create LDAP tuning LDIF"
-  copy:
-    dest: /tmp/freeipa_tuning.ldif
-    content: |
-      dn: cn=config
-      changetype: modify
-      replace: nsslapd-maxdescriptors
-      nsslapd-maxdescriptors: 65536
-
-- name: "V-206433 | Detect 389-DS LDAPI socket"
-  ansible.builtin.shell: "ls /var/run/slapd-*.socket 2>/dev/null | head -1"
-  register: ldapi_socket
-  changed_when: false
-  failed_when: false
-
-- name: "V-206433 | Apply LDAP tuning via LDAPI"
-  command: >
-    ldapmodify -Y EXTERNAL -H ldapi://{{ ldapi_socket.stdout | regex_replace('/', '%2f') }}
-    -f /tmp/freeipa_tuning.ldif
-  register: ldapmodify_result
-  changed_when: "'modifying entry' in ldapmodify_result.stdout"
-  failed_when:
-    - ldapmodify_result.rc != 0
-    - "'Type or value exists' not in ldapmodify_result.stderr"
-    - "'No such attribute' not in ldapmodify_result.stderr"
-  when: ldapi_socket.stdout | length > 0

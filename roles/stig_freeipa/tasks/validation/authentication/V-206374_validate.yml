@@ -1,83 +1,53 @@
 ---
 ############################################################
 # STIG Control: V-206374
-# SRG ID: SRG-APP-000141-WSR-000015
-# Title: The web server must not perform user management
-# Severity: CAT II
 #
 # Validation Description:
-# - Verify .ht* files are not accessible (HTTP 403)
-# - Ensure no AuthUserFile directives exist in httpd configs
+# - .htaccess usage disabled
+# - .ht* files not accessible (403)
+# - No AuthUserFile/AuthType/Require valid-user present
 #
-# Validation Commands:
-# curl -k -I https://localhost/.htaccess
-# grep -Rsi '^\s*AuthUserFile' /etc/httpd
-#
-# Expected Result:
-# - HTTP response = 403
-# - No AuthUserFile entries found
-#
-# Passing Criteria:
-# - .htaccess returns HTTP 403
-# - No AuthUserFile directive exists
-#
-# Failing Criteria:
-# - .htaccess accessible (200/301/etc)
-# - AuthUserFile directive present
-#
-# Status Output:
-# NOT A FINDING if compliant, otherwise FINDING
+# Expected:
+# - AllowOverride None present
+# - HTTP 403 for .htaccess
+# - No local auth directives
 ############################################################
 
 # ---------------------------------------------------------
-# Check .htaccess access (HTTP response)
+# Check .htaccess HTTP access
 # ---------------------------------------------------------
-- name: "V-206374 | Check .htaccess access (HTTP code)"
+- name: "V-206374 | Check .htaccess access"
   shell: "curl -k -s -o /dev/null -w '%{http_code}' https://localhost/.htaccess || true"
-  register: v206374_http_check
+  register: v206374_http
   changed_when: false
-  failed_when: false
 
 # ---------------------------------------------------------
-# Find any AuthUserFile usage
+# Check AllowOverride None
 # ---------------------------------------------------------
-- name: "V-206374 | Search for AuthUserFile directives"
-  find:
-    paths: /etc/httpd
-    patterns: "*.conf"
-    recurse: yes
-  register: v206374_conf_files
-
-- name: "V-206374 | Check AuthUserFile in configs"
-  shell: 'grep -si "^\s*AuthUserFile" {{ item.path }} || true'
-  loop: "{{ v206374_conf_files.files }}"
-  register: v206374_auth_results
+- name: "V-206374 | Check AllowOverride"
+  shell: "grep -Rsi 'AllowOverride None' /etc/httpd || true"
+  register: v206374_override
   changed_when: false
-  failed_when: false
 
 # ---------------------------------------------------------
-# Aggregate results
+# Check for forbidden directives
 # ---------------------------------------------------------
-- name: "V-206374 | Aggregate AuthUserFile findings"
-  set_fact:
-    v206374_auth_found: >-
-      {{ v206374_auth_results.results
-         | selectattr('stdout', '!=', '')
-         | list }}
+- name: "V-206374 | Check AuthUserFile/AuthType/Require"
+  shell: >
+    grep -RsiE '^\s*(AuthUserFile|AuthType|Require\s+valid-user)' /etc/httpd 2>/dev/null || true
+  register: v206374_auth
+  changed_when: false
 
 # ---------------------------------------------------------
-# Final Compliance Result
+# Final Result
 # ---------------------------------------------------------
 - name: "V-206374 | Compliance Result"
   debug:
     msg: >-
-      {% if v206374_http_check.stdout == '403' and v206374_auth_found | length == 0 %}
-      NOT A FINDING:
-      - .htaccess access denied (HTTP 403)
-      - No AuthUserFile directives detected
+      {% if v206374_http.stdout == '403'
+         and v206374_override.stdout != ''
+         and v206374_auth.stdout == '' %}
+      NOT A FINDING
       {% else %}
-      FINDING:
-      - HTTP Status: {{ v206374_http_check.stdout }}
-      - AuthUserFile Findings:
-      {{ v206374_auth_found | map(attribute='stdout') | list }}
+      FINDING
       {% endif %}

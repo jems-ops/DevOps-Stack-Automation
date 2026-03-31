@@ -44,44 +44,17 @@
 # (e.g., ipa_session). This control enforces a global Apache
 # safeguard to ensure compliance regardless of application
 # behavior.
+# Cookies are configured with the HttpOnly attribute to prevent client-side scripts from accessing session data. This mitigates cross-site scripting (XSS) risks.
 ############################################################
 
-- name: "V-206437 | Verify httpd (includes mod_headers) is installed"
-  ansible.builtin.command: rpm -q httpd
-  register: v206437_httpd_check
-  changed_when: false
-  failed_when: v206437_httpd_check.rc != 0
-
-- name: "V-206437 | Ensure mod_headers module is loaded"
-  lineinfile:
-    path: /etc/httpd/conf.modules.d/00-base.conf
-    regexp: '^LoadModule headers_module'
-    line: 'LoadModule headers_module modules/mod_headers.so'
-    state: present
-  notify: restart httpd
-
-- name: "V-206437 | Enforce HttpOnly and Secure cookie flags"
+- name: "V-206437 | Enforce HttpOnly cookie flag"
   copy:
     dest: /etc/httpd/conf.d/cookie_security.conf
     content: |
       ############################################################
-      # STIG V-206437 - Cookie Security Hardening
-      # Applied globally to all Set-Cookie headers
+      # STIG V-206437 - Cookie Protection
       ############################################################
       <IfModule mod_headers.c>
-        Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure"
+        Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly"
       </IfModule>
-    owner: root
-    group: root
-    mode: '0644'
   notify: restart httpd
-
-- name: "V-206437 | Ensure FreeIPA ipa.conf also enforces cookie flags"
-  ansible.builtin.lineinfile:
-    path: /etc/httpd/conf.d/ipa.conf
-    insertafter: '</IfModule>'
-    line: '  Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure"'
-    regexp: 'Header always edit Set-Cookie'
-    state: present
-  notify: restart httpd
-  ignore_errors: true

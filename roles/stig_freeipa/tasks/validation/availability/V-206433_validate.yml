@@ -1,81 +1,36 @@
 ---
 ############################################################
 # STIG Control: V-206433
-# Validation
 # Title: Web server must be tuned to prevent DoS conditions
 # Severity: CAT II
 #
-# Validation Checks:
-# - Apache tuning parameters
-# - OS file descriptor limits
-# - systemd limits
-# - FreeIPA (389-DS) LDAP tuning
+# Validation Description:
+# Verify Apache is configured with appropriate limits:
+# - MaxRequestWorkers
+# - Timeout
+# - KeepAlive
+# - KeepAliveTimeout
+#
+# Expected:
+# - MaxRequestWorkers defined
+# - Timeout <= 60
+# - KeepAlive On
 ############################################################
 
-############################
-# Apache Validation
-############################
-- name: "V-206433 | Validate Apache tuning config exists"
-  stat:
-    path: /etc/httpd/conf.d/tuning.conf
-  register: apache_conf
-
-- name: "V-206433 | Validate Apache tuning parameters"
+- name: "V-206433 | Check Apache tuning config"
   shell: |
-    grep -E 'MaxRequestWorkers|ServerLimit|Timeout|KeepAlive' /etc/httpd/conf.d/tuning.conf
-  register: apache_tuning
+    grep -E "MaxRequestWorkers|Timeout|KeepAlive|KeepAliveTimeout" /etc/httpd/conf.d/*.conf 2>/dev/null || true
+  register: v206433_tuning
   changed_when: false
-  when: apache_conf.stat.exists
+  failed_when: false
 
-############################
-# OS Limits Validation
-############################
-- name: "V-206433 | Check current ulimit"
-  shell: "ulimit -n"
-  register: ulimit_check
-  changed_when: false
-
-- name: "V-206433 | Validate limits config file"
-  shell: "grep -E 'nofile' /etc/security/limits.d/99-freeipa.conf"
-  register: limits_conf
-  changed_when: false
-  ignore_errors: true
-
-############################
-# systemd Validation
-############################
-- name: "V-206433 | Check systemd DefaultLimitNOFILE"
-  shell: "grep DefaultLimitNOFILE /etc/systemd/system.conf"
-  register: systemd_limit
-  changed_when: false
-
-############################
-# LDAP (389-DS) Validation
-############################
-- name: "V-206433 | Check LDAP descriptor tuning"
-  shell: "grep nsslapd-maxdescriptors /etc/dirsrv/slapd-*/dse.ldif"
-  register: ldap_tuning
-  changed_when: false
-  ignore_errors: true
-
-############################
-# Final Assertion
-############################
-- name: "V-206433 | Assert all tuning is compliant"
-  assert:
-    that:
-      - apache_conf.stat.exists
-      - "'MaxRequestWorkers' in apache_tuning.stdout"
-      - "'ServerLimit' in apache_tuning.stdout"
-      - ulimit_check.stdout | int >= 65536
-      - "'DefaultLimitNOFILE=65536' in systemd_limit.stdout"
-      - "'nsslapd-maxdescriptors: 65536' in ldap_tuning.stdout"
-    fail_msg: |
-      V-206433 FAILED:
-      - Apache, OS, or LDAP tuning is incomplete
-    success_msg: |
-      V-206433 PASSED:
-      - Apache tuned
-      - OS limits >= 65536
-      - systemd aligned
-      - LDAP tuned
+- name: "V-206433 | Compliance Result"
+  debug:
+    msg: >-
+      {% if 'MaxRequestWorkers' in v206433_tuning.stdout
+         and 'Timeout 60' in v206433_tuning.stdout
+         and 'KeepAlive On' in v206433_tuning.stdout %}
+      NOT A FINDING
+      {% else %}
+      FINDING
+      {% endif %}

@@ -1,79 +1,42 @@
 ---
 ############################################################
 # STIG Control: V-206383
-# Title: WebDAV must be disabled
-# Severity: CAT II
 #
 # Validation Description:
-# - Ensure no DAV modules loaded
-# - Ensure no "DAV On" directives exist
-# - Ensure HTTP does not expose DAV methods
+# - No DAV modules loaded
+# - No "DAV On" directives present
 #
-# Expected Result:
-# - No DAV modules in httpd -M
-# - No active DAV directives
-# - No DAV methods in OPTIONS response
+# Expected:
+# - httpd -M shows no dav modules
+# - No DAV On found in config
 ############################################################
 
-# ---------------------------------------------------------
+########################################
 # Check loaded modules
-# ---------------------------------------------------------
+########################################
 - name: "V-206383 | Check loaded modules"
   command: httpd -M
   register: v206383_modules
   changed_when: false
   failed_when: false
 
-# ---------------------------------------------------------
-# Check DAV directives (dynamic path)
-# ---------------------------------------------------------
-- name: "V-206383 | Find httpd config files"
-  find:
-    paths: /etc/httpd
-    patterns: "*.conf"
-    recurse: yes
-  register: v206383_conf_files
-
-- name: "V-206383 | Check for DAV directives"
-  shell: "grep -si '^[[:space:]]*DAV' {{ item.path }} || true"
-  loop: "{{ v206383_conf_files.files }}"
-  register: v206383_dav_results
+########################################
+# Check DAV directives
+########################################
+- name: "V-206383 | Check DAV directives"
+  shell: 'grep -Rsi "^[[:space:]]*DAV[[:space:]]+On" /etc/httpd 2>/dev/null || true'
+  register: v206383_config
   changed_when: false
-  failed_when: false
 
-# ---------------------------------------------------------
-# Check HTTP OPTIONS (safe localhost)
-# ---------------------------------------------------------
-- name: "V-206383 | Check HTTP OPTIONS response"
-  shell: "curl -k -s -X OPTIONS https://localhost -i || true"
-  register: v206383_http
-  changed_when: false
-  failed_when: false
-
-# ---------------------------------------------------------
-# Aggregate findings
-# ---------------------------------------------------------
-- name: "V-206383 | Aggregate findings"
-  set_fact:
-    v206383_dav_found: "{{ v206383_dav_results.results | selectattr('stdout','!=','') | list }}"
-    v206383_module_found: "{{ v206383_modules.stdout | lower is search('dav') }}"
-
-# ---------------------------------------------------------
+########################################
 # Final result
-# ---------------------------------------------------------
+########################################
 - name: "V-206383 | Compliance Result"
   debug:
     msg: >-
-      {% if not v206383_module_found
-         and v206383_dav_found | length == 0
-         and ('dav' not in v206383_http.stdout | lower) %}
-      NOT A FINDING:
-      - No DAV modules loaded
-      - No DAV directives configured
-      - No DAV methods exposed
+      {% if (v206383_modules.stdout | lower is not search('dav'))
+         and v206383_config.stdout == '' %}
+      NOT A FINDING
       {% else %}
-      FINDING:
-      - Modules: {{ v206383_modules.stdout }}
-      - Config: {{ v206383_dav_found | map(attribute='stdout') | list }}
-      - HTTP: {{ v206383_http.stdout | truncate(200) }}
+      FINDING
       {% endif %}

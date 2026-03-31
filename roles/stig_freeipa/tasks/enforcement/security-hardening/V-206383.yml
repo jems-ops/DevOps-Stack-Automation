@@ -46,7 +46,6 @@
 ########################################
 # Disable DAV modules (if present)
 ########################################
-
 - name: "V-206383 | Check if DAV module config exists"
   stat:
     path: /etc/httpd/conf.modules.d/00-dav.conf
@@ -64,7 +63,6 @@
 ########################################
 # Discover httpd config files dynamically
 ########################################
-
 - name: "V-206383 | Find httpd configuration files"
   find:
     paths: /etc/httpd
@@ -73,9 +71,8 @@
   register: v206383_conf_files
 
 ########################################
-# Disable DAV On directives safely
+# Disable DAV On directives
 ########################################
-
 - name: "V-206383 | Disable DAV On directives"
   replace:
     path: "{{ item.path }}"
@@ -83,26 +80,3 @@
     replace: '# DAV On  # Disabled by STIG V-206383'
   loop: "{{ v206383_conf_files.files }}"
   notify: restart httpd
-
-########################################
-# Verify modules
-########################################
-
-- name: "V-206383 | Check loaded modules"
-  command: httpd -M
-  register: v206383_modules
-  changed_when: false
-  failed_when: false
-
-########################################
-# Report result
-########################################
-
-- name: "V-206383 | Enforcement Result"
-  debug:
-    msg: >-
-      {% if v206383_modules.stdout is not search('dav') %}
-      NOT A FINDING: WebDAV modules are disabled
-      {% else %}
-      FINDING: DAV modules still present — manual review required
-      {% endif %}

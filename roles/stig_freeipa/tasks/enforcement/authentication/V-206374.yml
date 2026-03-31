@@ -1,45 +1,83 @@
 ############################################################
 # STIG Control: V-206374
-# SRG ID: SRG-APP-000141-WSR-000015
 # Title: The web server must not perform user management
 # Severity: CAT II
 # Status: Enforced
 #
 # Fix:
+# - Disable .htaccess usage (AllowOverride None)
 # - Deny access to .ht* files
-# - Remove AuthUserFile directives
+# - Remove AuthUserFile, AuthType, Require valid-user
+# Comment : Local user authentication mechanisms (AuthUserFile, AuthType, and Require valid-user) have been removed. Access to .ht* files is denied. Authentication is centrally managed via FreeIPA/LDAP.
 ############################################################
 
-- name: "V-206374 | Ensure .ht* files are denied"
+# ---------------------------------------------------------
+# Disable .htaccess usage globally
+# ---------------------------------------------------------
+- name: "V-206374 | Disable .htaccess usage"
+  blockinfile:
+    path: /etc/httpd/conf/httpd.conf
+    block: |
+      <Directory />
+          AllowOverride None
+      </Directory>
+    marker: "# {mark} ANSIBLE STIG V-206374 HTACCESS DISABLE"
+    create: yes
+  notify: restart httpd
+
+# ---------------------------------------------------------
+# Deny access to .ht* files
+# ---------------------------------------------------------
+- name: "V-206374 | Deny access to .ht* files"
   blockinfile:
     path: /etc/httpd/conf/httpd.conf
     block: |
       <FilesMatch "^\.ht">
           Require all denied
       </FilesMatch>
-    marker: "# {mark} ANSIBLE STIG V-206374"
+    marker: "# {mark} ANSIBLE STIG V-206374 HT FILE DENY"
     create: yes
   notify: restart httpd
 
 # ---------------------------------------------------------
-# Dynamically discover valid httpd config files
+# Discover all httpd config files dynamically
 # ---------------------------------------------------------
-
 - name: "V-206374 | Find httpd configuration files"
   find:
     paths: /etc/httpd
     patterns: "*.conf"
     recurse: yes
-  register: httpd_conf_files
+  register: v206374_conf_files
 
 # ---------------------------------------------------------
-# Remove AuthUserFile safely
+# Remove AuthUserFile
 # ---------------------------------------------------------
-
-- name: "V-206374 | Remove AuthUserFile directives"
+- name: "V-206374 | Remove AuthUserFile"
   replace:
     path: "{{ item.path }}"
     regexp: '^\s*AuthUserFile\s+.*'
     replace: ''
-  loop: "{{ httpd_conf_files.files }}"
+  loop: "{{ v206374_conf_files.files }}"
+  notify: restart httpd
+
+# ---------------------------------------------------------
+# Remove AuthType
+# ---------------------------------------------------------
+- name: "V-206374 | Remove AuthType"
+  replace:
+    path: "{{ item.path }}"
+    regexp: '^\s*AuthType\s+.*'
+    replace: ''
+  loop: "{{ v206374_conf_files.files }}"
+  notify: restart httpd
+
+# ---------------------------------------------------------
+# Remove Require valid-user
+# ---------------------------------------------------------
+- name: "V-206374 | Remove Require valid-user"
+  replace:
+    path: "{{ item.path }}"
+    regexp: '^\s*Require\s+valid-user.*'
+    replace: ''
+  loop: "{{ v206374_conf_files.files }}"
   notify: restart httpd

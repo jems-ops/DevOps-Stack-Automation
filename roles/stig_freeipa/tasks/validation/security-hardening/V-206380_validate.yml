@@ -1,82 +1,33 @@
 ---
 ############################################################
 # STIG Control: V-206380
-# Validation Description:
-# - Verify no ExecCGI directive exists
-# - Verify no CGI handlers exist
-# - Verify no executable MIME mappings exist
 #
-# Expected Result:
-# - No matches for ExecCGI
-# - No matches for cgi-script
-# - No matches for application/x-httpd-cgi
+# Validation Description:
+# - No executable MIME types
+# - No CGI handlers
+# - (Optional) No ExecCGI
+#
+# Output:
+# NOT A FINDING / FINDING
 ############################################################
 
 # ---------------------------------------------------------
-# Discover config files
+# Check for forbidden config
 # ---------------------------------------------------------
-- name: "V-206380 | Find httpd configuration files"
-  find:
-    paths: /etc/httpd
-    patterns: "*.conf"
-    recurse: yes
-  register: v206380_conf_files
-
-# ---------------------------------------------------------
-# ExecCGI check
-# ---------------------------------------------------------
-- name: "V-206380 | Check for ExecCGI"
-  shell: "grep -si '^[[:space:]]*Options.*ExecCGI' {{ item.path }} || true"
-  loop: "{{ v206380_conf_files.files }}"
-  register: v206380_exec_results
+- name: "V-206380 | Check CGI/MIME/ExecCGI"
+  shell: >
+    grep -RsiE 'application/x-httpd-cgi|cgi-script|Options.*ExecCGI' /etc/httpd 2>/dev/null || true
+  register: v206380_check
   changed_when: false
-  failed_when: false
 
 # ---------------------------------------------------------
-# CGI handler check
-# ---------------------------------------------------------
-- name: "V-206380 | Check for CGI handlers"
-  shell: "grep -si 'cgi-script' {{ item.path }} || true"
-  loop: "{{ v206380_conf_files.files }}"
-  register: v206380_handler_results
-  changed_when: false
-  failed_when: false
-
-# ---------------------------------------------------------
-# MIME check
-# ---------------------------------------------------------
-- name: "V-206380 | Check for executable MIME types"
-  shell: "grep -si 'application/x-httpd-cgi' {{ item.path }} || true"
-  loop: "{{ v206380_conf_files.files }}"
-  register: v206380_mime_results
-  changed_when: false
-  failed_when: false
-
-# ---------------------------------------------------------
-# Aggregate results
-# ---------------------------------------------------------
-- name: "V-206380 | Aggregate findings"
-  set_fact:
-    v206380_exec_found: "{{ v206380_exec_results.results | selectattr('stdout','!=','') | list }}"
-    v206380_handler_found: "{{ v206380_handler_results.results | selectattr('stdout','!=','') | list }}"
-    v206380_mime_found: "{{ v206380_mime_results.results | selectattr('stdout','!=','') | list }}"
-
-# ---------------------------------------------------------
-# Final result
+# Result
 # ---------------------------------------------------------
 - name: "V-206380 | Compliance Result"
   debug:
     msg: >-
-      {% if v206380_exec_found|length == 0
-         and v206380_handler_found|length == 0
-         and v206380_mime_found|length == 0 %}
-      NOT A FINDING:
-      - No ExecCGI detected
-      - No CGI handlers present
-      - No executable MIME mappings found
+      {% if v206380_check.stdout == "" %}
+      NOT A FINDING
       {% else %}
-      FINDING:
-      - ExecCGI: {{ v206380_exec_found | map(attribute='stdout') | list }}
-      - CGI Handlers: {{ v206380_handler_found | map(attribute='stdout') | list }}
-      - MIME Types: {{ v206380_mime_found | map(attribute='stdout') | list }}
+      FINDING
       {% endif %}

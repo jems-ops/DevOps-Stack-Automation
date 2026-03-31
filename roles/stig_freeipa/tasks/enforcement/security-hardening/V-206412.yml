@@ -36,52 +36,20 @@
 # Comments:
 # This control ensures attackers cannot fingerprint the web
 # server based on response headers or error messages.
+# Web server configured to minimize information disclosure by restricting server tokens and disabling server signatures. Additional header hardening applied as defense-in-depth.
 ############################################################
 
-- name: "V-206412 | Verify httpd (mod_headers) is installed"
-  ansible.builtin.command: rpm -q httpd
-  register: v206412_httpd_check
-  changed_when: false
-  failed_when: v206412_httpd_check.rc != 0
-
-- name: "V-206412 | Ensure mod_headers module is loaded"
-  lineinfile:
-    path: /etc/httpd/conf.modules.d/00-base.conf
-    regexp: '^LoadModule headers_module'
-    line: 'LoadModule headers_module modules/mod_headers.so'
-    state: present
-  notify: restart httpd
-
-- name: "V-206412 | Set ServerTokens to Prod"
-  lineinfile:
-    path: /etc/httpd/conf/httpd.conf
-    regexp: '^ServerTokens'
-    line: 'ServerTokens Prod'
-    create: yes
-  notify: restart httpd
-
-- name: "V-206412 | Set ServerSignature Off"
-  lineinfile:
-    path: /etc/httpd/conf/httpd.conf
-    regexp: '^ServerSignature'
-    line: 'ServerSignature Off'
-    create: yes
-  notify: restart httpd
-
-- name: "V-206412 | Create security.conf for header hardening"
+- name: "V-206412 | Configure minimal server identity"
   copy:
     dest: /etc/httpd/conf.d/security.conf
     content: |
       ############################################################
-      # STIG V-206412 - Header Hardening
+      # STIG V-206412 - Minimize Information Disclosure
       ############################################################
       ServerTokens Prod
       ServerSignature Off
 
-      # Remove detailed Server header
+      # Optional hardening
       Header always unset Server
       Header always set Server "Apache"
-    owner: root
-    group: root
-    mode: '0644'
   notify: restart httpd
