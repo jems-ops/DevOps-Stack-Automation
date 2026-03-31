@@ -1,35 +1,42 @@
 ---
 ############################################################
-# STIG Control: V-223000 (Validation)
-# SRG ID: SRG-APP-000504-AS-000229
-# Rule ID: SV-223000r961827
-# Severity: CAT II
+# STIG Control: V-223000
 #
-# Title:
-# Changes to $CATALINA_HOME/lib/ folder must be logged.
+# Validation Description:
+# - Verify audit rule exists for Tomcat lib directory
 #
-# Validation Command:
-# auditctl -l | grep $CATALINA_HOME/lib
+# Expected:
+# -w <path>/lib -p wa -k tomcat
 #
-# Expected Result:
-# -w <CATALINA_HOME>/lib -p wa -k tomcat
-#
-# Passing Criteria:
-# - Audit rule exists for Tomcat lib directory
-# - Permission flags include "wa"
-# - Key "tomcat" is present
+# Output:
+# NOT A FINDING / FINDING
 ############################################################
 
-- name: "V-223000 | Validate audit rule for Tomcat lib"
-  shell: "auditctl -l | grep '{{ tomcat_lib_path }}' || true"
-  register: audit_lib_check
+# ---------------------------------------------------------
+# Resolve Tomcat lib path
+# ---------------------------------------------------------
+- name: "V-223000 | Resolve Tomcat lib path"
+  command: readlink -f /var/lib/pki/pki-tomcat/lib
+  register: v223000_lib_path
+  changed_when: false
+  failed_when: false
+
+# ---------------------------------------------------------
+# Check audit rules
+# ---------------------------------------------------------
+- name: "V-223000 | Check audit rules"
+  shell: "auditctl -l | grep '{{ v223000_lib_path.stdout }}' || true"
+  register: v223000_audit
   changed_when: false
 
+# ---------------------------------------------------------
+# Final result
+# ---------------------------------------------------------
 - name: "V-223000 | Compliance Result"
   debug:
     msg: >-
-      {% if ('-p wa' in audit_lib_check.stdout) and ('-k tomcat' in audit_lib_check.stdout) %}
-      NOT A FINDING: Audit rule properly configured for {{ tomcat_lib_path }}
+      {% if '-p wa' in v223000_audit.stdout and '-k tomcat' in v223000_audit.stdout %}
+      NOT A FINDING
       {% else %}
-      FINDING: Audit rule missing or incorrectly configured for {{ tomcat_lib_path }}
+      FINDING
       {% endif %}

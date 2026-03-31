@@ -1,14 +1,44 @@
+---
 ############################################################
 # STIG Control: V-206374
+# SRG ID: SRG-APP-000141-WSR-000015
 # Title: The web server must not perform user management
 # Severity: CAT II
 # Status: Enforced
 #
-# Fix:
-# - Disable .htaccess usage (AllowOverride None)
-# - Deny access to .ht* files
-# - Remove AuthUserFile, AuthType, Require valid-user
-# Comment : Local user authentication mechanisms (AuthUserFile, AuthType, and Require valid-user) have been removed. Access to .ht* files is denied. Authentication is centrally managed via FreeIPA/LDAP.
+# Finding Details:
+# The use of local authentication mechanisms such as
+# AuthUserFile, AuthType Basic/Digest, and Require valid-user
+# indicates the web server is performing user management.
+# This bypasses centralized authentication systems and may
+# introduce security risks such as credential exposure and
+# inconsistent access control enforcement.
+#
+# If any of the following are present, this is a finding:
+# - AuthUserFile directives
+# - AuthType directives (Basic/Digest)
+# - Require valid-user
+# - Access to .htaccess or .htpasswd files
+#
+# Manual Procedure:
+# 1. Check for local authentication directives:
+#    grep -RsiE 'AuthUserFile|AuthType|Require valid-user' /etc/httpd
+#
+# 2. Verify .ht* files are not accessible:
+#    curl -k -I https://<host>/.htaccess
+#
+# 3. Verify .htaccess overrides are disabled:
+#    grep -Rsi 'AllowOverride' /etc/httpd
+#
+# Expected Result:
+# - No AuthUserFile/AuthType/Require directives
+# - HTTP 403 returned for .htaccess/.htpasswd
+# - AllowOverride set to None
+#
+# Comment:
+# Local user authentication mechanisms (AuthUserFile, AuthType,
+# and Require valid-user) have been removed. Access to .ht* files
+# is denied. Authentication is centrally managed via FreeIPA/LDAP.
 ############################################################
 
 # ---------------------------------------------------------

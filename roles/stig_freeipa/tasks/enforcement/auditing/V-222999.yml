@@ -17,15 +17,16 @@
 # -w $CATALINA_BASE/conf -p wa -k tomcat
 # then this is a finding.
 #
-# Implementation:
-# Configure auditd to monitor write and attribute changes
-# to the Tomcat conf directory.
-#
 # Manual Procedure:
-# auditctl -l | grep conf
+# auditctl -l | grep <resolved_tomcat_conf_path>
 #
-# Comments:
-# Persistent rule added under /etc/audit/rules.d/
+# Expected:
+# -w <path>/conf -p wa -k tomcat
+#
+# Comment:
+# Audit rules are configured persistently under /etc/audit/rules.d/
+# and applied using augenrules. FreeIPA environments resolve symlink
+# paths to ensure correct audit coverage.
 ############################################################
 
 # ---------------------------------------------------------
@@ -69,20 +70,3 @@
     state: present
     mode: '0640'
   notify: reload audit rules
-
-# ---------------------------------------------------------
-# Verify rule (informational)
-# ---------------------------------------------------------
-- name: "V-222999 | Verify audit rule present"
-  shell: "grep -w '{{ v222999_conf_path }}' /etc/audit/rules.d/tomcat.rules || true"
-  register: v222999_rule_check
-  changed_when: false
-
-- name: "V-222999 | Enforcement Result"
-  debug:
-    msg: >-
-      {% if v222999_rule_check.stdout != "" %}
-      NOT A FINDING: Audit rule configured for {{ v222999_conf_path }}
-      {% else %}
-      FINDING: Audit rule missing for {{ v222999_conf_path }}
-      {% endif %}

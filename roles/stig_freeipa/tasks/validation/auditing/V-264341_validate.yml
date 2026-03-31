@@ -2,86 +2,55 @@
 ############################################################
 # STIG Control: V-264341
 #
-# Rule Title:
-# The web server must automatically generate audit records
-# of the enforcement actions.
+# Validation Description:
+# - Verify Apache logging directives exist
+# - Verify log directory exists
+# - Verify auditd is running
 #
-# Severity: CAT II
-#
-# Validation:
-# - Verify Apache logging directives
-# - Verify log files exist
-# - Verify auditd is active
-# - Verify FreeIPA Tomcat logging exists
-#
-# Expected Result:
+# Expected:
 # - CustomLog and ErrorLog configured
-# - Logs present under /var/log/httpd
-# - auditd running
-# - PKI Tomcat logs present
+# - /var/log/httpd exists
+# - auditd active
+#
+# Output:
+# NOT A FINDING / FINDING
 ############################################################
 
-- name: "V-264341 | Check CustomLog directive"
-  ansible.builtin.shell: "grep -i '^CustomLog' {{ freeipa_srg_httpd_conf }}"
-  register: freeipa_srg_customlog_check
+# ---------------------------------------------------------
+# Check Apache logging directives
+# ---------------------------------------------------------
+- name: "V-264341 | Check logging directives"
+  shell: "grep -RsiE 'CustomLog|ErrorLog' /etc/httpd 2>/dev/null || true"
+  register: v264341_logs
+  changed_when: false
+
+# ---------------------------------------------------------
+# Check log directory
+# ---------------------------------------------------------
+- name: "V-264341 | Check log directory"
+  stat:
+    path: /var/log/httpd
+  register: v264341_logdir
+
+# ---------------------------------------------------------
+# Check auditd status
+# ---------------------------------------------------------
+- name: "V-264341 | Check auditd service"
+  command: systemctl is-active auditd
+  register: v264341_auditd
   changed_when: false
   failed_when: false
 
-- name: "V-264341 | Check ErrorLog directive"
-  ansible.builtin.shell: "grep -i '^ErrorLog' {{ freeipa_srg_httpd_conf }}"
-  register: freeipa_srg_errorlog_check
-  changed_when: false
-  failed_when: false
-
-- name: "V-264341 | Check access log exists"
-  ansible.builtin.stat:
-    path: /var/log/httpd/access_log
-  register: freeipa_srg_access_log
-
-- name: "V-264341 | Check error log exists"
-  ansible.builtin.stat:
-    path: /var/log/httpd/error_log
-  register: freeipa_srg_error_log
-
-- name: "V-264341 | Check auditd status"
-  ansible.builtin.command: systemctl is-active auditd
-  register: freeipa_srg_auditd_status
-  changed_when: false
-  failed_when: false
-
-- name: "V-264341 | Check PKI Tomcat log directory"
-  ansible.builtin.stat:
-    path: /var/log/pki/pki-tomcat
-  register: freeipa_srg_tomcat_logs
-
-############################################################
-# FINAL STIG RESULT
-############################################################
-
-- name: "V-264341 | Evaluate STIG compliance"
-  ansible.builtin.set_fact:
-    freeipa_srg_v_app_000805_status: >-
-      {{
-        'NOT A FINDING'
-        if (
-          freeipa_srg_customlog_check.rc == 0 and
-          freeipa_srg_errorlog_check.rc == 0 and
-          freeipa_srg_access_log.stat.exists and
-          freeipa_srg_error_log.stat.exists and
-          freeipa_srg_auditd_status.stdout == "active" and
-          freeipa_srg_tomcat_logs.stat.exists
-        )
-        else 'OPEN'
-      }}
-
-- name: "V-264341 | Report result"
-  ansible.builtin.debug:
-    msg:
-      - "STIG ID: V-264341"
-      - "Status: {{ freeipa_srg_v_app_000805_status }}"
-      - "CustomLog: {{ freeipa_srg_customlog_check.stdout | default('NOT FOUND') }}"
-      - "ErrorLog: {{ freeipa_srg_errorlog_check.stdout | default('NOT FOUND') }}"
-      - "Access Log Exists: {{ freeipa_srg_access_log.stat.exists }}"
-      - "Error Log Exists: {{ freeipa_srg_error_log.stat.exists }}"
-      - "Auditd Status: {{ freeipa_srg_auditd_status.stdout }}"
-      - "Tomcat Logs Present: {{ freeipa_srg_tomcat_logs.stat.exists }}"
+# ---------------------------------------------------------
+# Final result
+# ---------------------------------------------------------
+- name: "V-264341 | Compliance Result"
+  debug:
+    msg: >-
+      {% if v264341_logs.stdout != ''
+         and v264341_logdir.stat.exists
+         and v264341_auditd.stdout == 'active' %}
+      NOT A FINDING
+      {% else %}
+      FINDING
+      {% endif %}

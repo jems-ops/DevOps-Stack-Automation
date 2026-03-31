@@ -1,47 +1,42 @@
 ---
 ############################################################
 # STIG Control: V-222999
-# SRG ID: SRG-APP-000504-AS-000229
-# Rule ID: SV-222999r961827
-# Severity: CAT II
-#
-# Title:
-# Changes to $CATALINA_BASE/conf/ folder must be logged.
 #
 # Validation Description:
-# Verify auditd is configured to log write and attribute
-# changes for the Tomcat conf directory.
+# - Verify audit rule exists for Tomcat conf directory
 #
-# Validation Command:
-# auditctl -l | grep $CATALINA_BASE/conf
+# Expected:
+# -w <path>/conf -p wa -k tomcat
 #
-# Expected Result:
-# -w <CATALINA_BASE>/conf -p wa -k tomcat
-#
-# Passing Criteria:
-# - Audit rule exists for Tomcat conf directory
-# - Permission flags include "wa"
-# - Audit key "tomcat" is present
-#
-# Failing Criteria:
-# - No audit rule found
-# - Missing "wa" permission flags
-# - Missing or incorrect audit key
-#
-# Status Output:
-# NOT A FINDING if compliant, otherwise FINDING
+# Output:
+# NOT A FINDING / FINDING
 ############################################################
 
-- name: "V-222999 | Validate audit rule for Tomcat conf"
-  shell: "auditctl -l | grep '{{ tomcat_conf_path }}' || true"
-  register: audit_conf_check
+# ---------------------------------------------------------
+# Resolve Tomcat conf path
+# ---------------------------------------------------------
+- name: "V-222999 | Resolve Tomcat conf path"
+  command: readlink -f /var/lib/pki/pki-tomcat/conf
+  register: v222999_conf_path
+  changed_when: false
+  failed_when: false
+
+# ---------------------------------------------------------
+# Check audit rules
+# ---------------------------------------------------------
+- name: "V-222999 | Check audit rules"
+  shell: "auditctl -l | grep '{{ v222999_conf_path.stdout }}' || true"
+  register: v222999_audit
   changed_when: false
 
+# ---------------------------------------------------------
+# Final result
+# ---------------------------------------------------------
 - name: "V-222999 | Compliance Result"
   debug:
     msg: >-
-      {% if ('-p wa' in audit_conf_check.stdout) and ('-k tomcat' in audit_conf_check.stdout) %}
-      NOT A FINDING: Audit rule properly configured for {{ tomcat_conf_path }}
+      {% if '-p wa' in v222999_audit.stdout and '-k tomcat' in v222999_audit.stdout %}
+      NOT A FINDING
       {% else %}
-      FINDING: Audit rule missing or incorrect for {{ tomcat_conf_path }}
+      FINDING
       {% endif %}

@@ -18,22 +18,20 @@
 # -w $CATALINA_HOME/lib -p wa -k tomcat
 # then this is a finding.
 #
-# Implementation:
-# Configure auditd to watch Tomcat lib directory for
-# write/attribute changes.
-#
 # Manual Procedure:
-# auditctl -l | grep $CATALINA_HOME/lib
+# auditctl -l | grep <resolved_tomcat_lib_path>
 #
 # Expected:
 # -w <path>/lib -p wa -k tomcat
 #
-# Comments:
-# Uses persistent audit rules via /etc/audit/rules.d/
+# Comment:
+# Audit rules are configured persistently under /etc/audit/rules.d/
+# and applied using augenrules. FreeIPA environments resolve symlink
+# paths to ensure correct audit coverage.
 ############################################################
 
 # ---------------------------------------------------------
-# Detect FreeIPA / PKI Tomcat lib path (symlink)
+# Detect FreeIPA / PKI Tomcat lib path
 # ---------------------------------------------------------
 - name: "V-223000 | Check PKI Tomcat lib path"
   stat:
@@ -41,7 +39,7 @@
   register: v223000_pki_lib
 
 # ---------------------------------------------------------
-# Resolve real path (IMPORTANT: avoid auditing symlink)
+# Resolve real path (symlink-aware)
 # ---------------------------------------------------------
 - name: "V-223000 | Resolve real Tomcat lib path"
   command: readlink -f /var/lib/pki/pki-tomcat/lib
@@ -73,21 +71,3 @@
     state: present
     mode: '0640'
   notify: reload audit rules
-
-# ---------------------------------------------------------
-# Verify rule (informational)
-# ---------------------------------------------------------
-- name: "V-223000 | Verify audit rule present"
-  shell: "grep -w '{{ v223000_lib_path }}' /etc/audit/rules.d/tomcat.rules || true"
-  register: v223000_rule_check
-  changed_when: false
-
-- name: "V-223000 | Enforcement Result"
-  debug:
-    msg: >-
-      {% if v223000_rule_check.stdout != "" %}
-      NOT A FINDING: Audit rule configured for {{ v223000_lib_path }}
-      {% else %}
-      FINDING: Audit rule missing for {{ v223000_lib_path }}
-      {% endif %}
-
