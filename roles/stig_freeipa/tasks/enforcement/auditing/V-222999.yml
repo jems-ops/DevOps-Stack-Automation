@@ -13,9 +13,10 @@
 # Changes must be audited for forensic visibility and integrity.
 #
 # Finding Details:
-# If audit rules do not include:
-# -w $CATALINA_BASE/conf -p wa -k tomcat
-# then this is a finding.
+# If audit rules do not include monitoring of the Tomcat conf directory
+# (-w <path>/conf -p wa -k tomcat), configuration changes will not be
+# captured. This allows unauthorized modifications to server behavior,
+# authentication settings, and security controls without audit visibility.
 #
 # Manual Procedure:
 # auditctl -l | grep <resolved_tomcat_conf_path>
@@ -24,9 +25,10 @@
 # -w <path>/conf -p wa -k tomcat
 #
 # Comment:
-# Audit rules are configured persistently under /etc/audit/rules.d/
-# and applied using augenrules. FreeIPA environments resolve symlink
-# paths to ensure correct audit coverage.
+# The conf directory contains critical configuration files (e.g.,
+# server.xml, web.xml). In FreeIPA environments, this path is typically
+# resolved to /etc/pki/pki-tomcat. Audit rules ensure traceability of
+# configuration changes for compliance and forensic analysis.
 ############################################################
 
 # ---------------------------------------------------------

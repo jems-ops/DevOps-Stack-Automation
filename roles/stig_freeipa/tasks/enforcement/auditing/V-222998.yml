@@ -13,9 +13,11 @@
 # Any modification must be audited for forensic visibility.
 #
 # Finding Details:
-# If audit rules do not include:
-# -w $CATALINA_HOME/bin -p wa -k tomcat
-# then this is a finding.
+# If audit rules do not include monitoring of the Tomcat bin directory
+# (-w <path>/bin -p wa -k tomcat), modifications to startup and control
+# scripts will not be logged. This prevents detection of unauthorized
+# execution changes, persistence mechanisms, or tampering with service
+# control scripts.
 #
 # Manual Procedure:
 # auditctl -l | grep <resolved_tomcat_bin_path>
@@ -24,9 +26,10 @@
 # -w <path>/bin -p wa -k tomcat
 #
 # Comment:
-# Audit rules are configured persistently under /etc/audit/rules.d/
-# and applied using augenrules. FreeIPA environments resolve symlink
-# paths to ensure correct audit coverage.
+# The bin directory contains critical execution scripts (startup/shutdown).
+# Audit rules are applied to the resolved (non-symlink) path to ensure
+# accurate monitoring in FreeIPA/PKI environments. Persistent rules are
+# configured under /etc/audit/rules.d/ and loaded using augenrules.
 ############################################################
 
 # ---------------------------------------------------------

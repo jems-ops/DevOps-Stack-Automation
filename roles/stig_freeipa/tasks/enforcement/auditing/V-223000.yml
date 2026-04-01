@@ -14,9 +14,10 @@
 # visibility and integrity.
 #
 # Finding Details:
-# If audit rules do not include:
-# -w $CATALINA_HOME/lib -p wa -k tomcat
-# then this is a finding.
+# If audit rules do not include monitoring of the Tomcat lib directory
+# (-w <path>/lib -p wa -k tomcat), changes to Java libraries (JAR files)
+# will not be logged. This introduces risk of malicious code injection
+# or unauthorized modification of application components without detection.
 #
 # Manual Procedure:
 # auditctl -l | grep <resolved_tomcat_lib_path>
@@ -25,9 +26,10 @@
 # -w <path>/lib -p wa -k tomcat
 #
 # Comment:
-# Audit rules are configured persistently under /etc/audit/rules.d/
-# and applied using augenrules. FreeIPA environments resolve symlink
-# paths to ensure correct audit coverage.
+# The lib directory contains application libraries and runtime
+# dependencies. In FreeIPA environments, this path is commonly resolved
+# to /usr/share/pki/server/lib. Audit rules ensure integrity monitoring
+# of executable components and support detection of tampering.
 ############################################################
 
 # ---------------------------------------------------------

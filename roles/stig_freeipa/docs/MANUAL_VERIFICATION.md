@@ -209,6 +209,12 @@ curl -k -X OPTIONS https://localhost -i 2>/dev/null | grep -i "DAV:"
 **Severity:** CAT II
 **SRG:** SRG-APP-000504-AS-000229
 
+**Finding Details:**
+If audit rules do not include monitoring of the Tomcat bin directory (`-w <path>/bin -p wa -k tomcat`), modifications to startup and control scripts will not be logged. This prevents detection of unauthorized execution changes, persistence mechanisms, or tampering with service control scripts.
+
+**Comments:**
+The bin directory contains critical execution scripts (startup/shutdown). Audit rules are applied to the resolved (non-symlink) path to ensure accurate monitoring in FreeIPA/PKI environments. Persistent rules are configured under `/etc/audit/rules.d/` and loaded using `augenrules`.
+
 > **Note:** FreeIPA PKI Tomcat uses symlinks. Audit rules must target the
 > resolved (real) path since auditd monitors actual filesystem objects.
 
@@ -244,6 +250,12 @@ ls -la /var/lib/pki/pki-tomcat/bin
 **Severity:** CAT II
 **SRG:** SRG-APP-000504-AS-000229
 
+**Finding Details:**
+If audit rules do not include monitoring of the Tomcat conf directory (`-w <path>/conf -p wa -k tomcat`), configuration changes will not be captured. This allows unauthorized modifications to server behavior, authentication settings, and security controls without audit visibility.
+
+**Comments:**
+The conf directory contains critical configuration files (e.g., `server.xml`, `web.xml`). In FreeIPA environments, this path is typically resolved to `/etc/pki/pki-tomcat`. Audit rules ensure traceability of configuration changes for compliance and forensic analysis.
+
 > **Note:** FreeIPA PKI Tomcat `conf/` symlinks to `/etc/pki/pki-tomcat`.
 > The resolved path is already the real directory.
 
@@ -278,6 +290,12 @@ ls -la /var/lib/pki/pki-tomcat/conf
 
 **Severity:** CAT II
 **SRG:** SRG-APP-000504-AS-000229
+
+**Finding Details:**
+If audit rules do not include monitoring of the Tomcat lib directory (`-w <path>/lib -p wa -k tomcat`), changes to Java libraries (JAR files) will not be logged. This introduces risk of malicious code injection or unauthorized modification of application components without detection.
+
+**Comments:**
+The lib directory contains application libraries and runtime dependencies. In FreeIPA environments, this path is commonly resolved to `/usr/share/pki/server/lib`. Audit rules ensure integrity monitoring of executable components and support detection of tampering.
 
 > **Note:** FreeIPA PKI Tomcat `lib/` symlinks to `/usr/share/pki/server/lib`.
 
