@@ -1,0 +1,41 @@
+---
+############################################################
+# STIG Control: V-205236
+# SRG ID: SRG-APP-000516-DNS-000095
+# Severity: CAT II
+# Status: NOT A FINDING (Internal-Only DNS Architecture)
+#
+# Title:
+# DNS zones must separate internal and external records.
+#
+# Description:
+# DNS implementations using both internal and external zones
+# must separate records to prevent information disclosure.
+#
+# Finding Details:
+# This system is configured as an internal-only DNS deployment
+# (FreeIPA). DNS service is not exposed externally. Configuration
+# is evaluated to confirm no external listen interfaces or open
+# query policies exist.
+#
+# Implementation Summary:
+# - Collect named.conf configuration
+# - Identify listen-on and allow-query settings
+# - Identify DNS zone files present
+# - No enforcement action required (fact collection only)
+#
+# Manual Procedure:
+# cat /etc/named.conf
+# ls /var/named/
+#
+# Comments:
+# Internal-only DNS architecture eliminates need for split-horizon.
+# Validation will confirm no external exposure exists.
+############################################################
+
+- name: "V-205236 | Enforcement Summary"
+  debug:
+    msg:
+      listen_on: "{{ dns_listen_on }}"
+      allow_query: "{{ dns_allow_query }}"
+      zone_files_count: "{{ dns_zone_files.matched | default(0) }}"

@@ -1,0 +1,38 @@
+---
+############################################################
+# STIG Control: V-205236
+#
+# Validation Summary:
+# Ensure DNS is internal-only or properly separated
+#
+# Expected Result:
+# - Internal-only DNS → NOT A FINDING
+# - External exposure → OPEN
+############################################################
+
+- name: "V-205236 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205236 DNS Split Horizon Validation =====
+
+      Listen-On Config:
+      {{ dns_listen_on }}
+
+      Allow-Query Config:
+      {{ dns_allow_query }}
+
+      Zone Files Count:
+      {{ dns_zone_files.matched | default(0) }}
+
+      FINAL STATUS:
+      {{
+        'NOT A FINDING'
+        if (
+          (dns_listen_on | length == 0 or
+           dns_listen_on | join(' ') is search('127.0.0.1|localhost'))
+          and
+          (dns_allow_query | length == 0 or
+           dns_allow_query | join(' ') is search('localhost|localnets'))
+        )
+        else 'OPEN - DNS may be externally exposed or split-horizon not enforced'
+      }}

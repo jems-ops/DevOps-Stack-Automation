@@ -44,7 +44,15 @@
 # - No executable MIME type mappings
 #
 # Comments:
-# Executable MIME types (application/x-httpd-cgi) and CGI handlers have been removed to prevent OS command execution via HTTP. ExecCGI has also been disabled as an additional hardening measure.
+# Executable MIME types (application/x-httpd-cgi) and CGI handlers have been
+# removed to prevent OS command execution via HTTP. ExecCGI has also been
+# disabled as an additional hardening measure.
+#
+# EXCEPTION: FreeIPA WSGI directories (/usr/share/ipa/wsgi,
+# /usr/share/ipa/migration) require ExecCGI for the IPA web UI and API
+# to function. ExecCGI is restored ONLY for these directories after the
+# global strip, scoped to the application-specific Directory blocks in
+# ipa.conf.
 ############################################################
 
 # ---------------------------------------------------------
@@ -81,12 +89,14 @@
 
 # ---------------------------------------------------------
 # OPTIONAL: Remove ExecCGI (hardening)
+# Excludes ipa.conf — FreeIPA WSGI directories require
+# ExecCGI for the web UI and API to function.
 # ---------------------------------------------------------
-- name: "V-206380 | Remove ExecCGI from Options"
+- name: "V-206380 | Remove ExecCGI from Options (excluding ipa.conf)"
   replace:
     path: "{{ item.path }}"
     regexp: '(^\s*Options\s+.*)\bExecCGI\b'
     replace: '\1'
-  loop: "{{ v206380_conf_files.files }}"
+  loop: "{{ v206380_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
   notify: restart httpd
 

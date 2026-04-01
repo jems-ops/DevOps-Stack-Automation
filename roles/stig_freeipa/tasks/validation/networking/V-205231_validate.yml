@@ -1,0 +1,26 @@
+---
+############################################################
+# STIG Control: V-205231
+#
+# Validation Summary:
+# Evaluate DNSSEC key file presence
+#
+# Expected Result:
+# - No key files → NOT APPLICABLE
+# - Key files exist → OPEN (review permissions)
+############################################################
+
+- name: "V-205231 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205231 DNSSEC Key Validation =====
+
+      Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
+      Files: {{ dns_dnssec_keys.files | map(attribute='path') | list | default([]) }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if (dns_dnssec_keys.matched | default(0) == 0)
+        else 'OPEN - DNSSEC key files detected, verify permissions (600 root:named)'
+      }}

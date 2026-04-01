@@ -1,0 +1,52 @@
+---
+############################################################
+# STIG Control: V-205235
+# SRG ID: SRG-APP-000516-DNS-000090
+# Rule ID: SV-205235r961868
+# Severity: CAT II
+# Status: NOT APPLICABLE
+#
+# Title:
+# DNSSEC must use FIPS-approved algorithms.
+#
+# Description:
+# DNSSEC relies on cryptographic algorithms for signing DNS
+# records. Only FIPS-approved algorithms are permitted.
+#
+# Finding Details:
+# DNSSEC is not enabled in this FreeIPA DNS deployment.
+# No DNSSEC configuration parameters are present in named.conf,
+# no DNSSEC key files (*.key, *.private) exist under /var/named,
+# and no signed DNS records (RRSIG, DNSKEY, NSEC) are present.
+#
+# Therefore, there are no cryptographic algorithms or DNSSEC
+# configurations requiring validation or enforcement.
+#
+# Implementation Summary:
+# - Collect DNSSEC configuration state from named.conf
+# - Identify presence of DNSSEC key files
+# - Detect signed DNS records in zone files
+# - No enforcement action required (informational collection only)
+#
+# Manual Procedure:
+# grep -Ei 'dnssec-enable|dnssec-validation' /etc/named.conf
+# ls -1 /var/named/ | grep -E '\.key|\.private'
+# grep -Ri 'RRSIG\|DNSKEY\|NSEC' /var/named/
+#
+# Comments:
+# DNSSEC is not implemented in this FreeIPA DNS environment.
+# No signed zones, DNSSEC policies, or cryptographic keys
+# (KSK/ZSK) are present.
+#
+# Network boundary protections and internal-only DNS architecture
+# provide compensating controls for DNS integrity.
+#
+# This control is marked as NOT APPLICABLE.
+############################################################
+
+- name: "V-205235 | Enforcement Summary"
+  debug:
+    msg:
+      dnssec_config_present: "{{ dns_dnssec_config }}"
+      dnssec_key_files: "{{ dns_dnssec_keys.matched | default(0) }}"
+      dnssec_signed_records: "{{ dns_dnssec_records.matched | default(0) }}"

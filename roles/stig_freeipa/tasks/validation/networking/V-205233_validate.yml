@@ -1,0 +1,24 @@
+---
+############################################################
+# STIG Control: V-205233
+# Validation Task
+#
+# Objective:
+# Ensure DNS configuration avoids inconsistency risk
+#
+# Expected Result:
+# - Single NS → NOT A FINDING
+# - Multiple NS → replication validation required
+#
+# Output:
+# NOT A FINDING / OPEN
+############################################################
+
+- name: "V-205233 | Compliance Result"
+  debug:
+    msg: >-
+      {{
+        'NOT A FINDING: Single authoritative DNS server detected for ' ~ dns_domain
+        if (dns_ns_records | length <= 1)
+        else 'OPEN: Multiple DNS servers detected for ' ~ dns_domain ~ ' - replication consistency must be validated'
+      }}

@@ -79,6 +79,45 @@
   tags: [V-206383, enforcement]
 
 ############################################################
+# Networking
+############################################################
+
+- name: "V-205230 | Enforce NS record validation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205230.yml
+    apply:
+      tags: [V-205230, enforcement]
+  tags: [V-205230, enforcement]
+
+- name: "V-205231 | Enforce DNSSEC key file protection"
+  ansible.builtin.include_tasks:
+    file: networking/V-205231.yml
+    apply:
+      tags: [V-205231, enforcement]
+  tags: [V-205231, enforcement]
+
+- name: "V-205233 | Enforce SOA consistency"
+  ansible.builtin.include_tasks:
+    file: networking/V-205233.yml
+    apply:
+      tags: [V-205233, enforcement]
+  tags: [V-205233, enforcement]
+
+- name: "V-205235 | Enforce DNSSEC FIPS-compliant algorithms"
+  ansible.builtin.include_tasks:
+    file: networking/V-205235.yml
+    apply:
+      tags: [V-205235, enforcement]
+  tags: [V-205235, enforcement]
+
+- name: "V-205236 | Enforce DNS zone separation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205236.yml
+    apply:
+      tags: [V-205236, enforcement]
+  tags: [V-205236, enforcement]
+
+############################################################
 # Availability
 ############################################################
 

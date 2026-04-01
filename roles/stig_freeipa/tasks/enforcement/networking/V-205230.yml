@@ -1,0 +1,45 @@
+---
+############################################################
+# STIG Control: V-205230
+# SRG ID: SRG-APP-000516-DNS-000085
+# Rule ID: SV-205230r961863
+# Severity: CAT II
+# Status: Enforced (Informational Collection Only)
+#
+# Title:
+# The DNS implementation must ensure each NS record in a zone
+# file points to an active name server authoritative for the domain.
+#
+# Description:
+# NS records referencing inactive or non-authoritative servers
+# introduce risk of DNS spoofing and service disruption.
+#
+# Finding Details:
+# The system dynamically detects the DNS domain and collects
+# NS records along with resolution and authoritative responses.
+#
+# Implementation Summary:
+# - Detect DNS domain dynamically
+# - Collect NS records
+# - Resolve NS to IP addresses
+# - Collect SOA responses for authority validation
+# - No evaluation performed in enforcement
+#
+# Manual Procedure:
+# hostname -d
+# dig NS <domain>
+# dig A <ns>
+# dig SOA <domain> @<ns>
+#
+# Comments:
+# FreeIPA manages DNS internally. Enforcement gathers evidence
+# for validation to determine compliance.
+############################################################
+
+- name: "V-205230 | Enforcement Summary"
+  debug:
+    msg:
+      domain: "{{ dns_domain }}"
+      ns_records: "{{ dns_ns_records }}"
+      ns_ips: "{{ dns_ns_ips }}"
+      soa: "{{ dns_soa_responses }}"

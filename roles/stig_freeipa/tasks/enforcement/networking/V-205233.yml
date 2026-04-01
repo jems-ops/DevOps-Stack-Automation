@@ -1,0 +1,39 @@
+---
+############################################################
+# STIG Control: V-205233
+# SRG ID: SRG-APP-000516-DNS-000095
+# Rule ID: SV-205233r961866
+# Severity: CAT II
+# Status: Enforced (Informational Collection Only)
+#
+# Title:
+# DNS zone transfers must be restricted and consistent across
+# authoritative name servers.
+#
+# Description:
+# When multiple authoritative DNS servers exist, inconsistencies
+# in zone data may occur if replication is not properly configured.
+#
+# Finding Details:
+# This task dynamically detects the DNS domain and gathers
+# authoritative NS records for evaluation.
+#
+# Implementation Summary:
+# - Detect system DNS domain dynamically
+# - Collect NS records for the domain
+# - No evaluation performed at enforcement stage
+#
+# Manual Procedure:
+# hostname -d
+# dig NS <domain>
+#
+# Comments:
+# Enforcement collects evidence only. Validation determines
+# compliance status.
+############################################################
+
+- name: "V-205233 | Enforcement Summary"
+  debug:
+    msg:
+      domain: "{{ dns_domain }}"
+      ns_records: "{{ dns_ns_records }}"

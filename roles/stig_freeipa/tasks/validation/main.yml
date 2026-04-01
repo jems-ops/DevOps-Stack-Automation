@@ -79,6 +79,45 @@
   tags: [V-206383, validation]
 
 ############################################################
+# Networking
+############################################################
+
+- name: "V-205230 | Validate NS record validation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205230_validate.yml
+    apply:
+      tags: [V-205230, validation]
+  tags: [V-205230, validation]
+
+- name: "V-205231 | Validate DNSSEC key file protection"
+  ansible.builtin.include_tasks:
+    file: networking/V-205231_validate.yml
+    apply:
+      tags: [V-205231, validation]
+  tags: [V-205231, validation]
+
+- name: "V-205233 | Validate SOA consistency"
+  ansible.builtin.include_tasks:
+    file: networking/V-205233_validate.yml
+    apply:
+      tags: [V-205233, validation]
+  tags: [V-205233, validation]
+
+- name: "V-205235 | Validate DNSSEC FIPS-compliant algorithms"
+  ansible.builtin.include_tasks:
+    file: networking/V-205235_validate.yml
+    apply:
+      tags: [V-205235, validation]
+  tags: [V-205235, validation]
+
+- name: "V-205236 | Validate DNS zone separation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205236_validate.yml
+    apply:
+      tags: [V-205236, validation]
+  tags: [V-205236, validation]
+
+############################################################
 # Availability
 ############################################################
 

@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG Control: V-205235
+#
+# Validation Summary:
+# Evaluate collected DNSSEC facts from enforcement
+#
+# Expected Result:
+# - No DNSSEC → NOT APPLICABLE
+# - DNSSEC present → OPEN
+############################################################
+
+- name: "V-205235 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205235 DNSSEC Validation =====
+
+      DNSSEC Config Present: {{ dns_dnssec_config }}
+      DNSSEC Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
+      Signed Records Found: {{ dns_dnssec_records.matched | default(0) }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if (not dns_dnssec_config)
+        and (dns_dnssec_keys.matched | default(0) == 0)
+        and (dns_dnssec_records.matched | default(0) == 0)
+        else 'OPEN - DNSSEC detected, verify FIPS-compliant algorithms'
+      }}

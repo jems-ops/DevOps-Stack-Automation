@@ -39,6 +39,11 @@
 # Local user authentication mechanisms (AuthUserFile, AuthType,
 # and Require valid-user) have been removed. Access to .ht* files
 # is denied. Authentication is centrally managed via FreeIPA/LDAP.
+#
+# EXCEPTION: The default <Directory /> Require all denied blocks
+# the FreeIPA WSGI script (/usr/share/ipa/wsgi.py) which serves
+# the IPA JSON-RPC API. A scoped <Directory> exception is added
+# to allow access to the IPA application directory only.
 ############################################################
 
 # ---------------------------------------------------------
@@ -110,4 +115,30 @@
     regexp: '^\s*Require\s+valid-user.*'
     replace: ''
   loop: "{{ v206374_conf_files.files }}"
+  notify: restart httpd
+
+# ---------------------------------------------------------
+# EXCEPTION: Allow access to FreeIPA WSGI application
+# The default <Directory /> denies filesystem access to
+# /usr/share/ipa/wsgi.py which serves the IPA API.
+# ---------------------------------------------------------
+- name: "V-206374 | Allow FreeIPA WSGI application access"
+  copy:
+    dest: /etc/httpd/conf.d/ipa-stig-exception.conf
+    content: |
+      ############################################################
+      # STIG Exception: FreeIPA WSGI Application Access
+      # Required by: V-206374 (default Directory / deny)
+      #
+      # The default <Directory /> Require all denied blocks the
+      # FreeIPA WSGI script. This grants access to the IPA
+      # application directory to allow the JSON-RPC API and
+      # Kerberos login endpoints to function.
+      ############################################################
+      <Directory "/usr/share/ipa">
+          Require all granted
+      </Directory>
+    owner: root
+    group: root
+    mode: '0644'
   notify: restart httpd

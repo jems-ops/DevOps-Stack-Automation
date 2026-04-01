@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-205230
+#
+# Validation Summary:
+# Ensure NS records point to active authoritative DNS servers
+#
+# Expected Result:
+# - NS exists
+# - NS resolves to IP
+# - NS responds authoritatively (SOA)
+#
+# Output:
+# NOT A FINDING / OPEN
+############################################################
+
+- name: "V-205230 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205230 NS Record Validation =====
+
+      Domain: {{ dns_domain }}
+      NS Records: {{ dns_ns_records }}
+      Resolved IPs: {{ dns_ns_ips }}
+      SOA Responses: {{ dns_soa_responses }}
+
+      FINAL STATUS:
+      {{
+        'NOT A FINDING'
+        if (
+          dns_ns_records | length > 0
+          and (dns_ns_ips | select('!=', '') | list | length == dns_ns_records | length)
+          and (dns_soa_responses | select('!=', '') | list | length == dns_ns_records | length)
+        )
+        else 'OPEN'
+      }}
