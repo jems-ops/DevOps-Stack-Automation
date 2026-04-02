@@ -40,14 +40,30 @@
 #    Set-Cookie: <cookie_name>=<value>; ...; HttpOnly; Secure
 #
 # Comments:
-# FreeIPA typically sets secure cookie attributes by default
-# (e.g., ipa_session). This control enforces a global Apache
-# safeguard to ensure compliance regardless of application
-# behavior.
-# Cookies are configured with the HttpOnly attribute to prevent client-side scripts from accessing session data. This mitigates cross-site scripting (XSS) risks.
+# FreeIPA sets cookie attributes via ipa.conf (SessionCookieName
+# with httponly;secure) and a Header always edit Set-Cookie
+# directive. An additional cookie_security.conf is NOT created
+# to avoid cascading Set-Cookie edits that corrupt cookies and
+# break WSGI session handling.
+#
+# This enforcement verifies ipa.conf already contains the
+# required HttpOnly and Secure flags.
 ############################################################
 
-- name: "V-206437 | Enforce HttpOnly cookie flag"
+- name: "V-206437 | Check if ipa.conf already handles cookie security"
+  shell: grep -c 'Header always edit Set-Cookie' /etc/httpd/conf.d/ipa.conf
+  register: v206437_ipa_cookie
+  changed_when: false
+  failed_when: false
+
+- name: "V-206437 | Remove redundant cookie_security.conf (if present)"
+  file:
+    path: /etc/httpd/conf.d/cookie_security.conf
+    state: absent
+  when: v206437_ipa_cookie.stdout | int > 0
+  notify: restart httpd
+
+- name: "V-206437 | Enforce HttpOnly cookie flag (non-FreeIPA fallback)"
   copy:
     dest: /etc/httpd/conf.d/cookie_security.conf
     content: |
@@ -57,4 +73,5 @@
       <IfModule mod_headers.c>
         Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly"
       </IfModule>
+  when: v206437_ipa_cookie.stdout | int == 0
   notify: restart httpd

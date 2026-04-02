@@ -44,6 +44,10 @@
 # the FreeIPA WSGI script (/usr/share/ipa/wsgi.py) which serves
 # the IPA JSON-RPC API. A scoped <Directory> exception is added
 # to allow access to the IPA application directory only.
+#
+# EXCEPTION: ipa.conf is excluded from AuthType removal because
+# FreeIPA requires AuthType GSSAPI for Kerberos authentication
+# and password-based web login.
 ############################################################
 
 # ---------------------------------------------------------
@@ -96,25 +100,47 @@
   notify: restart httpd
 
 # ---------------------------------------------------------
-# Remove AuthType
+# Remove AuthType (excludes ipa.conf — FreeIPA needs
+# AuthType GSSAPI for Kerberos and password login)
 # ---------------------------------------------------------
-- name: "V-206374 | Remove AuthType"
+- name: "V-206374 | Remove AuthType (excluding ipa.conf)"
   replace:
     path: "{{ item.path }}"
     regexp: '^\s*AuthType\s+.*'
     replace: ''
-  loop: "{{ v206374_conf_files.files }}"
+  loop: "{{ v206374_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
   notify: restart httpd
 
 # ---------------------------------------------------------
-# Remove Require valid-user
+# Remove Require valid-user (excludes ipa.conf — FreeIPA
+# needs Require valid-user for GSSAPI enforcement)
 # ---------------------------------------------------------
-- name: "V-206374 | Remove Require valid-user"
+- name: "V-206374 | Remove Require valid-user (excluding ipa.conf)"
   replace:
     path: "{{ item.path }}"
     regexp: '^\s*Require\s+valid-user.*'
     replace: ''
-  loop: "{{ v206374_conf_files.files }}"
+  loop: "{{ v206374_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
+  notify: restart httpd
+
+# ---------------------------------------------------------
+# EXCEPTION: Ensure AuthType GSSAPI in ipa.conf
+# FreeIPA requires this for Kerberos and password web login.
+# ---------------------------------------------------------
+- name: "V-206374 | Ensure AuthType GSSAPI in FreeIPA config"
+  lineinfile:
+    path: /etc/httpd/conf.d/ipa.conf
+    insertafter: 'AuthName "Kerberos Login"'
+    line: '  AuthType GSSAPI'
+    state: present
+  notify: restart httpd
+
+- name: "V-206374 | Ensure Require valid-user in FreeIPA config"
+  lineinfile:
+    path: /etc/httpd/conf.d/ipa.conf
+    insertafter: 'GssapiUseS4U2Proxy on'
+    line: '  Require valid-user'
+    state: present
   notify: restart httpd
 
 # ---------------------------------------------------------
