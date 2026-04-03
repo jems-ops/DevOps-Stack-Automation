@@ -1,0 +1,101 @@
+---
+############################################################
+# Pre-STIG Configuration Backup
+#
+# Captures the server's current Apache configs BEFORE any
+# STIG enforcement. Only runs once — skips if backup already
+# exists. This makes the backup server-specific and portable
+# across different environments (cloud, on-prem, etc.).
+#
+# Backup location: /etc/httpd/stig-backup/
+# Restore via: --tags rollback
+############################################################
+
+- name: "Backup | Check if backup already exists"
+  stat:
+    path: /etc/httpd/stig-backup/.backup-complete
+  register: _backup_marker
+
+- name: "Backup | Create backup directory"
+  file:
+    path: /etc/httpd/stig-backup
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  when: not _backup_marker.stat.exists
+
+- name: "Backup | Capture current configs (first-run only)"
+  copy:
+    src: "{{ item }}"
+    dest: "/etc/httpd/stig-backup/{{ item | basename }}.pre-stig"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - /etc/httpd/conf/httpd.conf
+    - /etc/httpd/conf.d/ssl.conf
+  when: not _backup_marker.stat.exists
+
+- name: "Backup | Capture ipa.conf (if exists)"
+  copy:
+    src: /etc/httpd/conf.d/ipa.conf
+    dest: /etc/httpd/stig-backup/ipa.conf.pre-stig
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  when: not _backup_marker.stat.exists
+  ignore_errors: true
+
+- name: "Backup | Capture conf.d file list"
+  shell: ls -1 /etc/httpd/conf.d/*.conf
+  register: _confd_listing
+  changed_when: false
+  when: not _backup_marker.stat.exists
+
+- name: "Backup | Save conf.d manifest"
+  copy:
+    content: "{{ _confd_listing.stdout | default('') }}"
+    dest: /etc/httpd/stig-backup/confd-manifest.txt
+    owner: root
+    group: root
+    mode: '0644'
+  when: not _backup_marker.stat.exists
+
+- name: "Backup | Record backup timestamp"
+  copy:
+    content: |
+      backup_date: {{ ansible_date_time.iso8601 }}
+      backup_host: {{ inventory_hostname }}
+      backup_by: stig_freeipa role
+    dest: /etc/httpd/stig-backup/.backup-complete
+    owner: root
+    group: root
+    mode: '0644'
+  when: not _backup_marker.stat.exists
+
+# ---- Fetch configs to local templates/ as .j2 files ----
+
+- name: "Backup | Fetch httpd.conf to local templates"
+  fetch:
+    src: /etc/httpd/stig-backup/httpd.conf.pre-stig
+    dest: "{{ role_path }}/templates/httpd.conf.j2"
+    flat: true
+  when: not _backup_marker.stat.exists
+
+- name: "Backup | Fetch ssl.conf to local templates"
+  fetch:
+    src: /etc/httpd/stig-backup/ssl.conf.pre-stig
+    dest: "{{ role_path }}/templates/ssl.conf.j2"
+    flat: true
+  when: not _backup_marker.stat.exists
+
+- name: "Backup | Fetch ipa.conf to local templates"
+  fetch:
+    src: /etc/httpd/stig-backup/ipa.conf.pre-stig
+    dest: "{{ role_path }}/templates/ipa.conf.j2"
+    flat: true
+  when: not _backup_marker.stat.exists
+  ignore_errors: true

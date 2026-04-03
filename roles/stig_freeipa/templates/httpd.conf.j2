@@ -1,0 +1,25 @@
+{{ httpd_baseline_content }}
+
+############################################################
+# STIG Hardening Directives
+# Managed by Ansible role: stig_freeipa
+# Source baseline: /etc/httpd/stig-backup/httpd.conf.pre-stig
+############################################################
+
+# V-264341: Audit logging
+CustomLog "{{ httpd_access_log | default('/var/log/httpd/access_log') }}" combined
+ErrorLog "{{ httpd_error_log | default('/var/log/httpd/error_log') }}"
+
+# V-206412: Minimize server identity in headers
+ServerTokens Prod
+ServerSignature Off
+
+# V-206374: Disable .htaccess overrides globally
+<Directory />
+    AllowOverride None
+</Directory>
+
+# V-206374: Deny access to .ht* files
+<FilesMatch "^\.ht">
+    Require all denied
+</FilesMatch>

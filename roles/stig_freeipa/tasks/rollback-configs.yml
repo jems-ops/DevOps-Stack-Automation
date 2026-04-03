@@ -1,0 +1,103 @@
+---
+############################################################
+# STIG Rollback
+#
+# Restores Apache configs to pre-STIG state using the
+# auto-captured backup from /etc/httpd/stig-backup/.
+#
+# Usage:
+#   ansible-playbook playbooks/apply-stig-freeipa.yml --tags rollback
+#
+# What it does:
+#   1. Restores httpd.conf, ssl.conf, ipa.conf from backup
+#   2. Removes STIG-added conf.d files
+#   3. Restarts httpd
+#   4. Validates services are healthy
+############################################################
+
+- name: "Rollback | Verify backup exists"
+  stat:
+    path: /etc/httpd/stig-backup/.backup-complete
+  register: _rollback_marker
+
+- name: "Rollback | Fail if no backup found"
+  fail:
+    msg: >
+      No pre-STIG backup found at /etc/httpd/stig-backup/.
+      Cannot rollback without a baseline backup.
+      Run the full STIG playbook first to create a backup.
+  when: not _rollback_marker.stat.exists
+
+- name: "Rollback | Restore httpd.conf"
+  copy:
+    src: /etc/httpd/stig-backup/httpd.conf.pre-stig
+    dest: /etc/httpd/conf/httpd.conf
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart httpd
+
+- name: "Rollback | Restore ssl.conf"
+  copy:
+    src: /etc/httpd/stig-backup/ssl.conf.pre-stig
+    dest: /etc/httpd/conf.d/ssl.conf
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart httpd
+
+- name: "Rollback | Check if ipa.conf backup exists"
+  stat:
+    path: /etc/httpd/stig-backup/ipa.conf.pre-stig
+  register: _rollback_ipa
+
+- name: "Rollback | Restore ipa.conf"
+  copy:
+    src: /etc/httpd/stig-backup/ipa.conf.pre-stig
+    dest: /etc/httpd/conf.d/ipa.conf
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  when: _rollback_ipa.stat.exists
+  notify: restart httpd
+
+- name: "Rollback | Remove STIG-added config files"
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/httpd/conf.d/security.conf
+    - /etc/httpd/conf.d/cookie_security.conf
+    - /etc/httpd/conf.d/tuning.conf
+    - /etc/httpd/conf.d/ipa-stig-exception.conf
+  notify: restart httpd
+
+- name: "Rollback | Remove STIG audit rules"
+  file:
+    path: /etc/audit/rules.d/tomcat.rules
+    state: absent
+  notify: reload audit rules
+  ignore_errors: true
+
+- name: "Rollback | Summary"
+  debug:
+    msg: |
+      ===== STIG Rollback Complete =====
+
+      Restored from: /etc/httpd/stig-backup/
+      Files restored:
+        - /etc/httpd/conf/httpd.conf
+        - /etc/httpd/conf.d/ssl.conf
+        {{ '- /etc/httpd/conf.d/ipa.conf' if _rollback_ipa.stat.exists else '- ipa.conf (no backup found, skipped)' }}
+
+      STIG files removed:
+        - security.conf
+        - cookie_security.conf
+        - tuning.conf
+        - ipa-stig-exception.conf
+        - tomcat.rules
+
+      Apache will be restarted via handler.

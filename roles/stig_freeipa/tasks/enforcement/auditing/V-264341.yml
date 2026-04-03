@@ -32,33 +32,36 @@
 # access attempts, and system-level changes are recorded.
 ############################################################
 
-- name: "V-264341 | Ensure web logging and auditd are configured"
+- name: "V-264341 | Read server baseline httpd.conf"
+  slurp:
+    path: /etc/httpd/stig-backup/httpd.conf.pre-stig
+  register: _httpd_baseline_raw
+
+- name: "V-264341 | Prepare baseline (strip STIG-managed directives)"
+  set_fact:
+    httpd_baseline_content: >-
+      {{ _httpd_baseline_raw.content | b64decode
+         | regex_replace('(?m)^CustomLog.*$', '')
+         | regex_replace('(?m)^ErrorLog.*$', '')
+         | regex_replace('(?m)^ServerTokens.*$', '')
+         | regex_replace('(?m)^ServerSignature.*$', '')
+         | regex_replace('(?m)^# BEGIN ANSIBLE STIG.*?^# END ANSIBLE STIG[^\n]*', '')
+      }}
+
+- name: "V-264341 | Deploy STIG-hardened httpd.conf from template"
+  become: true
+  template:
+    src: httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify: restart httpd
+
+- name: "V-264341 | Ensure auditd is configured"
   become: true
   block:
-
-    ########################################################
-    # Apache Logging
-    ########################################################
-
-    - name: "V-264341 | Ensure CustomLog directive"
-      lineinfile:
-        path: /etc/httpd/conf/httpd.conf
-        regexp: '^CustomLog'
-        line: 'CustomLog "/var/log/httpd/access_log" combined'
-        create: yes
-      notify: restart httpd
-
-    - name: "V-264341 | Ensure ErrorLog directive"
-      lineinfile:
-        path: /etc/httpd/conf/httpd.conf
-        regexp: '^ErrorLog'
-        line: 'ErrorLog "/var/log/httpd/error_log"'
-        create: yes
-      notify: restart httpd
-
-    ########################################################
-    # Ensure auditd installed
-    ########################################################
 
     - name: "V-264341 | Check if auditd is already installed"
       ansible.builtin.command: rpm -q audit

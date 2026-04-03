@@ -3,6 +3,33 @@
 # tasks file for stig_freeipa
 
 ############################################################
+# Backup configs (first-run only, before any STIG changes)
+############################################################
+
+- name: "STIG FreeIPA | Backup pre-STIG configs"
+  ansible.builtin.include_tasks:
+    file: backup-configs.yml
+    apply:
+      tags: [backup, enforcement]
+  tags:
+    - backup
+    - enforcement
+
+############################################################
+# Rollback (restores pre-STIG state from backup)
+# Usage: --tags rollback
+############################################################
+
+- name: "STIG FreeIPA | Rollback STIG changes"
+  ansible.builtin.include_tasks:
+    file: rollback-configs.yml
+    apply:
+      tags: [rollback, never]
+  tags:
+    - rollback
+    - never
+
+############################################################
 # Resolve Tomcat paths (shared, runs once)
 ############################################################
 

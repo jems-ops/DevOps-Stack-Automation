@@ -51,32 +51,9 @@
 ############################################################
 
 # ---------------------------------------------------------
-# Disable .htaccess usage globally
+# NOTE: .htaccess disable and .ht* file deny directives are
+# now managed via the httpd.conf.j2 template (V-264341).
 # ---------------------------------------------------------
-- name: "V-206374 | Disable .htaccess usage"
-  blockinfile:
-    path: /etc/httpd/conf/httpd.conf
-    block: |
-      <Directory />
-          AllowOverride None
-      </Directory>
-    marker: "# {mark} ANSIBLE STIG V-206374 HTACCESS DISABLE"
-    create: yes
-  notify: restart httpd
-
-# ---------------------------------------------------------
-# Deny access to .ht* files
-# ---------------------------------------------------------
-- name: "V-206374 | Deny access to .ht* files"
-  blockinfile:
-    path: /etc/httpd/conf/httpd.conf
-    block: |
-      <FilesMatch "^\.ht">
-          Require all denied
-      </FilesMatch>
-    marker: "# {mark} ANSIBLE STIG V-206374 HT FILE DENY"
-    create: yes
-  notify: restart httpd
 
 # ---------------------------------------------------------
 # Discover all httpd config files dynamically
@@ -89,64 +66,64 @@
   register: v206374_conf_files
 
 # ---------------------------------------------------------
-# Remove AuthUserFile
+# Disable AuthUserFile (SAFE - comment instead of delete)
 # ---------------------------------------------------------
-- name: "V-206374 | Remove AuthUserFile"
+- name: "V-206374 | Disable AuthUserFile"
   replace:
     path: "{{ item.path }}"
     regexp: '^\s*AuthUserFile\s+.*'
-    replace: ''
+    replace: '# \g<0>  # Disabled by STIG V-206374'
+    backup: yes
   loop: "{{ v206374_conf_files.files }}"
   notify: restart httpd
 
 # ---------------------------------------------------------
-# Remove AuthType (excludes ipa.conf — FreeIPA needs
-# AuthType GSSAPI for Kerberos and password login)
+# Disable AuthType (exclude ipa.conf)
 # ---------------------------------------------------------
-- name: "V-206374 | Remove AuthType (excluding ipa.conf)"
+- name: "V-206374 | Disable AuthType (excluding ipa.conf)"
   replace:
     path: "{{ item.path }}"
-    regexp: '^\s*AuthType\s+.*'
-    replace: ''
+    regexp: '^\s*AuthType\s+(?!GSSAPI).*'
+    replace: '# \g<0>  # Disabled by STIG V-206374'
+    backup: yes
   loop: "{{ v206374_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
   notify: restart httpd
 
 # ---------------------------------------------------------
-# Remove Require valid-user (excludes ipa.conf — FreeIPA
-# needs Require valid-user for GSSAPI enforcement)
+# Disable Require valid-user (exclude ipa.conf)
 # ---------------------------------------------------------
-- name: "V-206374 | Remove Require valid-user (excluding ipa.conf)"
+- name: "V-206374 | Disable Require valid-user (excluding ipa.conf)"
   replace:
     path: "{{ item.path }}"
     regexp: '^\s*Require\s+valid-user.*'
-    replace: ''
+    replace: '# \g<0>  # Disabled by STIG V-206374'
+    backup: yes
   loop: "{{ v206374_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
   notify: restart httpd
 
 # ---------------------------------------------------------
-# EXCEPTION: Ensure AuthType GSSAPI in ipa.conf
-# FreeIPA requires this for Kerberos and password web login.
+# Ensure FreeIPA required directives (idempotent)
 # ---------------------------------------------------------
 - name: "V-206374 | Ensure AuthType GSSAPI in FreeIPA config"
   lineinfile:
     path: /etc/httpd/conf.d/ipa.conf
-    insertafter: 'AuthName "Kerberos Login"'
+    regexp: '^\s*AuthType\s+GSSAPI'
     line: '  AuthType GSSAPI'
     state: present
+    backup: yes
   notify: restart httpd
 
 - name: "V-206374 | Ensure Require valid-user in FreeIPA config"
   lineinfile:
     path: /etc/httpd/conf.d/ipa.conf
-    insertafter: 'GssapiUseS4U2Proxy on'
+    regexp: '^\s*Require\s+valid-user'
     line: '  Require valid-user'
     state: present
+    backup: yes
   notify: restart httpd
 
 # ---------------------------------------------------------
-# EXCEPTION: Allow access to FreeIPA WSGI application
-# The default <Directory /> denies filesystem access to
-# /usr/share/ipa/wsgi.py which serves the IPA API.
+# FreeIPA WSGI Exception (safe + idempotent)
 # ---------------------------------------------------------
 - name: "V-206374 | Allow FreeIPA WSGI application access"
   copy:
@@ -154,12 +131,7 @@
     content: |
       ############################################################
       # STIG Exception: FreeIPA WSGI Application Access
-      # Required by: V-206374 (default Directory / deny)
-      #
-      # The default <Directory /> Require all denied blocks the
-      # FreeIPA WSGI script. This grants access to the IPA
-      # application directory to allow the JSON-RPC API and
-      # Kerberos login endpoints to function.
+      # Required by: V-206374
       ############################################################
       <Directory "/usr/share/ipa">
           Require all granted
