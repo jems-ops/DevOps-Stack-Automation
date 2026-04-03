@@ -30,11 +30,14 @@
   changed_when: false
 
 # ---------------------------------------------------------
-# Check for forbidden directives
+# Check for forbidden directives (excludes ipa.conf —
+# FreeIPA requires AuthType GSSAPI and Require valid-user)
 # ---------------------------------------------------------
 - name: "V-206374 | Check AuthUserFile/AuthType/Require"
   shell: >
-    grep -RsiE '^\s*(AuthUserFile|AuthType|Require\s+valid-user)' /etc/httpd 2>/dev/null || true
+    grep -RnE '^[^#]*(AuthUserFile|AuthType|Require\s+valid-user)'
+    /etc/httpd/conf /etc/httpd/conf.d
+    --exclude=ipa.conf 2>/dev/null || true
   register: v206374_auth
   changed_when: false
 

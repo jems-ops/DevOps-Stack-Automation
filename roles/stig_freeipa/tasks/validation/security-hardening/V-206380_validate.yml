@@ -12,11 +12,14 @@
 ############################################################
 
 # ---------------------------------------------------------
-# Check for forbidden config
+# Check for forbidden config (excludes ipa.conf — FreeIPA
+# WSGI directories require ExecCGI as documented exception)
 # ---------------------------------------------------------
 - name: "V-206380 | Check CGI/MIME/ExecCGI"
   shell: >
-    grep -RsiE 'application/x-httpd-cgi|cgi-script|Options.*ExecCGI' /etc/httpd 2>/dev/null || true
+    grep -RnE '^[^#]*(application/x-httpd-cgi|cgi-script|Options.*ExecCGI)'
+    /etc/httpd/conf /etc/httpd/conf.d
+    --exclude=ipa.conf 2>/dev/null || true
   register: v206380_check
   changed_when: false
 

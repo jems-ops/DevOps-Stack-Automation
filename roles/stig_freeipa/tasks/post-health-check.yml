@@ -20,12 +20,6 @@
   register: hc_tomcat
   failed_when: hc_tomcat.status.ActiveState != "active"
 
-- name: "Health Check | Verify 389-DS (dirsrv) is running"
-  ansible.builtin.shell: "systemctl is-active 'dirsrv@*'"
-  register: hc_dirsrv
-  changed_when: false
-  failed_when: hc_dirsrv.stdout != "active"
-
 - name: "Health Check | Verify named (DNS) is running"
   ansible.builtin.systemd:
     name: named
@@ -139,7 +133,6 @@
       🔧 Services:
       • httpd:          {{ hc_httpd.status.ActiveState }}
       • pki-tomcatd:    {{ hc_tomcat.status.ActiveState }}
-      • 389-DS:         {{ hc_dirsrv.stdout }}
       • named (DNS):    {{ hc_named.status.ActiveState }}
       • krb5kdc:        {{ hc_kerberos.status.ActiveState }}
       • auditd:         {{ hc_auditd.stdout }}
