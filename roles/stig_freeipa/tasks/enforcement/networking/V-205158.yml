@@ -1,0 +1,66 @@
+---
+############################################################
+# STIG Control: V-205158
+# SRG ID: SRG-APP-000001-DNS-000115
+# Severity: CAT II
+# Status: NOT A FINDING (Dynamic Updates Restricted via GSS-TSIG)
+#
+# Title:
+# The DNS implementation must limit the number of concurrent
+# client connections to the number of allowed dynamic update clients.
+#
+# Description:
+# Limiting dynamic update clients reduces risk of denial-of-service
+# and unauthorized DNS modifications. The DNS server must explicitly
+# define which hosts are allowed to perform updates.
+#
+# Validation Summary:
+# - Verify update-policy exists
+# - Extract full update-policy block
+# - Confirm GSS-TSIG (Kerberos) enforcement
+# - Ensure updates restricted to authenticated hosts only
+#
+# Expected Result:
+# - update-policy is defined
+# - krb5-self or Kerberos-based restrictions present
+# - Updates limited to authorized hosts only
+# → NOT A FINDING
+#
+# Comments:
+# FreeIPA DNS restricts dynamic updates using GSS-TSIG
+# (Kerberos-based authentication). Only domain-joined hosts
+# with valid Kerberos credentials can perform updates.
+#
+# Policy enforces:
+# - krb5-self match (host identity enforcement)
+# - Record-level restriction (A, AAAA, SSHFP only)
+# - No anonymous or external updates
+#
+# This ensures:
+# - Finite set of update clients
+# - Controlled concurrent update sessions
+# - Strong identity-based access control
+#
+# Example Evidence:
+# grant freeipa.local krb5-self * A;
+# grant freeipa.local krb5-self * AAAA;
+# grant freeipa.local krb5-self * SSHFP;
+############################################################
+
+- name: "V-205158 | Query FreeIPA zone update-policy (LDAP-backed)"
+  shell: ipa dnszone-show {{ dns_domain }}. --all --raw 2>/dev/null | grep -Ei 'idnsupdatepolicy|idnsallowdynupdate' || true
+  register: v205158_ipa_policy
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205158 | Check for Kerberos (krb5-self) in update-policy"
+  set_fact:
+    v205158_krb5_found: "{{ 'krb5-self' in (v205158_ipa_policy.stdout | default('')) }}"
+  when: dns_named_active | bool
+
+- name: "V-205158 | Enforcement Summary"
+  debug:
+    msg:
+      named_service_active: "{{ dns_named_active }}"
+      update_policy_found: "{{ (v205158_ipa_policy.stdout | default('')) | length > 0 }}"
+      kerberos_krb5_self_found: "{{ v205158_krb5_found | default(false) }}"

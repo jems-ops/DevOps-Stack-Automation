@@ -1,0 +1,29 @@
+---
+############################################################
+# STIG Control: V-205225
+#
+# Validation Summary:
+# Evaluate FIPS-validated DNSSEC cryptography requirement
+#
+# Expected Result:
+# - No DNSSEC → NOT APPLICABLE
+# - DNSSEC present → verify FIPS-validated algorithms
+############################################################
+
+- name: "V-205225 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205225 DNSSEC FIPS Cryptography Validation =====
+
+      DNSSEC Config Present: {{ dns_dnssec_config }}
+      DNSSEC Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
+      Signed Records Found: {{ dns_dnssec_records.matched | default(0) }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if (not dns_dnssec_config)
+        and (dns_dnssec_keys.matched | default(0) == 0)
+        and (dns_dnssec_records.matched | default(0) == 0)
+        else 'OPEN - DNSSEC detected, verify FIPS-validated cryptography in use'
+      }}

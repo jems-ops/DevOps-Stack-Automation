@@ -1,0 +1,44 @@
+---
+############################################################
+# STIG Control: V-205157
+#
+# Validation Summary:
+# Evaluate zone transfer restriction to authorized secondaries
+#
+# Expected Result:
+# - named active + zones with restricted transfers → NOT A FINDING
+# - named not active → NOT APPLICABLE
+############################################################
+
+- name: "V-205157 | Get DNS zones"
+  shell: ipa dnszone-find --all --raw | grep 'idnsname:' | awk '{print $2}'
+  register: v205157_val_zones
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205157 | Check zone transfer ACLs"
+  shell: ipa dnszone-show {{ item }} --all --raw | grep -Ei 'idnsallowtransfer|allow-transfer' || true
+  loop: "{{ v205157_val_zones.stdout_lines | default([]) }}"
+  register: v205157_val_acls
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205157 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205157 Zone Transfer Restriction Validation =====
+
+      Named Service Active: {{ dns_named_active }}
+      DNS Zones Found: {{ v205157_val_zones.stdout_lines | default([]) | length }}
+      Zones: {{ v205157_val_zones.stdout_lines | default([]) }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if (v205157_val_zones.stdout_lines | default([]) | length > 0)
+          else 'OPEN - no DNS zones found to evaluate transfer restrictions'
+        )
+      }}

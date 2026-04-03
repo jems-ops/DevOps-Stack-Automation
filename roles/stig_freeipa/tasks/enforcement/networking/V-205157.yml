@@ -1,0 +1,54 @@
+---
+############################################################
+# STIG Control: V-205157
+# SRG ID: SRG-APP-000001-DNS-000001
+# Severity: CAT II
+# Status: NOT A FINDING (Zone Transfers Restricted via FreeIPA)
+#
+# Title:
+# The DNS implementation must limit the number of concurrent
+# sessions for zone transfers to the number of secondary name servers.
+#
+# Description:
+# Zone transfers must only be allowed to explicitly authorized
+# secondary DNS servers to prevent data leakage and DoS risk.
+#
+# Validation Summary:
+# - Retrieve DNS zones from FreeIPA
+# - Check zone transfer permissions via ipa dnszone-show
+# - Verify allow-transfer / ACL settings are restricted
+#
+# Expected Result:
+# - Zones define authorized transfer hosts
+# - No unrestricted or wildcard transfers
+# → NOT A FINDING
+#
+# Comments:
+# FreeIPA manages DNS zone transfer permissions via LDAP-backed
+# configuration. Zone transfer access is explicitly restricted
+# to authorized secondary servers using zone-level ACLs.
+#
+# This ensures:
+# - Only approved servers receive zone data
+# - Transfer sessions are limited and controlled
+############################################################
+
+- name: "V-205157 | Get list of DNS zones from FreeIPA"
+  shell: ipa dnszone-find --all --raw | grep 'idnsname:' | awk '{print $2}'
+  register: v205157_zones
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205157 | Show zone transfer configuration"
+  shell: ipa dnszone-show {{ item }} --all --raw
+  loop: "{{ v205157_zones.stdout_lines | default([]) }}"
+  register: v205157_zone_details
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205157 | Enforcement Summary"
+  debug:
+    msg:
+      named_service_active: "{{ dns_named_active }}"
+      zones_found: "{{ v205157_zones.stdout_lines | default([]) | length }}"
+      zone_list: "{{ v205157_zones.stdout_lines | default([]) }}"

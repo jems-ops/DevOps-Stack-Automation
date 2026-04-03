@@ -19,6 +19,18 @@
 #   dns_zone_files          - zone-related files under /var/named
 ############################################################
 
+# ---- Named Service State ----
+
+- name: "DNS Facts | Check if named service is active"
+  command: systemctl is-active named
+  register: _dns_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "DNS Facts | Set dns_named_active"
+  set_fact:
+    dns_named_active: "{{ _dns_named_status.rc == 0 }}"
+
 # ---- Domain & NS Records ----
 
 - name: "DNS Facts | Detect domain"

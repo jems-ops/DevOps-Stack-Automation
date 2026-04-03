@@ -1,0 +1,51 @@
+---
+############################################################
+# STIG Control: V-205160
+#
+# Validation Summary:
+# Evaluate DNS audit record generation for DoD-defined events
+#
+# Expected Result:
+# - named active + audit logs present → NOT A FINDING
+# - named not active → NOT APPLICABLE
+############################################################
+
+- name: "V-205160 | Check RNDC / privileged command logs"
+  shell: grep -Ei 'rndc|reload|stop|start' /var/named/data/named.run /var/log/* 2>/dev/null | head -n 10 || true
+  register: v205160_val_rndc
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205160 | Check failed / unauthorized event logs"
+  shell: grep -Ei 'denied|failed|unauthorized|refused' /var/log/* 2>/dev/null | head -n 10 || true
+  register: v205160_val_failed
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205160 | Check lifecycle logs"
+  shell: journalctl -u named --no-pager | grep -Ei 'start|stop|restart' | tail -n 10 || true
+  register: v205160_val_lifecycle
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205160 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205160 DNS Audit Record Generation Validation =====
+
+      Named Service Active: {{ dns_named_active }}
+      RNDC Logs Present: {{ (v205160_val_rndc.stdout | default('')) | length > 0 }}
+      Failed Event Logs Present: {{ (v205160_val_failed.stdout | default('')) | length > 0 }}
+      Lifecycle Logs Present: {{ (v205160_val_lifecycle.stdout | default('')) | length > 0 }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if (v205160_val_rndc.stdout | default('')) | length > 0
+             or (v205160_val_lifecycle.stdout | default('')) | length > 0
+          else 'OPEN - named is active but no audit log evidence found'
+        )
+      }}

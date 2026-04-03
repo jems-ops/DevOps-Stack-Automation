@@ -1,0 +1,38 @@
+---
+############################################################
+# STIG Control: V-205158
+#
+# Validation Summary:
+# Evaluate dynamic update client restriction via GSS-TSIG
+#
+# Expected Result:
+# - named active + update-policy with krb5-self → NOT A FINDING
+# - named not active → NOT APPLICABLE
+############################################################
+
+- name: "V-205158 | Query FreeIPA zone update-policy (LDAP-backed)"
+  shell: ipa dnszone-show {{ dns_domain }}. --all --raw 2>/dev/null | grep -Ei 'idnsupdatepolicy|idnsallowdynupdate' || true
+  register: v205158_val_policy
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205158 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205158 Dynamic Update Client Restriction Validation =====
+
+      Named Service Active: {{ dns_named_active }}
+      Update Policy Defined: {{ (v205158_val_policy.stdout | default('')) | length > 0 }}
+      Kerberos krb5-self Present: {{ 'krb5-self' in (v205158_val_policy.stdout | default('')) }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if (v205158_val_policy.stdout | default('')) | length > 0
+             and 'krb5-self' in (v205158_val_policy.stdout | default(''))
+          else 'OPEN - update-policy or krb5-self enforcement not found in FreeIPA zone'
+        )
+      }}

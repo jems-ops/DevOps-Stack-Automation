@@ -82,6 +82,55 @@
 # Networking
 ############################################################
 
+- name: "V-205157 | Enforce zone transfer restriction"
+  ansible.builtin.include_tasks:
+    file: networking/V-205157.yml
+    apply:
+      tags: [V-205157, enforcement]
+  tags: [V-205157, enforcement]
+
+- name: "V-205158 | Enforce dynamic update client restriction"
+  ansible.builtin.include_tasks:
+    file: networking/V-205158.yml
+    apply:
+      tags: [V-205158, enforcement]
+  tags: [V-205158, enforcement]
+
+- name: "V-205160 | Enforce DNS audit record generation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205160.yml
+    apply:
+      tags: [V-205160, enforcement]
+  tags: [V-205160, enforcement]
+
+- name: "V-205161 | Enforce DNS audit event type logging"
+  ansible.builtin.include_tasks:
+    file: networking/V-205161.yml
+    apply:
+      tags: [V-205161, enforcement]
+  tags: [V-205161, enforcement]
+
+- name: "V-205224 | Enforce named service audit logging"
+  ansible.builtin.include_tasks:
+    file: networking/V-205224.yml
+    apply:
+      tags: [V-205224, enforcement]
+  tags: [V-205224, enforcement]
+
+- name: "V-205225 | Enforce DNSSEC FIPS cryptography"
+  ansible.builtin.include_tasks:
+    file: networking/V-205225.yml
+    apply:
+      tags: [V-205225, enforcement]
+  tags: [V-205225, enforcement]
+
+- name: "V-205227 | Enforce NSEC3 salt rotation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205227.yml
+    apply:
+      tags: [V-205227, enforcement]
+  tags: [V-205227, enforcement]
+
 - name: "V-205230 | Enforce NS record validation"
   ansible.builtin.include_tasks:
     file: networking/V-205230.yml

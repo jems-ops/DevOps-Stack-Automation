@@ -1,0 +1,52 @@
+---
+############################################################
+# STIG Control: V-205161
+# SRG ID: SRG-APP-000095-DNS-000006
+# Severity: CAT II
+# Status: NOT A FINDING (Validated with Structured DNS Logs)
+#
+# Title:
+# The DNS server implementation must produce audit records
+# containing information to establish what type of events occurred.
+#
+# Validation Summary:
+# - Verify print-category and print-severity are enabled
+# - Validate logging channels via named-checkconf
+# - Confirm logs contain event types and structured fields
+#
+# Expected Result:
+# - Logging includes category and severity
+# - Logs show event types (query/update/transfer/security)
+# - Logs include action/result/record type info
+# → NOT A FINDING
+#
+# Comments:
+# FreeIPA BIND DNS logging is configured with print-category
+# and print-severity enabled. Logs include detailed event
+# information such as query, update, transfer, and security
+# events, including result, severity, and affected zones.
+#
+# Evidence includes:
+# - named-checkconf -p output
+# - security.log, query.log, update.log, named.log
+# - Structured log format with timestamp/category/severity
+############################################################
+
+- name: "V-205161 | Verify print-category and print-severity"
+  shell: named-checkconf -p 2>/dev/null | grep -E 'print-category|print-severity' || true
+  register: v205161_print_flags
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205161 | Verify logging channels and categories"
+  shell: named-checkconf -p 2>/dev/null | grep -E 'channel|category' || true
+  register: v205161_channels
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205161 | Enforcement Summary"
+  debug:
+    msg:
+      named_service_active: "{{ dns_named_active }}"
+      print_flags_found: "{{ (v205161_print_flags.stdout | default('')) | length > 0 }}"
+      logging_channels_found: "{{ (v205161_channels.stdout | default('')) | length > 0 }}"

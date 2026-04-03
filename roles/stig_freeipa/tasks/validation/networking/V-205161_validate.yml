@@ -1,0 +1,44 @@
+---
+############################################################
+# STIG Control: V-205161
+#
+# Validation Summary:
+# Evaluate DNS audit logging for event type information
+#
+# Expected Result:
+# - named active + logging flags/channels present → NOT A FINDING
+# - named not active → NOT APPLICABLE
+############################################################
+
+- name: "V-205161 | Check print-category and print-severity"
+  shell: named-checkconf -p 2>/dev/null | grep -E 'print-category|print-severity' || true
+  register: v205161_val_flags
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205161 | Check logging channels and categories"
+  shell: named-checkconf -p 2>/dev/null | grep -E 'channel|category' || true
+  register: v205161_val_channels
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205161 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205161 DNS Audit Event Type Logging Validation =====
+
+      Named Service Active: {{ dns_named_active }}
+      Print Flags Present: {{ (v205161_val_flags.stdout | default('')) | length > 0 }}
+      Logging Channels Present: {{ (v205161_val_channels.stdout | default('')) | length > 0 }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if (v205161_val_flags.stdout | default('')) | length > 0
+             and (v205161_val_channels.stdout | default('')) | length > 0
+          else 'OPEN - named is active but logging flags or channels not found'
+        )
+      }}

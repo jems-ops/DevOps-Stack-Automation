@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-205224
+#
+# Validation Summary:
+# Evaluate audit logging for named service start/stop events
+#
+# Expected Result:
+# - named active + journald logs present → NOT A FINDING
+# - named not active → NOT APPLICABLE
+############################################################
+
+- name: "V-205224 | Check journald lifecycle logs"
+  shell: journalctl -u named --no-pager | grep -Ei 'start|stop|starting|stopping|listening|no longer listening|shutting|running|loading' | tail -n 10 || true
+  register: v205224_val_logs
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205224 | Compliance Result"
+  debug:
+    msg: |
+      ===== V-205224 Named Service Audit Logging Validation =====
+
+      Named Service Active: {{ dns_named_active }}
+      Lifecycle Logs Present: {{ (v205224_val_logs.stdout | default('')) | length > 0 }}
+
+      RESULT:
+      {{
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if (v205224_val_logs.stdout | default('')) | length > 0
+          else 'OPEN - named is active but no start/stop audit logs found in journald'
+        )
+      }}

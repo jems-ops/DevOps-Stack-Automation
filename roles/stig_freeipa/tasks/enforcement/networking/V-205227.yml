@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-205227
+# SRG ID: SRG-APP-000516-DNS-000077
+# Severity: CAT II
+# Status: NOT APPLICABLE (DNSSEC Not Enabled)
+#
+# Title:
+# The salt value for zones signed using NSEC3 RRs must be
+# changed every time the zone is completely re-signed.
+# Findigs details:
+# DNSSEC (including NSEC3 signing) is not enabled in this FreeIPA DNS deployment. No signed DNS zones, NSEC3 records, or associated cryptographic parameters (salt/iterations) are present. Therefore, there is no operational requirement to rotate NSEC3 salt values, and this control is not applicable.
+#
+# Validation Summary:
+# - Check if DNSSEC is enabled in named.conf
+# - Check for presence of DNSSEC keys
+# - Check for signed DNS records (NSEC3/NSEC/DNSKEY/RRSIG)
+#
+# Expected Result:
+# - No DNSSEC configuration present
+# - No DNSSEC keys found
+# - No signed zones detected
+# → NOT APPLICABLE
+#
+# Comments:
+# DNSSEC is not enabled in this FreeIPA DNS deployment.
+# No NSEC3 records, salt values, or signed zones exist.
+# Therefore, salt rotation requirement is not applicable.
+############################################################
+
+- name: "V-205227 | Enforcement Summary"
+  debug:
+    msg:
+      dnssec_config_present: "{{ dns_dnssec_config }}"
+      dnssec_key_files: "{{ dns_dnssec_keys.matched | default(0) }}"
+      dnssec_signed_records: "{{ dns_dnssec_records.matched | default(0) }}"

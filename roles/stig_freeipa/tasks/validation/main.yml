@@ -82,6 +82,55 @@
 # Networking
 ############################################################
 
+- name: "V-205157 | Validate zone transfer restriction"
+  ansible.builtin.include_tasks:
+    file: networking/V-205157_validate.yml
+    apply:
+      tags: [V-205157, validation]
+  tags: [V-205157, validation]
+
+- name: "V-205158 | Validate dynamic update client restriction"
+  ansible.builtin.include_tasks:
+    file: networking/V-205158_validate.yml
+    apply:
+      tags: [V-205158, validation]
+  tags: [V-205158, validation]
+
+- name: "V-205160 | Validate DNS audit record generation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205160_validate.yml
+    apply:
+      tags: [V-205160, validation]
+  tags: [V-205160, validation]
+
+- name: "V-205161 | Validate DNS audit event type logging"
+  ansible.builtin.include_tasks:
+    file: networking/V-205161_validate.yml
+    apply:
+      tags: [V-205161, validation]
+  tags: [V-205161, validation]
+
+- name: "V-205224 | Validate named service audit logging"
+  ansible.builtin.include_tasks:
+    file: networking/V-205224_validate.yml
+    apply:
+      tags: [V-205224, validation]
+  tags: [V-205224, validation]
+
+- name: "V-205225 | Validate DNSSEC FIPS cryptography"
+  ansible.builtin.include_tasks:
+    file: networking/V-205225_validate.yml
+    apply:
+      tags: [V-205225, validation]
+  tags: [V-205225, validation]
+
+- name: "V-205227 | Validate NSEC3 salt rotation"
+  ansible.builtin.include_tasks:
+    file: networking/V-205227_validate.yml
+    apply:
+      tags: [V-205227, validation]
+  tags: [V-205227, validation]
+
 - name: "V-205230 | Validate NS record validation"
   ansible.builtin.include_tasks:
     file: networking/V-205230_validate.yml

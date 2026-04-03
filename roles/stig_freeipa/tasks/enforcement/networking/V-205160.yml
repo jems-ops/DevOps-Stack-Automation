@@ -1,0 +1,61 @@
+---
+############################################################
+# STIG Control: V-205160
+# SRG ID: SRG-APP-000089-DNS-000005
+# Severity: CAT II
+# Status: NOT A FINDING (Audit Generation Fully Implemented)
+#
+# Title:
+# The DNS server implementation must be configured to provide
+# audit record generation capability for DoD-defined auditable
+# events within all DNS server components.
+#
+# Validation Summary:
+# - Verify DNS service logging is active
+# - Validate RNDC (privileged commands) logging
+# - Confirm success/failure events captured
+# - Check for security and unauthorized access logs
+#
+# Expected Result:
+# - Privileged actions logged (rndc)
+# - Success and failure events recorded
+# - Unauthorized attempts logged
+# - System lifecycle events logged
+# → NOT A FINDING
+#
+# Comments:
+# FreeIPA BIND DNS logs all required auditable events including:
+# - RNDC administrative actions (reload/stop/start)
+# - Success and failure results
+# - Unauthorized access attempts
+# - System-level service events
+#
+# Logs include timestamps, source addresses, actions, and results,
+# satisfying AU-2 and AU-12 audit generation requirements.
+############################################################
+
+- name: "V-205160 | Check for RNDC (privileged command) logs"
+  shell: grep -Ei 'rndc|reload|stop|start' /var/named/data/named.run /var/log/* 2>/dev/null | head -n 20 || true
+  register: v205160_rndc_logs
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205160 | Check for unsuccessful/unauthorized events"
+  shell: grep -Ei 'denied|failed|unauthorized|refused' /var/log/* 2>/dev/null | head -n 20 || true
+  register: v205160_failed_logs
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205160 | Check system lifecycle logs (start/stop)"
+  shell: journalctl -u named --no-pager | grep -Ei 'start|stop|restart' | tail -n 20 || true
+  register: v205160_lifecycle_logs
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205160 | Enforcement Summary"
+  debug:
+    msg:
+      named_service_active: "{{ dns_named_active }}"
+      rndc_logs_found: "{{ (v205160_rndc_logs.stdout | default('')) | length > 0 }}"
+      failed_event_logs_found: "{{ (v205160_failed_logs.stdout | default('')) | length > 0 }}"
+      lifecycle_logs_found: "{{ (v205160_lifecycle_logs.stdout | default('')) | length > 0 }}"
