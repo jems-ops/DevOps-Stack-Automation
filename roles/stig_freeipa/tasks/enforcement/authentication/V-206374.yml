@@ -103,23 +103,39 @@
 
 # ---------------------------------------------------------
 # Ensure FreeIPA required directives (idempotent)
+# Only inserts if anchor pattern exists in ipa.conf to
+# prevent appending outside <Location> blocks.
 # ---------------------------------------------------------
+- name: "V-206374 | Check AuthName anchor in ipa.conf"
+  shell: grep -c 'AuthName.*Kerberos' /etc/httpd/conf.d/ipa.conf
+  register: _ipa_authname_anchor
+  changed_when: false
+  failed_when: false
+
 - name: "V-206374 | Ensure AuthType GSSAPI in FreeIPA config"
   lineinfile:
     path: /etc/httpd/conf.d/ipa.conf
+    insertafter: 'AuthName.*Kerberos'
     regexp: '^\s*AuthType\s+GSSAPI'
     line: '  AuthType GSSAPI'
     state: present
-    backup: yes
+  when: _ipa_authname_anchor.stdout | int > 0
   notify: restart httpd
+
+- name: "V-206374 | Check GssapiUseS4U2Proxy anchor in ipa.conf"
+  shell: grep -c 'GssapiUseS4U2Proxy' /etc/httpd/conf.d/ipa.conf
+  register: _ipa_s4u2_anchor
+  changed_when: false
+  failed_when: false
 
 - name: "V-206374 | Ensure Require valid-user in FreeIPA config"
   lineinfile:
     path: /etc/httpd/conf.d/ipa.conf
+    insertafter: 'GssapiUseS4U2Proxy'
     regexp: '^\s*Require\s+valid-user'
     line: '  Require valid-user'
     state: present
-    backup: yes
+  when: _ipa_s4u2_anchor.stdout | int > 0
   notify: restart httpd
 
 # ---------------------------------------------------------
