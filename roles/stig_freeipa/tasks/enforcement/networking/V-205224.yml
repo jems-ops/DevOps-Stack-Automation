@@ -10,30 +10,42 @@
 # success and failure of start and stop of the name server
 # service or daemon.
 #
-# Validation Summary:
-# - Verify named service status
-# - Validate journald captures start/stop events
-# - Confirm service lifecycle logging exists
-#
-# Expected Result:
-# - named service present/active
-# - journald contains start/stop logs
-# → NOT A FINDING
+# Enforcement Strategy:
+# - Ensure systemd journald is active (logging backend)
+# - Ensure named service is managed by systemd
+# - Do NOT duplicate validation logic (no log parsing here)
 #
 # Comments:
 # FreeIPA DNS relies on systemd and journald for audit logging.
-# All service lifecycle events (start/stop/restart) are captured
-# automatically, satisfying audit requirements.
+# Lifecycle events (start/stop/restart) are automatically logged.
+#
+# Enforcement ensures:
+# - journald service is active
+# - named service is properly managed by systemd
 ############################################################
 
-- name: "V-205224 | Check recent lifecycle events from journald"
-  shell: journalctl -u named --no-pager | grep -Ei 'start|stop|starting|stopping|listening|no longer listening|shutting|running|loading' | tail -n 20 || true
-  register: v205224_named_lifecycle_logs
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205224 | Ensure systemd-journald is running"
+  systemd:
+    name: systemd-journald
+    state: started
+    enabled: yes
 
-- name: "V-205224 | Enforcement Summary"
+- name: "V-205224 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
+
+- name: "V-205224 | Informational Summary"
   debug:
-    msg:
-      named_service_active: "{{ dns_named_active }}"
-      lifecycle_logs_found: "{{ (v205224_named_lifecycle_logs.stdout | default('')) | length > 0 }}"
+    msg: |
+      STIG V-205224 Enforcement:
+
+      systemd-journald is enabled and running.
+      named service is managed by systemd.
+
+      Lifecycle audit logging (start/stop/restart)
+      is handled automatically by journald.
+
+      No additional enforcement required.
+      Validation will confirm presence of lifecycle events
+      in journald logs.

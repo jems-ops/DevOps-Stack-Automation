@@ -1,18 +1,75 @@
 ---
 ############################################################
 # STIG Control: V-205230
+# Validation: Authoritative Name Server Verification
 #
 # Validation Summary:
-# Ensure NS records point to active authoritative DNS servers
+# - Retrieve NS records for domain
+# - Resolve NS to IP addresses
+# - Query each NS for SOA response
 #
 # Expected Result:
-# - NS exists
+# - NS records exist
 # - NS resolves to IP
 # - NS responds authoritatively (SOA)
-#
-# Output:
-# NOT A FINDING / OPEN
 ############################################################
+
+- name: "V-205230 | Check named service status"
+  shell: systemctl is-active named
+  register: v205230_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205230 | Get NS records"
+  shell: dig +short NS {{ dns_domain }}
+  register: v205230_ns_records
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205230 | Validate NS records exist"
+  fail:
+    msg: "No NS records found for {{ dns_domain }}"
+  when:
+    - dns_named_active | bool
+    - v205230_ns_records.stdout_lines | length == 0
+
+- name: "V-205230 | Resolve NS records to IPs"
+  shell: dig +short {{ item }}
+  loop: "{{ v205230_ns_records.stdout_lines }}"
+  register: v205230_ns_ips
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205230 | Query SOA from each NS"
+  shell: dig @{{ item.item }} +short SOA {{ dns_domain }}
+  loop: "{{ v205230_ns_ips.results }}"
+  register: v205230_soa_responses
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205230 | Evaluate NS validation"
+  set_fact:
+    v205230_ns_valid: >-
+      {{
+        (v205230_ns_records.stdout_lines | length > 0) and
+        (
+          v205230_ns_ips.results
+          | map(attribute='stdout')
+          | select('!=', '')
+          | list
+          | length
+          == (v205230_ns_records.stdout_lines | length)
+        ) and
+        (
+          v205230_soa_responses.results
+          | map(attribute='stdout')
+          | select('!=', '')
+          | list
+          | length
+          == (v205230_ns_records.stdout_lines | length)
+        )
+      }}
+  when: dns_named_active | bool
 
 - name: "V-205230 | Compliance Result"
   debug:
@@ -20,17 +77,43 @@
       ===== V-205230 NS Record Validation =====
 
       Domain: {{ dns_domain }}
-      NS Records: {{ dns_ns_records }}
-      Resolved IPs: {{ dns_ns_ips }}
-      SOA Responses: {{ dns_soa_responses }}
 
-      FINAL STATUS:
+      ------------------------------------------------------------
+      NS Records:
+      ------------------------------------------------------------
+      {{ v205230_ns_records.stdout_lines | default([]) }}
+
+      ------------------------------------------------------------
+      Resolved IPs:
+      ------------------------------------------------------------
+      {{ v205230_ns_ips.results | map(attribute='stdout') | list | default([]) }}
+
+      ------------------------------------------------------------
+      SOA Responses:
+      ------------------------------------------------------------
+      {{ v205230_soa_responses.results | map(attribute='stdout') | list | default([]) }}
+
+      ------------------------------------------------------------
+      RESULT:
       {{
-        'NOT A FINDING'
-        if (
-          dns_ns_records | length > 0
-          and (dns_ns_ips | select('!=', '') | list | length == dns_ns_records | length)
-          and (dns_soa_responses | select('!=', '') | list | length == dns_ns_records | length)
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if (v205230_ns_valid | default(false))
+          else 'OPEN - NS records missing, not resolving, or not authoritative'
         )
-        else 'OPEN'
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      Authoritative DNS servers must be reachable and respond
+      with valid SOA records.
+
+      Validation confirms:
+      - NS records exist for the domain
+      - Each NS resolves to an IP address
+      - Each NS responds authoritatively with SOA
+
+      This ensures DNS availability and integrity.
+      ------------------------------------------------------------

@@ -1,31 +1,42 @@
 ---
 ############################################################
 # STIG Control: V-205160
+# Validation: DNS Audit Record Generation (DoD Events)
 #
 # Validation Summary:
-# Evaluate DNS audit record generation for DoD-defined events
+# - Verify named service status
+# - Collect journald logs for named service
+# - Validate presence of audit-relevant events
 #
 # Expected Result:
 # - named active + audit logs present → NOT A FINDING
 # - named not active → NOT APPLICABLE
 ############################################################
 
-- name: "V-205160 | Check RNDC / privileged command logs"
-  shell: grep -Ei 'rndc|reload|stop|start' /var/named/data/named.run /var/log/* 2>/dev/null | head -n 10 || true
-  register: v205160_val_rndc
+- name: "V-205160 | Check named service status"
+  shell: systemctl is-active named
+  register: v205160_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205160 | Collect journald logs for named (recent events)"
+  shell: journalctl -u named --no-pager -n 50
+  register: v205160_journal_logs
   changed_when: false
   when: dns_named_active | bool
 
-- name: "V-205160 | Check failed / unauthorized event logs"
-  shell: grep -Ei 'denied|failed|unauthorized|refused' /var/log/* 2>/dev/null | head -n 10 || true
-  register: v205160_val_failed
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205160 | Validate journald output not empty"
+  fail:
+    msg: "No journald logs found for named service. Logging may be misconfigured."
+  when:
+    - dns_named_active | bool
+    - v205160_journal_logs.stdout | trim == ""
 
-- name: "V-205160 | Check lifecycle logs"
-  shell: journalctl -u named --no-pager | grep -Ei 'start|stop|restart' | tail -n 10 || true
-  register: v205160_val_lifecycle
-  changed_when: false
+- name: "V-205160 | Detect audit event indicators"
+  set_fact:
+    v205160_has_lifecycle: "{{ v205160_journal_logs.stdout is search('start|stop|restart|running') }}"
+    v205160_has_failures: "{{ v205160_journal_logs.stdout is search('denied|failed|refused|error') }}"
+    v205160_has_activity: "{{ v205160_journal_logs.stdout is search('query|client|transfer|update|command') }}"
   when: dns_named_active | bool
 
 - name: "V-205160 | Compliance Result"
@@ -34,9 +45,18 @@
       ===== V-205160 DNS Audit Record Generation Validation =====
 
       Named Service Active: {{ dns_named_active }}
-      RNDC Logs Present: {{ (v205160_val_rndc.stdout | default('')) | length > 0 }}
-      Failed Event Logs Present: {{ (v205160_val_failed.stdout | default('')) | length > 0 }}
-      Lifecycle Logs Present: {{ (v205160_val_lifecycle.stdout | default('')) | length > 0 }}
+
+      ------------------------------------------------------------
+      Journald Logs (Evidence):
+      ------------------------------------------------------------
+      {{ v205160_journal_logs.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      Event Detection:
+      ------------------------------------------------------------
+      Lifecycle Events Present: {{ v205160_has_lifecycle | default(false) }}
+      Failure/Denied Events Present: {{ v205160_has_failures | default(false) }}
+      DNS Activity Events Present: {{ v205160_has_activity | default(false) }}
 
       RESULT:
       {{
@@ -44,8 +64,25 @@
         if not (dns_named_active | bool)
         else (
           'NOT A FINDING'
-          if (v205160_val_rndc.stdout | default('')) | length > 0
-             or (v205160_val_lifecycle.stdout | default('')) | length > 0
-          else 'OPEN - named is active but no audit log evidence found'
+          if (
+            (v205160_has_lifecycle | default(false)) or
+            (v205160_has_activity | default(false))
+          )
+          else 'OPEN - named active but no sufficient audit log evidence found'
         )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNS server must generate audit records for DoD-defined
+      events including service lifecycle, operational activity,
+      and failure conditions.
+
+      Validation confirms:
+      - systemd journald captures named service logs
+      - Logs include lifecycle events (start/stop/restart)
+      - Logs include DNS activity (query/update/transfer)
+      - Logs may include failure or denied events
+
+      This satisfies audit generation requirements (AU-2 / AU-12).
+      ------------------------------------------------------------

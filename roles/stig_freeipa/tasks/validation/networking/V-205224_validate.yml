@@ -1,19 +1,42 @@
 ---
 ############################################################
 # STIG Control: V-205224
+# Validation: DNS Service Lifecycle Audit Logging (AU-12)
 #
 # Validation Summary:
-# Evaluate audit logging for named service start/stop events
+# - Verify named service status
+# - Collect journald logs for named service
+# - Validate lifecycle event logging (start/stop/restart)
 #
 # Expected Result:
-# - named active + journald logs present → NOT A FINDING
+# - named active + lifecycle logs present → NOT A FINDING
 # - named not active → NOT APPLICABLE
 ############################################################
 
-- name: "V-205224 | Check journald lifecycle logs"
-  shell: journalctl -u named --no-pager | grep -Ei 'start|stop|starting|stopping|listening|no longer listening|shutting|running|loading' | tail -n 10 || true
-  register: v205224_val_logs
+- name: "V-205224 | Check named service status"
+  shell: systemctl is-active named
+  register: v205224_named_status
   changed_when: false
+  failed_when: false
+
+- name: "V-205224 | Collect journald logs for named (recent lifecycle events)"
+  shell: journalctl -u named --no-pager -n 50
+  register: v205224_journal_logs
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205224 | Validate journald output not empty"
+  fail:
+    msg: "No journald logs found for named service. Logging may be misconfigured."
+  when:
+    - dns_named_active | bool
+    - v205224_journal_logs.stdout | trim == ""
+
+- name: "V-205224 | Detect lifecycle events"
+  set_fact:
+    v205224_has_start: "{{ v205224_journal_logs.stdout is search('start|starting|running') }}"
+    v205224_has_stop: "{{ v205224_journal_logs.stdout is search('stop|stopping|shutting|no longer listening') }}"
+    v205224_has_restart: "{{ v205224_journal_logs.stdout is search('restart|reloading') }}"
   when: dns_named_active | bool
 
 - name: "V-205224 | Compliance Result"
@@ -22,7 +45,18 @@
       ===== V-205224 Named Service Audit Logging Validation =====
 
       Named Service Active: {{ dns_named_active }}
-      Lifecycle Logs Present: {{ (v205224_val_logs.stdout | default('')) | length > 0 }}
+
+      ------------------------------------------------------------
+      Journald Logs (Evidence):
+      ------------------------------------------------------------
+      {{ v205224_journal_logs.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      Lifecycle Event Detection:
+      ------------------------------------------------------------
+      Start Events Present: {{ v205224_has_start | default(false) }}
+      Stop Events Present: {{ v205224_has_stop | default(false) }}
+      Restart/Reload Events Present: {{ v205224_has_restart | default(false) }}
 
       RESULT:
       {{
@@ -30,7 +64,24 @@
         if not (dns_named_active | bool)
         else (
           'NOT A FINDING'
-          if (v205224_val_logs.stdout | default('')) | length > 0
-          else 'OPEN - named is active but no start/stop audit logs found in journald'
+          if (
+            (v205224_has_start | default(false)) or
+            (v205224_has_stop | default(false)) or
+            (v205224_has_restart | default(false))
+          )
+          else 'OPEN - named active but no lifecycle audit logs detected'
         )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNS service must generate audit records for lifecycle
+      events including start, stop, and restart operations.
+
+      Validation confirms:
+      - systemd journald captures named service logs
+      - Logs include lifecycle indicators (start/stop/restart)
+      - Events are timestamped and attributable
+
+      This satisfies audit logging requirements (AU-12).
+      ------------------------------------------------------------

@@ -1,25 +1,43 @@
 ---
 ############################################################
 # STIG Control: V-205161
+# Validation: DNS Audit Event Type Logging (AU-3)
 #
 # Validation Summary:
-# Evaluate DNS audit logging for event type information
+# - Verify named service status
+# - Extract full named configuration
+# - Validate logging flags and channels
 #
 # Expected Result:
-# - named active + logging flags/channels present → NOT A FINDING
+# - named active + print-category/print-severity + channels → NOT A FINDING
 # - named not active → NOT APPLICABLE
 ############################################################
 
-- name: "V-205161 | Check print-category and print-severity"
-  shell: named-checkconf -p 2>/dev/null | grep -E 'print-category|print-severity' || true
-  register: v205161_val_flags
+- name: "V-205161 | Check named service status"
+  shell: systemctl is-active named
+  register: v205161_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205161 | Extract full named configuration"
+  shell: named-checkconf -p
+  register: v205161_named_conf
   changed_when: false
   when: dns_named_active | bool
 
-- name: "V-205161 | Check logging channels and categories"
-  shell: named-checkconf -p 2>/dev/null | grep -E 'channel|category' || true
-  register: v205161_val_channels
-  changed_when: false
+- name: "V-205161 | Validate configuration output not empty"
+  fail:
+    msg: "named-checkconf returned no output. BIND configuration may be invalid."
+  when:
+    - dns_named_active | bool
+    - v205161_named_conf.stdout | trim == ""
+
+- name: "V-205161 | Detect logging flags and channels"
+  set_fact:
+    v205161_has_print_category: "{{ v205161_named_conf.stdout is search('print-category') }}"
+    v205161_has_print_severity: "{{ v205161_named_conf.stdout is search('print-severity') }}"
+    v205161_has_channels: "{{ v205161_named_conf.stdout is search('channel') }}"
+    v205161_has_categories: "{{ v205161_named_conf.stdout is search('category') }}"
   when: dns_named_active | bool
 
 - name: "V-205161 | Compliance Result"
@@ -28,8 +46,19 @@
       ===== V-205161 DNS Audit Event Type Logging Validation =====
 
       Named Service Active: {{ dns_named_active }}
-      Print Flags Present: {{ (v205161_val_flags.stdout | default('')) | length > 0 }}
-      Logging Channels Present: {{ (v205161_val_channels.stdout | default('')) | length > 0 }}
+
+      ------------------------------------------------------------
+      Named Configuration (Evidence):
+      ------------------------------------------------------------
+      {{ v205161_named_conf.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      Logging Configuration Detection:
+      ------------------------------------------------------------
+      print-category Enabled: {{ v205161_has_print_category | default(false) }}
+      print-severity Enabled: {{ v205161_has_print_severity | default(false) }}
+      Logging Channels Present: {{ v205161_has_channels | default(false) }}
+      Logging Categories Present: {{ v205161_has_categories | default(false) }}
 
       RESULT:
       {{
@@ -37,8 +66,27 @@
         if not (dns_named_active | bool)
         else (
           'NOT A FINDING'
-          if (v205161_val_flags.stdout | default('')) | length > 0
-             and (v205161_val_channels.stdout | default('')) | length > 0
-          else 'OPEN - named is active but logging flags or channels not found'
+          if (
+            (v205161_has_print_category | default(false)) and
+            (v205161_has_print_severity | default(false)) and
+            (v205161_has_channels | default(false)) and
+            (v205161_has_categories | default(false))
+          )
+          else 'OPEN - logging flags or channels not properly configured'
         )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNS audit logs must contain sufficient detail to identify
+      event types (queries, updates, transfers, security events).
+
+      Validation confirms:
+      - print-category enabled → identifies event type
+      - print-severity enabled → identifies severity level
+      - logging channels defined → log destinations configured
+      - logging categories defined → event classification present
+
+      This satisfies AU-3 (event content) requirements.
+      ------------------------------------------------------------
+

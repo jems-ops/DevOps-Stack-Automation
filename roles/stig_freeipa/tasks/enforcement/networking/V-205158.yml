@@ -3,64 +3,58 @@
 # STIG Control: V-205158
 # SRG ID: SRG-APP-000001-DNS-000115
 # Severity: CAT II
-# Status: NOT A FINDING (Dynamic Updates Restricted via GSS-TSIG)
+# Status: NOT A FINDING (Dynamic Update Control via FreeIPA)
 #
 # Title:
 # The DNS implementation must limit the number of concurrent
 # client connections to the number of allowed dynamic update clients.
 #
-# Description:
-# Limiting dynamic update clients reduces risk of denial-of-service
-# and unauthorized DNS modifications. The DNS server must explicitly
-# define which hosts are allowed to perform updates.
-#
-# Validation Summary:
-# - Verify update-policy exists
-# - Extract full update-policy block
-# - Confirm GSS-TSIG (Kerberos) enforcement
-# - Ensure updates restricted to authenticated hosts only
-#
-# Expected Result:
-# - update-policy is defined
-# - krb5-self or Kerberos-based restrictions present
-# - Updates limited to authorized hosts only
-# → NOT A FINDING
+# Enforcement Strategy:
+# - Ensure named (FreeIPA DNS) service is enabled
+# - Ensure IPA DNS capability is active
+# - Do NOT modify or parse update-policy (handled by FreeIPA)
+# - Do NOT duplicate validation logic
 #
 # Comments:
-# FreeIPA DNS restricts dynamic updates using GSS-TSIG
-# (Kerberos-based authentication). Only domain-joined hosts
-# with valid Kerberos credentials can perform updates.
+# FreeIPA manages DNS update-policy via LDAP and enforces
+# GSS-TSIG (Kerberos-based authentication).
 #
-# Policy enforces:
-# - krb5-self match (host identity enforcement)
-# - Record-level restriction (A, AAAA, SSHFP only)
-# - No anonymous or external updates
+# Enforcement ensures:
+# - DNS service is active and managed
+# - System is capable of enforcing update restrictions
 #
-# This ensures:
-# - Finite set of update clients
-# - Controlled concurrent update sessions
-# - Strong identity-based access control
-#
-# Example Evidence:
-# grant freeipa.local krb5-self * A;
-# grant freeipa.local krb5-self * AAAA;
-# grant freeipa.local krb5-self * SSHFP;
+# Validation is responsible for:
+# - verifying update-policy presence
+# - checking krb5-self enforcement
+# - confirming restricted update scope
 ############################################################
 
-- name: "V-205158 | Query FreeIPA zone update-policy (LDAP-backed)"
-  shell: ipa dnszone-show {{ dns_domain }}. --all --raw 2>/dev/null | grep -Ei 'idnsupdatepolicy|idnsallowdynupdate' || true
-  register: v205158_ipa_policy
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205158 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
 
-- name: "V-205158 | Check for Kerberos (krb5-self) in update-policy"
-  set_fact:
-    v205158_krb5_found: "{{ 'krb5-self' in (v205158_ipa_policy.stdout | default('')) }}"
-  when: dns_named_active | bool
+- name: "V-205158 | Ensure named service is running"
+  systemd:
+    name: named
+    state: started
 
-- name: "V-205158 | Enforcement Summary"
+- name: "V-205158 | Informational Summary"
   debug:
-    msg:
-      named_service_active: "{{ dns_named_active }}"
-      update_policy_found: "{{ (v205158_ipa_policy.stdout | default('')) | length > 0 }}"
-      kerberos_krb5_self_found: "{{ v205158_krb5_found | default(false) }}"
+    msg: |
+      STIG V-205158 Enforcement:
+
+      FreeIPA DNS service (named) is enabled and running.
+
+      Dynamic update restrictions are enforced by FreeIPA
+      via LDAP-managed update-policy using GSS-TSIG (Kerberos).
+
+      No direct enforcement applied to configuration files
+      to avoid conflict with FreeIPA-managed DNS settings.
+
+      Validation is performed separately.
+      Validation will confirm:
+      - update-policy presence in LDAP
+      - krb5-self enforcement for updates
+      - restricted update scope (e.g., specific zones)
+      - absence of open update policies in named.conf

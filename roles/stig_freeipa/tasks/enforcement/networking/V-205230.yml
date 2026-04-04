@@ -4,42 +4,55 @@
 # SRG ID: SRG-APP-000516-DNS-000085
 # Rule ID: SV-205230r961863
 # Severity: CAT II
-# Status: Enforced (Informational Collection Only)
+# Status: NOT A FINDING (DNS Authority Managed by FreeIPA)
 #
 # Title:
 # The DNS implementation must ensure each NS record in a zone
 # file points to an active name server authoritative for the domain.
 #
-# Description:
-# NS records referencing inactive or non-authoritative servers
-# introduce risk of DNS spoofing and service disruption.
-#
-# Finding Details:
-# The system dynamically detects the DNS domain and collects
-# NS records along with resolution and authoritative responses.
-#
-# Implementation Summary:
-# - Detect DNS domain dynamically
-# - Collect NS records
-# - Resolve NS to IP addresses
-# - Collect SOA responses for authority validation
-# - No evaluation performed in enforcement
-#
-# Manual Procedure:
-# hostname -d
-# dig NS <domain>
-# dig A <ns>
-# dig SOA <domain> @<ns>
+# Enforcement Strategy:
+# - Ensure DNS service (named) is enabled and running
+# - Ensure system is capable of serving authoritative DNS
+# - Do NOT collect or validate NS records here
+# - Do NOT depend on validation variables
 #
 # Comments:
-# FreeIPA manages DNS internally. Enforcement gathers evidence
-# for validation to determine compliance.
+# FreeIPA manages DNS zones and NS records internally via LDAP.
+# Authoritative name server configuration is centrally controlled.
+#
+# Enforcement ensures:
+# - DNS service is active and operational
+# - System can respond to DNS queries
+#
+# Validation is responsible for:
+# - retrieving NS records
+# - resolving NS to IPs
+# - verifying SOA authoritative responses
 ############################################################
 
-- name: "V-205230 | Enforcement Summary"
+- name: "V-205230 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
+
+- name: "V-205230 | Ensure named service is running"
+  systemd:
+    name: named
+    state: started
+
+- name: "V-205230 | Informational Summary"
   debug:
-    msg:
-      domain: "{{ dns_domain }}"
-      ns_records: "{{ dns_ns_records }}"
-      ns_ips: "{{ dns_ns_ips }}"
-      soa: "{{ dns_soa_responses }}"
+    msg: |
+      STIG V-205230 Enforcement:
+
+      FreeIPA DNS service (named) is enabled and running.
+
+      NS record management is handled internally by FreeIPA.
+      Authoritative DNS configuration is centrally enforced.
+
+      No direct enforcement applied to zone data to avoid
+      conflict with FreeIPA-managed DNS configuration.
+
+      Validation is performed separately.
+      Validation will confirm NS records point to active
+      authoritative name servers as expected.

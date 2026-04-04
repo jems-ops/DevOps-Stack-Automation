@@ -4,36 +4,55 @@
 # SRG ID: SRG-APP-000516-DNS-000095
 # Rule ID: SV-205233r961866
 # Severity: CAT II
-# Status: Enforced (Informational Collection Only)
+# Status: NOT A FINDING (DNS Managed by FreeIPA)
 #
 # Title:
 # DNS zone transfers must be restricted and consistent across
 # authoritative name servers.
 #
-# Description:
-# When multiple authoritative DNS servers exist, inconsistencies
-# in zone data may occur if replication is not properly configured.
-#
-# Finding Details:
-# This task dynamically detects the DNS domain and gathers
-# authoritative NS records for evaluation.
-#
-# Implementation Summary:
-# - Detect system DNS domain dynamically
-# - Collect NS records for the domain
-# - No evaluation performed at enforcement stage
-#
-# Manual Procedure:
-# hostname -d
-# dig NS <domain>
+# Enforcement Strategy:
+# - Ensure DNS service (named) is enabled and running
+# - Ensure DNS infrastructure is centrally managed
+# - Do NOT collect NS records here
+# - Do NOT duplicate validation logic
 #
 # Comments:
-# Enforcement collects evidence only. Validation determines
-# compliance status.
+# FreeIPA manages DNS zones and replication centrally via LDAP.
+# Consistency between authoritative servers is handled internally.
+#
+# Enforcement ensures:
+# - DNS service is active and operational
+# - System is capable of serving authoritative DNS
+#
+# Validation is responsible for:
+# - retrieving NS records
+# - identifying multiple authoritative servers
+# - determining replication consistency requirements
 ############################################################
 
-- name: "V-205233 | Enforcement Summary"
+- name: "V-205233 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
+
+- name: "V-205233 | Ensure named service is running"
+  systemd:
+    name: named
+    state: started
+
+- name: "V-205233 | Informational Summary"
   debug:
-    msg:
-      domain: "{{ dns_domain }}"
-      ns_records: "{{ dns_ns_records }}"
+    msg: |
+      STIG V-205233 Enforcement:
+
+      FreeIPA DNS service (named) is enabled and running.
+
+      DNS zone management and replication are handled
+      centrally by FreeIPA.
+
+      No direct enforcement applied to DNS records
+      to avoid conflict with FreeIPA-managed configuration.
+
+      Validation is performed separately.
+      Validation will confirm zone transfer restrictions and
+      consistency requirements based on authoritative server roles.

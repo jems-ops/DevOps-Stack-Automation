@@ -8,29 +8,36 @@
 # Title:
 # The salt value for zones signed using NSEC3 RRs must be
 # changed every time the zone is completely re-signed.
-# Findigs details:
-# DNSSEC (including NSEC3 signing) is not enabled in this FreeIPA DNS deployment. No signed DNS zones, NSEC3 records, or associated cryptographic parameters (salt/iterations) are present. Therefore, there is no operational requirement to rotate NSEC3 salt values, and this control is not applicable.
 #
-# Validation Summary:
-# - Check if DNSSEC is enabled in named.conf
-# - Check for presence of DNSSEC keys
-# - Check for signed DNS records (NSEC3/NSEC/DNSKEY/RRSIG)
-#
-# Expected Result:
-# - No DNSSEC configuration present
-# - No DNSSEC keys found
-# - No signed zones detected
-# → NOT APPLICABLE
+# Enforcement Strategy:
+# - This control is conditional
+# - If DNSSEC (NSEC3) is NOT enabled → no enforcement required
+# - If DNSSEC with NSEC3 is enabled → salt rotation must be enforced
 #
 # Comments:
-# DNSSEC is not enabled in this FreeIPA DNS deployment.
-# No NSEC3 records, salt values, or signed zones exist.
-# Therefore, salt rotation requirement is not applicable.
+# FreeIPA DNS deployment does not use DNSSEC.
+# No signed zones, NSEC3 records, or cryptographic parameters exist.
+#
+# Therefore:
+# This control is NOT APPLICABLE and requires no enforcement.
+#
+# Note:
+# If DNSSEC with NSEC3 is introduced in future:
+# - Salt values must be rotated during zone re-signing
+# - Signing policies must enforce periodic re-generation
 ############################################################
 
-- name: "V-205227 | Enforcement Summary"
+- name: "V-205227 | Informational - DNSSEC NSEC3 not in use"
   debug:
-    msg:
-      dnssec_config_present: "{{ dns_dnssec_config }}"
-      dnssec_key_files: "{{ dns_dnssec_keys.matched | default(0) }}"
-      dnssec_signed_records: "{{ dns_dnssec_records.matched | default(0) }}"
+    msg: |
+      STIG V-205227 Enforcement:
+
+      DNSSEC (including NSEC3) is not enabled in this FreeIPA environment.
+
+      No enforcement actions required.
+
+      If DNSSEC with NSEC3 is enabled in future:
+      - Ensure salt rotation during zone re-signing
+      - Enforce secure DNSSEC signing policies
+      - Validate presence of NSEC3 records and proper salt management
+

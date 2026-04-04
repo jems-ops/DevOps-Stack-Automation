@@ -3,50 +3,58 @@
 # STIG Control: V-205161
 # SRG ID: SRG-APP-000095-DNS-000006
 # Severity: CAT II
-# Status: NOT A FINDING (Validated with Structured DNS Logs)
+# Status: NOT A FINDING (Structured Logging Supported)
 #
 # Title:
 # The DNS server implementation must produce audit records
 # containing information to establish what type of events occurred.
 #
-# Validation Summary:
-# - Verify print-category and print-severity are enabled
-# - Validate logging channels via named-checkconf
-# - Confirm logs contain event types and structured fields
-#
-# Expected Result:
-# - Logging includes category and severity
-# - Logs show event types (query/update/transfer/security)
-# - Logs include action/result/record type info
-# → NOT A FINDING
+# Enforcement Strategy:
+# - Ensure named service is enabled and managed by systemd
+# - Ensure journald logging pipeline is active
+# - Do NOT duplicate validation logic (no config parsing here)
+# - Do NOT modify FreeIPA-managed named configuration
 #
 # Comments:
-# FreeIPA BIND DNS logging is configured with print-category
-# and print-severity enabled. Logs include detailed event
-# information such as query, update, transfer, and security
-# events, including result, severity, and affected zones.
+# FreeIPA manages BIND configuration via LDAP.
+# Logging configuration (print-category, print-severity,
+# channels, categories) is handled within FreeIPA DNS.
 #
-# Evidence includes:
-# - named-checkconf -p output
-# - security.log, query.log, update.log, named.log
-# - Structured log format with timestamp/category/severity
+# Enforcement ensures:
+# - Logging infrastructure (journald) is active
+# - named service is properly managed
+#
+# Validation is responsible for verifying:
+# - print-category / print-severity
+# - logging channels and categories
+# - event detail presence
 ############################################################
 
-- name: "V-205161 | Verify print-category and print-severity"
-  shell: named-checkconf -p 2>/dev/null | grep -E 'print-category|print-severity' || true
-  register: v205161_print_flags
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205161 | Ensure systemd-journald is running"
+  systemd:
+    name: systemd-journald
+    state: started
+    enabled: yes
 
-- name: "V-205161 | Verify logging channels and categories"
-  shell: named-checkconf -p 2>/dev/null | grep -E 'channel|category' || true
-  register: v205161_channels
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205161 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
 
-- name: "V-205161 | Enforcement Summary"
+- name: "V-205161 | Informational Summary"
   debug:
-    msg:
-      named_service_active: "{{ dns_named_active }}"
-      print_flags_found: "{{ (v205161_print_flags.stdout | default('')) | length > 0 }}"
-      logging_channels_found: "{{ (v205161_channels.stdout | default('')) | length > 0 }}"
+    msg: |
+      STIG V-205161 Enforcement:
+
+      systemd-journald is active and handling DNS logs.
+      named service is managed by systemd.
+
+      FreeIPA controls BIND logging configuration internally
+      (print-category, print-severity, channels, categories).
+
+      No direct enforcement applied to named.conf to avoid
+      conflict with FreeIPA-managed configuration.
+
+      Logging detail validation is handled separately.
+      No additional enforcement required.
+      Validation will confirm presence of DNS events in journald logs.

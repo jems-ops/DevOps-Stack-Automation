@@ -3,52 +3,55 @@
 # STIG Control: V-205157
 # SRG ID: SRG-APP-000001-DNS-000001
 # Severity: CAT II
-# Status: NOT A FINDING (Zone Transfers Restricted via FreeIPA)
+# Status: NOT A FINDING (Zone Transfer Control via FreeIPA)
 #
 # Title:
 # The DNS implementation must limit the number of concurrent
 # sessions for zone transfers to the number of secondary name servers.
 #
-# Description:
-# Zone transfers must only be allowed to explicitly authorized
-# secondary DNS servers to prevent data leakage and DoS risk.
-#
-# Validation Summary:
-# - Retrieve DNS zones from FreeIPA
-# - Check zone transfer permissions via ipa dnszone-show
-# - Verify allow-transfer / ACL settings are restricted
-#
-# Expected Result:
-# - Zones define authorized transfer hosts
-# - No unrestricted or wildcard transfers
-# → NOT A FINDING
+# Enforcement Strategy:
+# - Ensure named (FreeIPA DNS) service is enabled and running
+# - Ensure DNS service is integrated with system
+# - Do NOT query or parse FreeIPA zone configuration
+# - Do NOT duplicate validation logic
 #
 # Comments:
-# FreeIPA manages DNS zone transfer permissions via LDAP-backed
-# configuration. Zone transfer access is explicitly restricted
-# to authorized secondary servers using zone-level ACLs.
+# FreeIPA manages zone transfer restrictions via LDAP-backed
+# DNS configuration (idnsAllowTransfer / allow-transfer).
 #
-# This ensures:
-# - Only approved servers receive zone data
-# - Transfer sessions are limited and controlled
+# Enforcement ensures:
+# - DNS service is active and capable of enforcing policies
+#
+# Validation is responsible for:
+# - checking zone transfer ACLs
+# - verifying no "allow-transfer any"
+# - confirming restricted transfer configuration
 ############################################################
 
-- name: "V-205157 | Get list of DNS zones from FreeIPA"
-  shell: ipa dnszone-find --all --raw | grep 'idnsname:' | awk '{print $2}'
-  register: v205157_zones
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205157 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
 
-- name: "V-205157 | Show zone transfer configuration"
-  shell: ipa dnszone-show {{ item }} --all --raw
-  loop: "{{ v205157_zones.stdout_lines | default([]) }}"
-  register: v205157_zone_details
-  changed_when: false
-  when: dns_named_active | bool
+- name: "V-205157 | Ensure named service is running"
+  systemd:
+    name: named
+    state: started
 
-- name: "V-205157 | Enforcement Summary"
+- name: "V-205157 | Informational Summary"
   debug:
-    msg:
-      named_service_active: "{{ dns_named_active }}"
-      zones_found: "{{ v205157_zones.stdout_lines | default([]) | length }}"
-      zone_list: "{{ v205157_zones.stdout_lines | default([]) }}"
+    msg: |
+      STIG V-205157 Enforcement:
+
+      FreeIPA DNS service (named) is enabled and running.
+
+      Zone transfer restrictions are enforced by FreeIPA
+      via LDAP-managed DNS configuration.
+
+      No direct enforcement applied to configuration files
+      to avoid conflict with FreeIPA-managed DNS settings.
+
+      Validation is performed separately.
+      Validation will confirm zone transfer ACLs are properly
+      configured and no "allow-transfer any" exists.
+      FreeIPA's internal mechanisms ensure compliance with this control.

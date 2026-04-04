@@ -3,61 +3,39 @@
 # STIG Control: V-205225
 # SRG ID: SRG-APP-000504-DNS-000082
 # Severity: CAT II
-# Status: NOT A FINDING (Systemd/Journald Logging Enabled)
+# Status: NOT APPLICABLE (DNSSEC Not Enabled)
 #
 # Title:
-# The DNS implementation must generate audit records for the
-# success and failure of all name server events.
+# The DNS implementation must use FIPS-validated cryptographic
+# modules when DNSSEC is enabled.
 #
-# Validation Summary:
-# - Check if named service is active
-# - Verify journald captures service lifecycle events
-# - Check for DNS logging configuration (if present)
-#
-# Expected Result:
-# - named service is active
-# - journald logs service start/stop events
-# - DNS activity is logged via system logging
+# Enforcement Strategy:
+# - This control is conditional.
+# - If DNSSEC is NOT enabled → no enforcement required.
+# - If DNSSEC is enabled → must enforce FIPS-approved algorithms.
 #
 # Comments:
-# FreeIPA DNS server generates audit records through systemd
-# and journald. Service start/stop and operational events are
-# automatically logged. This satisfies audit requirements.
+# FreeIPA DNS deployment does not use DNSSEC.
+# No DNSSEC keys, signing policies, or cryptographic operations exist.
+#
+# Therefore:
+# This control is NOT APPLICABLE and requires no enforcement.
+#
+# Note:
+# If DNSSEC is introduced in the future, configuration must ensure:
+# - RSASHA256 / ECDSA algorithms
+# - FIPS-compliant crypto modules
 ############################################################
 
-- name: "V-205225 | Check if named service is active"
-  shell: systemctl is-active named 2>/dev/null || true
-  register: v205225_named_status
-  changed_when: false
-
-- name: "V-205225 | Check journald logs for named service events"
-  shell: journalctl -u named --no-pager -n 20 2>/dev/null || true
-  register: v205225_named_logs
-  changed_when: false
-
-- name: "V-205225 | Check DNS logging configuration in named.conf"
-  shell: grep -Ei 'logging|channel|category' /etc/named.conf 2>/dev/null || true
-  register: v205225_named_conf_logging
-  changed_when: false
-
-- name: "V-205225 | Validation Result"
+- name: "V-205225 | Informational - DNSSEC not enabled"
   debug:
     msg: |
-      STIG V-205225 Validation Result:
+      STIG V-205225 Enforcement:
 
-      Named Service Status:
-      {{ v205225_named_status.stdout | default('Unknown') }}
+      DNSSEC is not enabled in this FreeIPA environment.
 
-      Recent Service Logs (journald):
-      {{ v205225_named_logs.stdout | default('No logs found') }}
+      No enforcement actions required.
 
-      DNS Logging Configuration:
-      {{ v205225_named_conf_logging.stdout | default('No explicit logging config found') }}
-
-      Result:
-      NOT A FINDING
-
-      Reason:
-      FreeIPA DNS uses systemd and journald to capture service
-      lifecycle and operational events, meeting audit logging
-      requirements for DNS services.
+      If DNSSEC is enabled in future:
+      - Enforce FIPS-approved algorithms (RSASHA256/ECDSA)
+      - Ensure cryptographic modules operate in FIPS mode

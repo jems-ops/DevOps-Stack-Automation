@@ -1,38 +1,98 @@
 ---
 ############################################################
 # STIG Control: V-205236
+# Validation: DNS Internal-Only / Split-Horizon
 #
 # Validation Summary:
-# Ensure DNS is internal-only or properly separated
+# - Extract named configuration
+# - Evaluate listen-on and allow-query settings
 #
 # Expected Result:
 # - Internal-only DNS → NOT A FINDING
 # - External exposure → OPEN
 ############################################################
 
+- name: "V-205236 | Check named service status"
+  shell: systemctl is-active named
+  register: v205236_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205236 | Extract named configuration"
+  shell: named-checkconf -p
+  register: v205236_named_conf
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205236 | Validate configuration output not empty"
+  fail:
+    msg: "named-checkconf returned no output. BIND configuration may be invalid."
+  when:
+    - dns_named_active | bool
+    - v205236_named_conf.stdout | trim == ""
+
+- name: "V-205236 | Extract listen-on and allow-query"
+  set_fact:
+    v205236_listen_on: "{{ v205236_named_conf.stdout | regex_findall('listen-on.*?;') }}"
+    v205236_allow_query: "{{ v205236_named_conf.stdout | regex_findall('allow-query.*?;') }}"
+  when: dns_named_active | bool
+
+- name: "V-205236 | Evaluate exposure"
+  set_fact:
+    v205236_external_exposure: >-
+      {{
+        (
+          v205236_listen_on | join(' ') is search('any|0.0.0.0')
+        )
+        or
+        (
+          v205236_allow_query | join(' ') is search('any')
+        )
+      }}
+  when: dns_named_active | bool
+
 - name: "V-205236 | Compliance Result"
   debug:
     msg: |
       ===== V-205236 DNS Split Horizon Validation =====
 
-      Listen-On Config:
-      {{ dns_listen_on }}
+      Named Service Active: {{ dns_named_active }}
 
-      Allow-Query Config:
-      {{ dns_allow_query }}
+      ------------------------------------------------------------
+      listen-on Configuration:
+      ------------------------------------------------------------
+      {{ v205236_listen_on | default([]) }}
 
-      Zone Files Count:
-      {{ dns_zone_files.matched | default(0) }}
+      ------------------------------------------------------------
+      allow-query Configuration:
+      ------------------------------------------------------------
+      {{ v205236_allow_query | default([]) }}
 
-      FINAL STATUS:
+      ------------------------------------------------------------
+      External Exposure Detected:
+      ------------------------------------------------------------
+      {{ v205236_external_exposure | default(false) }}
+
+      ------------------------------------------------------------
+      RESULT:
       {{
-        'NOT A FINDING'
-        if (
-          (dns_listen_on | length == 0 or
-           dns_listen_on | join(' ') is search('127.0.0.1|localhost'))
-          and
-          (dns_allow_query | length == 0 or
-           dns_allow_query | join(' ') is search('localhost|localnets'))
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING'
+          if not (v205236_external_exposure | default(false))
+          else 'OPEN - DNS may be externally exposed or split-horizon not enforced'
         )
-        else 'OPEN - DNS may be externally exposed or split-horizon not enforced'
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNS must be restricted to internal networks or properly
+      separated between internal and external views.
+
+      Validation confirms:
+      - No wildcard listen-on (any / 0.0.0.0)
+      - Query access is restricted (not open to "any")
+
+      This ensures DNS is not externally exposed.
+      ------------------------------------------------------------

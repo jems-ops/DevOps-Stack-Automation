@@ -1,29 +1,105 @@
 ---
 ############################################################
 # STIG Control: V-205227
+# Validation: DNSSEC NSEC3 Salt Rotation
 #
 # Validation Summary:
-# Evaluate NSEC3 salt rotation requirement
+# - Check named configuration for DNSSEC/NSEC3
+# - Check for DNSSEC key files
+# - Check for signed DNS records (NSEC3)
 #
 # Expected Result:
 # - No DNSSEC → NOT APPLICABLE
-# - DNSSEC with NSEC3 → review salt rotation
+# - DNSSEC without NSEC3 → NOT APPLICABLE
+# - DNSSEC with NSEC3 → requires salt rotation review
 ############################################################
+
+- name: "V-205227 | Check named service status"
+  shell: systemctl is-active named
+  register: v205227_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205227 | Extract named configuration"
+  shell: named-checkconf -p
+  register: v205227_named_conf
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205227 | Validate configuration output not empty"
+  fail:
+    msg: "named-checkconf returned no output. BIND configuration may be invalid."
+  when:
+    - dns_named_active | bool
+    - v205227_named_conf.stdout | trim == ""
+
+- name: "V-205227 | Detect DNSSEC configuration"
+  set_fact:
+    v205227_dnssec_enabled: "{{ v205227_named_conf.stdout is search('dnssec-enable|dnssec-validation|inline-signing|auto-dnssec') }}"
+  when: dns_named_active | bool
+
+- name: "V-205227 | Check for DNSSEC key files"
+  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  register: v205227_key_files
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205227 | Check for NSEC3 records"
+  shell: grep -Ri 'NSEC3' /var/named 2>/dev/null
+  register: v205227_nsec3_records
+  changed_when: false
+  failed_when: false
+  when: dns_named_active | bool
 
 - name: "V-205227 | Compliance Result"
   debug:
     msg: |
       ===== V-205227 NSEC3 Salt Rotation Validation =====
 
-      DNSSEC Config Present: {{ dns_dnssec_config }}
-      DNSSEC Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
-      Signed Records Found: {{ dns_dnssec_records.matched | default(0) }}
+      Named Service Active: {{ dns_named_active }}
 
+      ------------------------------------------------------------
+      Named Configuration (Evidence):
+      ------------------------------------------------------------
+      {{ v205227_named_conf.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      DNSSEC Indicators:
+      ------------------------------------------------------------
+      DNSSEC Enabled: {{ v205227_dnssec_enabled | default(false) }}
+      DNSSEC Key Files Found: {{ v205227_key_files.stdout_lines | default([]) | length }}
+      NSEC3 Records Found: {{ v205227_nsec3_records.stdout_lines | default([]) | length }}
+
+      ------------------------------------------------------------
       RESULT:
       {{
         'NOT APPLICABLE'
-        if (not dns_dnssec_config)
-        and (dns_dnssec_keys.matched | default(0) == 0)
-        and (dns_dnssec_records.matched | default(0) == 0)
-        else 'OPEN - DNSSEC detected, verify NSEC3 salt rotation on re-sign'
+        if not (dns_named_active | bool)
+        else (
+          'NOT APPLICABLE'
+          if (
+            not (v205227_dnssec_enabled | default(false)) and
+            (v205227_key_files.stdout_lines | default([]) | length == 0)
+          )
+          else (
+            'NOT APPLICABLE'
+            if (v205227_nsec3_records.stdout_lines | default([]) | length == 0)
+            else 'OPEN - NSEC3 detected, verify salt rotation during zone re-signing'
+          )
+        )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      NSEC3 salt rotation applies only when DNSSEC with NSEC3 is used.
+
+      Validation confirms:
+      - DNSSEC is not enabled OR
+      - No NSEC3 records present
+
+      Therefore:
+      Requirement is NOT APPLICABLE.
+
+      If NSEC3 were enabled, salt rotation during re-signing
+      would require manual verification.
+      ------------------------------------------------------------

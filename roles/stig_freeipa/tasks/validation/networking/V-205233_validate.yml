@@ -1,24 +1,78 @@
 ---
 ############################################################
 # STIG Control: V-205233
-# Validation Task
+# Validation: DNS Configuration Consistency Risk
 #
-# Objective:
-# Ensure DNS configuration avoids inconsistency risk
+# Validation Summary:
+# - Retrieve NS records for domain
+# - Evaluate number of authoritative servers
 #
 # Expected Result:
 # - Single NS → NOT A FINDING
-# - Multiple NS → replication validation required
-#
-# Output:
-# NOT A FINDING / OPEN
+# - Multiple NS → OPEN (replication consistency required)
 ############################################################
+
+- name: "V-205233 | Check named service status"
+  shell: systemctl is-active named
+  register: v205233_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205233 | Get NS records"
+  shell: dig +short NS {{ dns_domain }}
+  register: v205233_ns_records
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205233 | Validate NS records exist"
+  fail:
+    msg: "No NS records found for {{ dns_domain }}"
+  when:
+    - dns_named_active | bool
+    - v205233_ns_records.stdout_lines | length == 0
+
+- name: "V-205233 | Evaluate NS count"
+  set_fact:
+    v205233_ns_count: "{{ v205233_ns_records.stdout_lines | length }}"
+  when: dns_named_active | bool
 
 - name: "V-205233 | Compliance Result"
   debug:
-    msg: >-
+    msg: |
+      ===== V-205233 DNS Consistency Validation =====
+
+      Domain: {{ dns_domain }}
+
+      ------------------------------------------------------------
+      NS Records:
+      ------------------------------------------------------------
+      {{ v205233_ns_records.stdout_lines | default([]) }}
+
+      ------------------------------------------------------------
+      NS Count:
+      ------------------------------------------------------------
+      {{ v205233_ns_count | default(0) }}
+
+      ------------------------------------------------------------
+      RESULT:
       {{
-        'NOT A FINDING: Single authoritative DNS server detected for ' ~ dns_domain
-        if (dns_ns_records | length <= 1)
-        else 'OPEN: Multiple DNS servers detected for ' ~ dns_domain ~ ' - replication consistency must be validated'
+        'NOT APPLICABLE'
+        if not (dns_named_active | bool)
+        else (
+          'NOT A FINDING: Single authoritative DNS server detected'
+          if (v205233_ns_count | default(0) <= 1)
+          else 'OPEN: Multiple DNS servers detected - replication consistency must be validated'
+        )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      Multiple DNS servers introduce risk of inconsistent data
+      if replication is not properly managed.
+
+      Validation confirms:
+      - Number of authoritative name servers
+      - Whether consistency validation is required
+
+      Single-server deployments eliminate replication risk.
+      ------------------------------------------------------------

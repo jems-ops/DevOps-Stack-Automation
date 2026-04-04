@@ -323,3 +323,140 @@ ls -la /var/lib/pki/pki-tomcat/lib
 ```
 
 **Pass criteria:** Audit rule exists for the resolved real path of Tomcat lib with `-p wa -k tomcat` flags.
+
+---
+
+## V-205157 — Limit Zone Transfers to Authorized Secondary Servers
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000001-DNS-000001
+
+```bash
+# Verify named service is running
+systemctl is-active named
+# Expected: active
+
+# List all DNS zones managed by FreeIPA
+ipa dnszone-find --all --raw | grep 'idnsname:'
+# Expected: lists zones (e.g. freeipa.local., reverse zone)
+
+# Check zone transfer ACL for each zone
+ipa dnszone-show freeipa.local. --all --raw | grep -Ei 'idnsallowtransfer'
+# Expected: idnsallowtransfer: none; (or specific authorized IPs)
+
+# Verify no wildcard/unrestricted transfers
+ipa dnszone-show freeipa.local. --all --raw | grep -i 'any'
+# Expected: no output (no "any" in transfer ACL)
+```
+
+**Pass criteria:** All zones have `idnsallowtransfer` set to `none;` or specific authorized secondary server IPs. No wildcard (`any`) transfers allowed.
+
+---
+
+## V-205158 — Limit Dynamic Update Clients via GSS-TSIG
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000001-DNS-000115
+
+```bash
+# Verify named service is running
+systemctl is-active named
+# Expected: active
+
+# Check FreeIPA zone update-policy (LDAP-backed)
+ipa dnszone-show freeipa.local. --all --raw | grep -Ei 'idnsupdatepolicy|idnsallowdynupdate'
+# Expected:
+#   idnsupdatepolicy: grant FREEIPA.LOCAL krb5-self * A; grant FREEIPA.LOCAL krb5-self * AAAA; grant FREEIPA.LOCAL krb5-self * SSHFP;
+#   idnsallowdynupdate: TRUE
+
+# Verify krb5-self enforcement is present
+ipa dnszone-show freeipa.local. --all --raw | grep 'krb5-self'
+# Expected: one or more grant lines with krb5-self
+
+# Confirm no anonymous update policies
+ipa dnszone-show freeipa.local. --all --raw | grep -i 'grant.*any'
+# Expected: no output (no anonymous grants)
+```
+
+**Pass criteria:** `idnsupdatepolicy` contains `krb5-self` grants restricting updates to Kerberos-authenticated hosts only. No anonymous or wildcard update grants present.
+
+---
+
+## V-205160 — DNS Audit Record Generation for DoD-Defined Events
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000089-DNS-000005
+
+```bash
+# Verify named service is running
+systemctl is-active named
+# Expected: active
+
+# Check for RNDC (privileged command) log entries
+grep -Ei 'rndc|reload|stop|start' /var/named/data/named.run /var/log/* 2>/dev/null | head -n 10
+# Expected: log entries showing RNDC administrative actions
+
+# Check for denied/failed/unauthorized event logs
+grep -Ei 'denied|failed|unauthorized|refused' /var/log/* 2>/dev/null | head -n 10
+# Expected: log entries capturing failure/denial events
+
+# Check journald for service lifecycle events
+journalctl -u named --no-pager | grep -Ei 'listening|no longer listening|shutting|loading' | tail -n 10
+# Expected: lifecycle events logged with timestamps
+```
+
+**Pass criteria:** RNDC privileged actions are logged, failure/denial events are captured, and service lifecycle events appear in journald or system logs.
+
+---
+
+## V-205161 — DNS Audit Records Must Contain Event Type Information
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000095-DNS-000006
+
+```bash
+# Verify named service is running
+systemctl is-active named
+# Expected: active
+
+# Check print-category and print-severity are enabled
+named-checkconf -p 2>/dev/null | grep -E 'print-category|print-severity'
+# Expected:
+#   print-category yes;
+#   print-severity yes;
+
+# Check logging channels and categories are defined
+named-checkconf -p 2>/dev/null | grep -E 'channel|category'
+# Expected: multiple channel and category definitions
+
+# Verify structured log files exist with event data
+ls -la /var/named/data/named.run /var/log/named*.log 2>/dev/null
+# Expected: log files exist with recent timestamps
+```
+
+**Pass criteria:** `print-category` and `print-severity` are enabled, logging channels and categories are defined, and log files contain structured event type information.
+
+---
+
+## V-205224 — Audit Records for Named Service Start/Stop Events
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000504-DNS-000074
+
+```bash
+# Verify named service is running
+systemctl is-active named
+# Expected: active
+
+# Check journald for BIND lifecycle events
+journalctl -u named --no-pager | grep -Ei 'start|stop|starting|stopping|listening|no longer listening|shutting|running|loading' | tail -n 20
+# Expected: log entries showing service lifecycle events such as:
+#   "listening on IPv4 interface ..."
+#   "no longer listening on ..."
+
+# Verify systemd tracks the service unit
+systemctl show named --property=ActiveState,SubState,ExecMainStartTimestamp
+# Expected: ActiveState=active, SubState=running, with a valid start timestamp
+```
+
+**Pass criteria:** Journald contains BIND lifecycle events (listening/no longer listening/loading) and systemd tracks the named service with valid state information.

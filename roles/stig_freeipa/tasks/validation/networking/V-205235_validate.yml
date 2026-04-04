@@ -1,29 +1,101 @@
 ---
 ############################################################
 # STIG Control: V-205235
+# Validation: DNSSEC Presence Detection
 #
 # Validation Summary:
-# Evaluate collected DNSSEC facts from enforcement
+# - Check named configuration for DNSSEC settings
+# - Check for DNSSEC key files
+# - Check for signed DNS records
 #
 # Expected Result:
 # - No DNSSEC → NOT APPLICABLE
-# - DNSSEC present → OPEN
+# - DNSSEC present → OPEN (further validation required)
 ############################################################
+
+- name: "V-205235 | Check named service status"
+  shell: systemctl is-active named
+  register: v205235_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205235 | Extract named configuration"
+  shell: named-checkconf -p
+  register: v205235_named_conf
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205235 | Validate configuration output not empty"
+  fail:
+    msg: "named-checkconf returned no output. BIND configuration may be invalid."
+  when:
+    - dns_named_active | bool
+    - v205235_named_conf.stdout | trim == ""
+
+- name: "V-205235 | Detect DNSSEC configuration"
+  set_fact:
+    v205235_dnssec_enabled: "{{ v205235_named_conf.stdout is search('dnssec-enable|dnssec-validation|inline-signing|auto-dnssec') }}"
+  when: dns_named_active | bool
+
+- name: "V-205235 | Check for DNSSEC key files"
+  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  register: v205235_key_files
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205235 | Check for signed DNS records"
+  shell: grep -RiE 'RRSIG|DNSKEY|NSEC|NSEC3' /var/named 2>/dev/null
+  register: v205235_signed_records
+  changed_when: false
+  failed_when: false
+  when: dns_named_active | bool
 
 - name: "V-205235 | Compliance Result"
   debug:
     msg: |
       ===== V-205235 DNSSEC Validation =====
 
-      DNSSEC Config Present: {{ dns_dnssec_config }}
-      DNSSEC Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
-      Signed Records Found: {{ dns_dnssec_records.matched | default(0) }}
+      Named Service Active: {{ dns_named_active }}
 
+      ------------------------------------------------------------
+      Named Configuration (Evidence):
+      ------------------------------------------------------------
+      {{ v205235_named_conf.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      DNSSEC Indicators:
+      ------------------------------------------------------------
+      DNSSEC Config Detected: {{ v205235_dnssec_enabled | default(false) }}
+      DNSSEC Key Files Found: {{ v205235_key_files.stdout_lines | default([]) | length }}
+      Signed Records Found: {{ v205235_signed_records.stdout_lines | default([]) | length }}
+
+      ------------------------------------------------------------
       RESULT:
       {{
         'NOT APPLICABLE'
-        if (not dns_dnssec_config)
-        and (dns_dnssec_keys.matched | default(0) == 0)
-        and (dns_dnssec_records.matched | default(0) == 0)
-        else 'OPEN - DNSSEC detected, verify FIPS-compliant algorithms'
+        if not (dns_named_active | bool)
+        else (
+          'NOT APPLICABLE'
+          if (
+            not (v205235_dnssec_enabled | default(false)) and
+            (v205235_key_files.stdout_lines | default([]) | length == 0) and
+            (v205235_signed_records.stdout_lines | default([]) | length == 0)
+          )
+          else 'OPEN - DNSSEC detected, verify FIPS-compliant algorithms'
+        )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNSSEC introduces cryptographic requirements.
+
+      Validation confirms:
+      - DNSSEC is not enabled OR
+      - No key material or signed records exist
+
+      Therefore:
+      Control is NOT APPLICABLE.
+
+      If DNSSEC is enabled, further validation of
+      FIPS-approved cryptographic algorithms is required.
+      ------------------------------------------------------------

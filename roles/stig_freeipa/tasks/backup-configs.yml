@@ -85,17 +85,3 @@
     flat: true
   when: not _backup_marker.stat.exists
 
-- name: "Backup | Fetch ssl.conf to local templates"
-  fetch:
-    src: /etc/httpd/stig-backup/ssl.conf.pre-stig
-    dest: "{{ role_path }}/templates/ssl.conf.j2"
-    flat: true
-  when: not _backup_marker.stat.exists
-
-- name: "Backup | Fetch ipa.conf to local templates"
-  fetch:
-    src: /etc/httpd/stig-backup/ipa.conf.pre-stig
-    dest: "{{ role_path }}/templates/ipa.conf.j2"
-    flat: true
-  when: not _backup_marker.stat.exists
-  ignore_errors: true

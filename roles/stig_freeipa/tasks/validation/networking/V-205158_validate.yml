@@ -1,19 +1,42 @@
 ---
 ############################################################
 # STIG Control: V-205158
+# Validation: FreeIPA Dynamic Update Restriction (GSS-TSIG)
 #
 # Validation Summary:
-# Evaluate dynamic update client restriction via GSS-TSIG
+# - Ensure Kerberos authentication exists
+# - Query FreeIPA zone configuration
+# - Verify update-policy contains krb5-self
 #
 # Expected Result:
 # - named active + update-policy with krb5-self → NOT A FINDING
 # - named not active → NOT APPLICABLE
+# - kerberos missing → ERROR (not OPEN)
 ############################################################
 
-- name: "V-205158 | Query FreeIPA zone update-policy (LDAP-backed)"
-  shell: ipa dnszone-show {{ dns_domain }}. --all --raw 2>/dev/null | grep -Ei 'idnsupdatepolicy|idnsallowdynupdate' || true
-  register: v205158_val_policy
+- name: "V-205158 | Precheck - Ensure Kerberos ticket exists"
+  shell: klist
+  register: v205158_krb_check
   changed_when: false
+  failed_when: v205158_krb_check.rc != 0
+
+- name: "V-205158 | Query FreeIPA zone (full output)"
+  shell: ipa dnszone-show {{ dns_domain }} --all
+  register: v205158_zone_raw
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205158 | Validate zone output not empty"
+  fail:
+    msg: "FreeIPA query returned no data. Possible Kerberos/auth issue or invalid zone."
+  when:
+    - dns_named_active | bool
+    - v205158_zone_raw.stdout | trim == ""
+
+- name: "V-205158 | Extract update-policy indicators"
+  set_fact:
+    v205158_policy_present: "{{ 'BIND update policy' in v205158_zone_raw.stdout }}"
+    v205158_krb5_present: "{{ 'krb5-self' in v205158_zone_raw.stdout }}"
   when: dns_named_active | bool
 
 - name: "V-205158 | Compliance Result"
@@ -22,8 +45,15 @@
       ===== V-205158 Dynamic Update Client Restriction Validation =====
 
       Named Service Active: {{ dns_named_active }}
-      Update Policy Defined: {{ (v205158_val_policy.stdout | default('')) | length > 0 }}
-      Kerberos krb5-self Present: {{ 'krb5-self' in (v205158_val_policy.stdout | default('')) }}
+
+      ------------------------------------------------------------
+      Raw Zone Output (Evidence):
+      ------------------------------------------------------------
+      {{ v205158_zone_raw.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      Update Policy Found: {{ v205158_policy_present | default(false) }}
+      Kerberos krb5-self Present: {{ v205158_krb5_present | default(false) }}
 
       RESULT:
       {{
@@ -31,8 +61,23 @@
         if not (dns_named_active | bool)
         else (
           'NOT A FINDING'
-          if (v205158_val_policy.stdout | default('')) | length > 0
-             and 'krb5-self' in (v205158_val_policy.stdout | default(''))
+          if (v205158_policy_present | default(false))
+             and (v205158_krb5_present | default(false))
           else 'OPEN - update-policy or krb5-self enforcement not found in FreeIPA zone'
         )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      Dynamic DNS updates must be restricted to authenticated
+      clients using GSS-TSIG (Kerberos).
+
+      Validation confirms:
+      - FreeIPA zone contains update-policy
+      - krb5-self enforcement restricts updates to host identity
+
+      This ensures:
+      - Finite set of update clients
+      - No anonymous updates
+      - Controlled update sessions (DoS protection)
+      ------------------------------------------------------------

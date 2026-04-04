@@ -1,26 +1,91 @@
 ---
 ############################################################
 # STIG Control: V-205231
+# Validation: DNSSEC Key File Protection
 #
 # Validation Summary:
-# Evaluate DNSSEC key file presence
+# - Search for DNSSEC key files (*.key, *.private)
+# - Collect file ownership and permissions
 #
 # Expected Result:
 # - No key files → NOT APPLICABLE
-# - Key files exist → OPEN (review permissions)
+# - Key files exist → verify permissions (600 root:named)
 ############################################################
+
+- name: "V-205231 | Check named service status"
+  shell: systemctl is-active named
+  register: v205231_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205231 | Find DNSSEC key files"
+  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  register: v205231_key_files
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205231 | Collect file permissions"
+  shell: stat -c "%n %a %U:%G" {{ item }}
+  loop: "{{ v205231_key_files.stdout_lines | default([]) }}"
+  register: v205231_file_stats
+  changed_when: false
+  when: dns_named_active | bool and (v205231_key_files.stdout_lines | length > 0)
+
+- name: "V-205231 | Evaluate compliance"
+  set_fact:
+    v205231_insecure_files: >-
+      {{
+        v205231_file_stats.results
+        | selectattr('stdout', 'search', '^(.*) (?!600 )')
+        | map(attribute='stdout')
+        | list
+      }}
+  when: dns_named_active | bool and (v205231_key_files.stdout_lines | length > 0)
 
 - name: "V-205231 | Compliance Result"
   debug:
     msg: |
       ===== V-205231 DNSSEC Key Validation =====
 
-      Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
-      Files: {{ dns_dnssec_keys.files | map(attribute='path') | list | default([]) }}
+      Named Service Active: {{ dns_named_active }}
 
+      ------------------------------------------------------------
+      Key Files Found:
+      ------------------------------------------------------------
+      {{ v205231_key_files.stdout_lines | default([]) }}
+
+      ------------------------------------------------------------
+      File Permissions (path mode owner:group):
+      ------------------------------------------------------------
+      {% for item in v205231_file_stats.results | default([]) %}
+      {{ item.stdout }}
+      {% endfor %}
+
+      ------------------------------------------------------------
       RESULT:
       {{
         'NOT APPLICABLE'
-        if (dns_dnssec_keys.matched | default(0) == 0)
-        else 'OPEN - DNSSEC key files detected, verify permissions (600 root:named)'
+        if not (dns_named_active | bool)
+        else (
+          'NOT APPLICABLE'
+          if (v205231_key_files.stdout_lines | default([]) | length == 0)
+          else (
+            'NOT A FINDING'
+            if (v205231_insecure_files | default([]) | length == 0)
+            else 'OPEN - DNSSEC key files have incorrect permissions'
+          )
+        )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNSSEC private key files must be protected with strict
+      permissions (600 root:named).
+
+      Validation confirms:
+      - No DNSSEC keys present OR
+      - All key files are properly secured
+
+      If any file deviates from required permissions,
+      it is flagged for remediation.
+      ------------------------------------------------------------

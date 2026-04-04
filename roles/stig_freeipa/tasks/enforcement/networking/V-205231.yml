@@ -4,34 +4,42 @@
 # SRG ID: SRG-APP-000516-DNS-000090
 # Rule ID: SV-205231r961864
 # Severity: CAT II
-# Status: NOT APPLICABLE
+# Status: NOT APPLICABLE (DNSSEC Not Enabled)
 #
 # Title:
 # DNSSEC key files must be protected or removed.
 #
-# Description:
-# DNSSEC private keys (KSK/ZSK) must be protected to prevent
-# unauthorized zone signing or DNS manipulation.
-#
-# Finding Details:
-# DNSSEC is not enabled in this FreeIPA DNS deployment.
-# No DNSSEC key files (*.key, *.private) are present under
-# /var/named.
-#
-# Implementation Summary:
-# - Collect DNSSEC key file presence
-# - No enforcement action required (informational)
-#
-# Manual Procedure:
-# ls -l /var/named/*.key /var/named/*.private
+# Enforcement Strategy:
+# - This control is conditional
+# - If DNSSEC is NOT enabled → no enforcement required
+# - If DNSSEC is enabled → enforce strict file permissions
 #
 # Comments:
-# DNSSEC is not implemented. No key material exists.
-# Network controls provide compensating protection.
+# FreeIPA DNS deployment does not use DNSSEC.
+# No DNSSEC key files (*.key, *.private) are present.
+#
+# Therefore:
+# This control is NOT APPLICABLE and requires no enforcement.
+#
+# Note:
+# If DNSSEC is introduced in future:
+# - Key files must be owned by root:named
+# - Permissions must be set to 600
+# - Access must be restricted to authorized processes only
 ############################################################
 
-- name: "V-205231 | Enforcement Summary"
+- name: "V-205231 | Informational - No DNSSEC key enforcement required"
   debug:
-    msg:
-      dnssec_key_files_found: "{{ dns_dnssec_keys.matched | default(0) }}"
-      files: "{{ dns_dnssec_keys.files | map(attribute='path') | list | default([]) }}"
+    msg: |
+      STIG V-205231 Enforcement:
+
+      DNSSEC is not enabled in this FreeIPA environment.
+
+      No DNSSEC key files are present.
+
+      No enforcement actions required.
+
+      If DNSSEC is enabled in future:
+      - Ensure key files have permissions 600
+      - Ensure ownership is root:named
+      - Restrict access to authorized services only

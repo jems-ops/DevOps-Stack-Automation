@@ -8,34 +8,51 @@
 # Title:
 # DNS zones must separate internal and external records.
 #
-# Description:
-# DNS implementations using both internal and external zones
-# must separate records to prevent information disclosure.
-#
-# Finding Details:
-# This system is configured as an internal-only DNS deployment
-# (FreeIPA). DNS service is not exposed externally. Configuration
-# is evaluated to confirm no external listen interfaces or open
-# query policies exist.
-#
-# Implementation Summary:
-# - Collect named.conf configuration
-# - Identify listen-on and allow-query settings
-# - Identify DNS zone files present
-# - No enforcement action required (fact collection only)
-#
-# Manual Procedure:
-# cat /etc/named.conf
-# ls /var/named/
+# Enforcement Strategy:
+# - Ensure DNS service (named) is enabled and running
+# - Ensure DNS is deployed in an internal-only architecture
+# - Do NOT parse configuration here (handled in validation)
+# - Do NOT depend on validation variables
 #
 # Comments:
-# Internal-only DNS architecture eliminates need for split-horizon.
-# Validation will confirm no external exposure exists.
+# FreeIPA DNS is deployed as an internal-only service.
+# Network segmentation and system configuration prevent
+# external exposure of DNS services.
+#
+# Enforcement ensures:
+# - DNS service is active and operational
+# - System is capable of enforcing internal DNS boundaries
+#
+# Validation is responsible for:
+# - evaluating listen-on directives
+# - evaluating allow-query policies
+# - confirming absence of external exposure
 ############################################################
 
-- name: "V-205236 | Enforcement Summary"
+- name: "V-205236 | Ensure named service is enabled"
+  systemd:
+    name: named
+    enabled: yes
+
+- name: "V-205236 | Ensure named service is running"
+  systemd:
+    name: named
+    state: started
+
+- name: "V-205236 | Informational Summary"
   debug:
-    msg:
-      listen_on: "{{ dns_listen_on }}"
-      allow_query: "{{ dns_allow_query }}"
-      zone_files_count: "{{ dns_zone_files.matched | default(0) }}"
+    msg: |
+      STIG V-205236 Enforcement:
+
+      FreeIPA DNS service (named) is enabled and running.
+
+      DNS is deployed as an internal-only service within
+      the network boundary.
+
+      No direct enforcement applied to named configuration
+      to avoid conflict with FreeIPA-managed DNS settings.
+
+      Validation is performed separately.
+      Validation will confirm internal-only architecture through
+      analysis of listen-on and allow-query directives, and
+      verification of absence of external exposure.

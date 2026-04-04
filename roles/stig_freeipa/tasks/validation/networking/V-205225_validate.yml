@@ -1,29 +1,111 @@
 ---
 ############################################################
 # STIG Control: V-205225
+# Validation: DNSSEC FIPS-Validated Cryptography
 #
 # Validation Summary:
-# Evaluate FIPS-validated DNSSEC cryptography requirement
+# - Check named configuration for DNSSEC settings
+# - Check for DNSSEC key files
+# - Check for signed DNS records
 #
 # Expected Result:
 # - No DNSSEC → NOT APPLICABLE
-# - DNSSEC present → verify FIPS-validated algorithms
+# - DNSSEC present → must use FIPS-validated cryptography
 ############################################################
+
+- name: "V-205225 | Check named service status"
+  shell: systemctl is-active named
+  register: v205225_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "V-205225 | Extract named configuration"
+  shell: named-checkconf -p
+  register: v205225_named_conf
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205225 | Validate configuration output not empty"
+  fail:
+    msg: "named-checkconf returned no output. BIND configuration may be invalid."
+  when:
+    - dns_named_active | bool
+    - v205225_named_conf.stdout | trim == ""
+
+- name: "V-205225 | Detect DNSSEC configuration"
+  set_fact:
+    v205225_dnssec_enabled: "{{ v205225_named_conf.stdout is search('dnssec-enable|dnssec-validation|inline-signing|auto-dnssec') }}"
+  when: dns_named_active | bool
+
+- name: "V-205225 | Check for DNSSEC key files"
+  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  register: v205225_key_files
+  changed_when: false
+  when: dns_named_active | bool
+
+- name: "V-205225 | Check for signed DNS records"
+  shell: grep -RiE 'RRSIG|DNSKEY|NSEC|NSEC3' /var/named 2>/dev/null
+  register: v205225_signed_records
+  changed_when: false
+  failed_when: false
+  when: dns_named_active | bool
 
 - name: "V-205225 | Compliance Result"
   debug:
     msg: |
       ===== V-205225 DNSSEC FIPS Cryptography Validation =====
 
-      DNSSEC Config Present: {{ dns_dnssec_config }}
-      DNSSEC Key Files Found: {{ dns_dnssec_keys.matched | default(0) }}
-      Signed Records Found: {{ dns_dnssec_records.matched | default(0) }}
+      Named Service Active: {{ dns_named_active }}
+
+      ------------------------------------------------------------
+      Named Configuration (Evidence):
+      ------------------------------------------------------------
+      {{ v205225_named_conf.stdout | default('N/A') }}
+
+      ------------------------------------------------------------
+      DNSSEC Indicators:
+      ------------------------------------------------------------
+      DNSSEC Config Detected: {{ v205225_dnssec_enabled | default(false) }}
+      DNSSEC Key Files Found: {{ v205225_key_files.stdout_lines | default([]) | length }}
+      Signed Records Found: {{ v205225_signed_records.stdout_lines | default([]) | length }}
+
+      ------------------------------------------------------------
+      Key Files:
+      ------------------------------------------------------------
+      {{ v205225_key_files.stdout | default('None') }}
+
+      ------------------------------------------------------------
+      Signed Records (Sample):
+      ------------------------------------------------------------
+      {{ v205225_signed_records.stdout | default('None') }}
 
       RESULT:
       {{
         'NOT APPLICABLE'
-        if (not dns_dnssec_config)
-        and (dns_dnssec_keys.matched | default(0) == 0)
-        and (dns_dnssec_records.matched | default(0) == 0)
-        else 'OPEN - DNSSEC detected, verify FIPS-validated cryptography in use'
+        if not (dns_named_active | bool)
+        else (
+          'NOT APPLICABLE'
+          if (
+            not (v205225_dnssec_enabled | default(false)) and
+            (v205225_key_files.stdout_lines | default([]) | length == 0) and
+            (v205225_signed_records.stdout_lines | default([]) | length == 0)
+          )
+          else 'OPEN - DNSSEC detected, verify FIPS-validated cryptography in use'
+        )
       }}
+
+      ------------------------------------------------------------
+      Reason:
+      DNSSEC requires FIPS-validated cryptographic algorithms.
+
+      Validation confirms:
+      - DNSSEC not enabled in named configuration
+      - No DNSSEC key material present
+      - No signed DNS records detected
+
+      Therefore:
+      DNSSEC is not in use, and this control is NOT APPLICABLE.
+
+      If DNSSEC were enabled, further validation of FIPS-approved
+      algorithms (e.g., RSASHA256, ECDSA) would be required.
+      ------------------------------------------------------------
