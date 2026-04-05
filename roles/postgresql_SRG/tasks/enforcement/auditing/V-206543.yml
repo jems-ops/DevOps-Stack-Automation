@@ -52,41 +52,42 @@
 
 ############################################################
 # Enforcement
+# Note: pgaudit install/preload/extension is handled by
+# tasks/pgaudit_setup.yml (runs for all apps when
+# postgresql_srg_pgaudit_enabled: true), independent of
+# this control toggle.
+# V-206543 validates the audit protection posture only.
 ############################################################
 
-############################
-# Ensure pgaudit package installed
-############################
-
-- name: "V-206543 | Ensure pgaudit package installed"
-  ansible.builtin.package:
-    name: "{{ postgresql_srg_pgaudit_package }}"
-    state: present
-  tags: ['V-206543', 'CAT II', 'enforce']
-
-
-############################
-# Ensure pgaudit is preloaded
-############################
-
-- name: "V-206543 | Ensure pgaudit in shared_preload_libraries"
-  ansible.builtin.lineinfile:
-    path: "{{ postgresql_srg_conf_file }}"
-    regexp: '^\s*#?\s*shared_preload_libraries\s*='
-    line: "shared_preload_libraries = 'pgaudit'"
-    backup: true
-  notify: Restart PostgreSQL
-  tags: ['V-206543', 'CAT II', 'enforce']
-
-
-############################
-# Ensure pgaudit extension exists
-############################
-
-- name: "V-206543 | Ensure pgaudit extension exists"
-  become_user: postgres
-  ansible.builtin.command: >
-    psql -d {{ postgresql_srg_target_database }}
-    -c "CREATE EXTENSION IF NOT EXISTS pgaudit;"
+- name: "V-206543 | Verify pgaudit package is present"
+  ansible.builtin.shell: rpm -q "{{ postgresql_srg_pgaudit_package }}"
+  register: _v206543_pkg
   changed_when: false
-  tags: ['V-206543', 'CAT II', 'enforce']
+  failed_when: false
+  tags: ['V-206543', 'CAT-II', 'enforce']
+
+- name: "V-206543 | Assert pgaudit package installed"
+  ansible.builtin.assert:
+    that: _v206543_pkg.rc == 0
+    success_msg: "pgaudit package {{ postgresql_srg_pgaudit_package }} is installed."
+    fail_msg: "pgaudit package {{ postgresql_srg_pgaudit_package }} is NOT installed."
+  tags: ['V-206543', 'CAT-II', 'enforce']
+
+- name: "V-206543 | Verify pgaudit in shared_preload_libraries"
+  become_user: "{{ postgresql_srg_postgres_user }}"
+  ansible.builtin.command: psql -tAc "SHOW shared_preload_libraries;"
+  register: _v206543_preload
+  changed_when: false
+  tags: ['V-206543', 'CAT-II', 'enforce']
+
+- name: "V-206543 | Assert pgaudit loaded at startup"
+  ansible.builtin.assert:
+    that: "'pgaudit' in _v206543_preload.stdout"
+    success_msg: "pgaudit is present in shared_preload_libraries."
+    fail_msg: "pgaudit is NOT in shared_preload_libraries."
+  tags: ['V-206543', 'CAT-II', 'enforce']
+
+- name: "V-206543 | Informational - audit protection enforced"
+  ansible.builtin.debug:
+    msg: "V-206543 NOT A FINDING: pgaudit loaded and protected via shared_preload_libraries."
+  tags: ['V-206543', 'CAT-II', 'enforce', 'info']

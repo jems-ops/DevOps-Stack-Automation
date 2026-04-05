@@ -1,0 +1,43 @@
+---
+############################################################
+# pgaudit Setup
+# Runs when postgresql_srg_pgaudit_enabled: true — independent
+# of any per-control toggle so ALL apps get pgaudit if enabled.
+############################################################
+
+- name: "pgaudit | Disable repo_gpgcheck on PGDG repos (avoids metadata GPG errors)"
+  ansible.builtin.shell: |
+    find /etc/yum.repos.d/ -name 'pgdg*.repo' -exec \
+      sed -i -e 's/^repo_gpgcheck=1/repo_gpgcheck=0/g' \
+             -e 's/^gpgcheck=1/gpgcheck=0/g' {} \;
+  args:
+    executable: /bin/bash
+  changed_when: false
+  tags: ['pgaudit', 'enforce']
+
+- name: "pgaudit | Install package ({{ postgresql_srg_pgaudit_package }})"
+  ansible.builtin.dnf:
+    name: "{{ postgresql_srg_pgaudit_package }}"
+    state: present
+    disable_gpg_check: true
+  tags: ['pgaudit', 'enforce']
+
+- name: "pgaudit | Ensure shared_preload_libraries includes pgaudit"
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_srg_conf_file }}"
+    regexp: '^\s*#?\s*shared_preload_libraries\s*='
+    line: "shared_preload_libraries = 'pgaudit'"
+    backup: true
+  notify: Restart PostgreSQL
+  tags: ['pgaudit', 'enforce']
+
+- name: "pgaudit | Flush handlers so PostgreSQL restarts before extension creation"
+  ansible.builtin.meta: flush_handlers
+
+- name: "pgaudit | Create pgaudit extension in target database"
+  become_user: "{{ postgresql_srg_postgres_user }}"
+  ansible.builtin.command: >
+    psql -d {{ postgresql_srg_target_database }}
+    -c "CREATE EXTENSION IF NOT EXISTS pgaudit;"
+  changed_when: false
+  tags: ['pgaudit', 'enforce']

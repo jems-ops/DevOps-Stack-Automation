@@ -1,31 +1,24 @@
 ---
 ############################################################
-# satellite.local — Host-Specific PostgreSQL SRG Variables
-# Overrides: roles/postgresql_SRG/defaults/main.yml
-# NOTE: Satellite uses its own internal PostgreSQL instance.
+# keycloak.local — Host-Specific PostgreSQL SRG Variables
+#
+# These override role defaults in roles/postgresql_SRG/defaults/main.yml.
+# PostgreSQL 16 (PGDG) backs Keycloak on this host.
 ############################################################
 
 ############################################################
 # Application Services
+# Keycloak uses PostgreSQL 16 as its backend database.
 ############################################################
 postgresql_srg_application_services:
-  - name: Satellite
-    service_name: foreman
-    db_name: foreman
-    db_user: foreman
+  - name: Keycloak
+    service_name: keycloak
+    db_name: keycloak
+    db_user: keycloak
     backup_configs:
-      - /etc/foreman/database.yml
-      - /etc/foreman/settings.yaml
-    web_url: "https://satellite.local"
-    health_endpoint: /api/v2/ping
-    healthy_field: status
-    healthy_value: ok
-    validate_certs: false
-    timeout: 30
-  - name: Candlepin
-    service_name: candlepin
-    db_name: candlepin
-    db_user: candlepin
+      - /opt/keycloak/conf/keycloak.conf
+    web_url: "http://localhost:8080"
+    health_endpoint: /realms/master
     validate_certs: false
     timeout: 30
 
@@ -34,39 +27,32 @@ postgresql_srg_application_services:
 ############################################################
 postgresql_srg_approved_login_roles:
   - postgres
-  - foreman
-  - candlepin
-  - pulp
-  - stig_validate_role
+  - keycloak
 
 ############################################################
 # Allowed Databases
 ############################################################
 postgresql_srg_allowed_databases:
   - postgres
-  - foreman
-  - candlepin
-  - pulpcore
+  - keycloak
 
 ############################################################
 # V-206567 — HBA Application Entries
 ############################################################
 postgresql_srg_hba_application_entries:
-  - { type: host, database: foreman,   user: foreman,   address: "127.0.0.1/32", method: scram-sha-256 }
-  - { type: host, database: candlepin, user: candlepin, address: "127.0.0.1/32", method: scram-sha-256 }
-  - { type: host, database: pulpcore,  user: pulp,      address: "127.0.0.1/32", method: scram-sha-256 }
+  - { type: host, database: keycloak, user: keycloak, address: "127.0.0.1/32", method: scram-sha-256 }
 
 ############################################################
 # Feature Toggles
 ############################################################
 postgresql_srg_pgaudit_enabled: true
-postgresql_srg_pgaudit_package: "pgaudit_16"
 postgresql_srg_fips_required: false
 postgresql_srg_allow_removal: false
 postgresql_srg_selinux_required: true
 
 ############################################################
 # Per-Control Toggles — CAT I
+# All CAT I controls enabled.
 ############################################################
 postgresql_srg_v206520_enabled: true    # Authentication / isolation
 postgresql_srg_v206521_enabled: true    # Least-privilege access control
@@ -106,7 +92,7 @@ postgresql_srg_v206539_enabled: false   # Audit delete protection
 postgresql_srg_v206540_enabled: false   # Audit log access protection
 postgresql_srg_v206541_enabled: false   # Audit feature access protection
 postgresql_srg_v206542_enabled: false   # Audit config modification protection
-postgresql_srg_v206543_enabled: false   # Audit feature disable protection (pgaudit install)
+postgresql_srg_v206543_enabled: true    # Audit feature disable protection (installs pgaudit16)
 postgresql_srg_v206544_enabled: false   # Software module modification
 postgresql_srg_v206546_enabled: false   # Software/data directory locations
 postgresql_srg_v206547_enabled: false   # DB objects owned by authorized accounts

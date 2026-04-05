@@ -102,5 +102,18 @@
       -w {{ postgresql_srg_pg_bin_path }}/psql -p x -k postgres_usage
       -w {{ postgresql_srg_pg_bin_path }}/postgres -p x -k postgres_usage
       -w {{ postgresql_srg_data_dir }} -p wa -k postgres_data_access
-  notify: Restart auditd
+  register: _audit_rules_result
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+- name: "V-206545 | Load audit rules into kernel (augenrules)"
+  ansible.builtin.command: augenrules --load
+  when: _audit_rules_result.changed
+  changed_when: true
+  tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']
+
+- name: "V-206545 | Ensure auditd service is running"
+  ansible.builtin.systemd:
+    name: auditd
+    state: started
+    enabled: true
   tags: ['V-206545', 'CAT-I', 'enforce', 'postgres', 'stig']

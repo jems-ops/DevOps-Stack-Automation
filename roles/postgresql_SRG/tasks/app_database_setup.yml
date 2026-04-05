@@ -57,7 +57,7 @@
 # ----------------------------------------------------------
 # 1b. Verify pg_hba.conf contains app-specific entries
 # ----------------------------------------------------------
-- name: "App DB Setup | Verify pg_hba.conf app entries — {{ item.name }}"
+- name: "App DB Setup | Verify pg_hba.conf app entries"
   ansible.builtin.shell: >-
     grep -c '{{ item.db_name }}.*{{ item.db_user }}' {{ postgresql_srg_hba_file }}
   register: _hba_verify
@@ -68,7 +68,7 @@
     label: "{{ item.name }}"
   tags: ['app_db_setup', 'enforce']
 
-- name: "App DB Setup | Assert pg_hba.conf has entry — {{ item.item.name }}"
+- name: "App DB Setup | Assert pg_hba.conf has entry"
   ansible.builtin.assert:
     that:
       - item.stdout | int > 0
@@ -130,7 +130,7 @@
 # ----------------------------------------------------------
 # 4. Ensure application databases exist
 # ----------------------------------------------------------
-- name: "App DB Setup | Ensure application database exists — {{ item.name }}"
+- name: "App DB Setup | Ensure application database exists"
   ansible.builtin.shell: >-
     su -s /bin/bash - {{ postgresql_srg_postgres_user }} -c
     "psql -tAc \"SELECT 1 FROM pg_database WHERE datname = '{{ item.db_name }}'\"
@@ -189,7 +189,7 @@
     fail_msg: "Password encryption is {{ app_db_validation.password_encryption }}!"
   tags: ['app_db_setup', 'validate']
 
-- name: "App DB Setup | Assert app DB/user/connectivity — {{ item.name }}"
+- name: "App DB Setup | Assert app DB/user/connectivity"
   ansible.builtin.assert:
     that:
       - app_db_validation[item.db_user + '_db_exists'] == 'true'

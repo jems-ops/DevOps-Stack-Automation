@@ -280,7 +280,9 @@ postgresql_srg_v206566_enabled: false
 postgresql_srg_v206567_enabled: false
 postgresql_srg_v206580_enabled: false
 postgresql_srg_v206600_enabled: false
+postgresql_srg_v206610_enabled: false
 postgresql_srg_v206611_enabled: false
+postgresql_srg_v206612_enabled: false
 
 # --- New CAT II Controls (V-203602 – V-203605) ---
 postgresql_srg_v203602_enabled: false
@@ -347,9 +349,6 @@ postgresql_srg_authorized_superusers:
 postgresql_srg_pg_lib_dir: "/usr/pgsql-{{ postgresql_srg_pg_version }}/lib"
 
 postgresql_srg_admin_conn_limit: 10
-# Application roles (e.g. sonar, bitbucketuser) need more connections than a plain
-# interactive user.  SonarQube's HikariCP pool uses up to 20 connections per process
-# (web + CE), so 30 gives comfortable headroom without being unlimited (-1).
 postgresql_srg_user_conn_limit: 30
 
 postgresql_srg_connlimit_exempt_roles: []
@@ -422,22 +421,9 @@ postgresql_srg_password_encryption: scram-sha-256
 
 ############################################################
 # V-206567 — Application HBA Entries
+# Override in host_vars/<hostname>.yml per application.
 ############################################################
-# Each entry produces one pg_hba.conf line and is validated
-# by V-206567 to confirm scram-sha-256 is enforced.
-#
-# To support additional applications, add entries here or
-# override this list in host_vars / group_vars.
-#
-# Supported types: host | hostssl | hostnossl
-# Required fields: type, database, user, address, method
-#
-# Examples (uncomment and adapt as needed):
-#   - { type: host, database: bitbucket,  user: bitbucketuser, address: "127.0.0.1/32", method: scram-sha-256 }
-#   - { type: host, database: confluence, user: confuser,      address: "127.0.0.1/32", method: scram-sha-256 }
-#   - { type: host, database: satellite,  user: satellite,     address: "127.0.0.1/32", method: scram-sha-256 }
-postgresql_srg_hba_application_entries:
-  - { type: host, database: sonarqube, user: sonar, address: "127.0.0.1/32", method: scram-sha-256 }
+postgresql_srg_hba_application_entries: []
 
 ############################################################
 # V-206611 Configuration
@@ -459,14 +445,13 @@ postgresql_srg_authorized_priv_roles:
 
 ############################################################
 # V-263621 / V-263622 NTP Configuration
+# Override in inventory/group_vars with actual NTP server.
 ############################################################
-# Override these in inventory/group_vars with your actual
-# Satellite / NTP server hostname and IP.
 postgresql_srg_ntp_server: satellite
 postgresql_srg_ntp_server_ip: "192.168.1.100"
 
 ############################################################
-# V-263621 / V-263622 NTP Configuration
+# pgaudit Configuration
 ############################################################
 postgresql_srg_shared_preload_libraries: 'pgaudit'
 postgresql_srg_pgaudit_log: 'read, write, ddl, role'

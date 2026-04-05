@@ -1,9 +1,7 @@
 ---
 ############################################################
 # bitbucket.local — Host-Specific PostgreSQL SRG Variables
-#
-# Atlassian Bitbucket Data Center with PostgreSQL backend.
-# These override role defaults in roles/postgresql_SRG/defaults/main.yml.
+# Overrides: roles/postgresql_SRG/defaults/main.yml
 ############################################################
 
 ############################################################
@@ -39,15 +37,22 @@ postgresql_srg_allowed_databases:
   - bitbucket
 
 ############################################################
+# V-206567 — HBA Application Entries
+############################################################
+postgresql_srg_hba_application_entries:
+  - { type: host, database: bitbucket, user: bitbucketuser, address: "127.0.0.1/32", method: scram-sha-256 }
+
+############################################################
 # Feature Toggles
 ############################################################
 postgresql_srg_pgaudit_enabled: true
+postgresql_srg_pgaudit_package: "pgaudit_16"
 postgresql_srg_fips_required: false
 postgresql_srg_allow_removal: false
 postgresql_srg_selinux_required: true
 
 ############################################################
-# Per-Control Toggles — CAT I (all enabled)
+# Per-Control Toggles — CAT I
 ############################################################
 postgresql_srg_v206520_enabled: true    # Authentication / isolation
 postgresql_srg_v206521_enabled: true    # Least-privilege access control
@@ -65,8 +70,44 @@ postgresql_srg_v265854_enabled: true    # Supported DBMS version
 postgresql_srg_v233495_enabled: true    # NSA-approved cryptography
 
 ############################################################
-# Per-Control Toggles — CAT II (enable as validated)
+# Per-Control Toggles — CAT II
 ############################################################
+postgresql_srg_v206519_enabled: false   # Concurrent session limits
+postgresql_srg_v206522_enabled: false   # Non-repudiation logging
+postgresql_srg_v206523_enabled: false   # DoD audit records
+postgresql_srg_v206524_enabled: false   # Audit config access
+postgresql_srg_v206525_enabled: false   # Privilege/role audit
+postgresql_srg_v206526_enabled: false   # Unsuccessful privilege audit
+postgresql_srg_v206527_enabled: false   # Session audit on startup
+postgresql_srg_v206528_enabled: false   # Event type in audit records
+postgresql_srg_v206529_enabled: false   # Timestamps in audit records
+postgresql_srg_v206530_enabled: false   # Event location in audit records
+postgresql_srg_v206531_enabled: false   # Source/origin in audit records
+postgresql_srg_v206532_enabled: false   # Event outcome in audit records
+postgresql_srg_v206533_enabled: false   # User identity in audit records
+postgresql_srg_v206534_enabled: false   # Additional audit info
+postgresql_srg_v206537_enabled: false   # System clock for timestamps
+postgresql_srg_v206538_enabled: false   # Audit read protection
+postgresql_srg_v206539_enabled: false   # Audit delete protection
+postgresql_srg_v206540_enabled: false   # Audit log access protection
+postgresql_srg_v206541_enabled: false   # Audit feature access protection
+postgresql_srg_v206542_enabled: false   # Audit config modification protection
+postgresql_srg_v206543_enabled: false   # Audit feature disable protection (pgaudit install)
+postgresql_srg_v206544_enabled: false   # Software module modification
+postgresql_srg_v206546_enabled: false   # Software/data directory locations
+postgresql_srg_v206547_enabled: false   # DB objects owned by authorized accounts
+postgresql_srg_v206548_enabled: false   # DDL modification restriction
 postgresql_srg_v206549_enabled: false   # Remove demo/sample databases
 postgresql_srg_v206550_enabled: false   # Remove unused components
+postgresql_srg_v206551_enabled: false   # Disable unnecessary components
+postgresql_srg_v206552_enabled: false   # Restrict external executables
+postgresql_srg_v206553_enabled: false   # Restrict network ports/protocols
+postgresql_srg_v206554_enabled: false   # Non-org user authentication
+postgresql_srg_v206565_enabled: false   # Session identifier invalidation
+postgresql_srg_v206566_enabled: false   # Session ID generation
+postgresql_srg_v206567_enabled: false   # MITM protection
+postgresql_srg_v206580_enabled: false   # Inactive session termination
+postgresql_srg_v206600_enabled: false   # Privilege escalation prevention
+postgresql_srg_v206610_enabled: false   # Audit log protection
 postgresql_srg_v206611_enabled: false   # Security patch maintenance
+postgresql_srg_v206612_enabled: false   # Audit record generation (pgaudit)

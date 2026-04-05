@@ -1,17 +1,11 @@
 ---
 ############################################################
 # sonar.local — Host-Specific PostgreSQL SRG Variables
-#
-# These override role defaults in roles/postgresql_SRG/defaults/main.yml.
-# Only host-specific or environment-specific values belong here.
-# Generic/safe defaults remain in the role's defaults/main.yml.
+# Overrides: roles/postgresql_SRG/defaults/main.yml
 ############################################################
 
 ############################################################
 # Application Services
-# Defines which apps use this PostgreSQL instance.
-# Each entry drives: pg_hba.conf, DB/user provisioning,
-# backup, healthcheck, and validation.
 ############################################################
 postgresql_srg_application_services:
   - name: SonarQube
@@ -27,23 +21,9 @@ postgresql_srg_application_services:
     healthy_value: UP
     validate_certs: false
     timeout: 30
-  # Uncomment to add more applications on this host:
-  # - name: Bitbucket
-  #   service_name: bitbucket
-  #   db_name: bitbucket
-  #   db_user: bitbucketuser
-  #   backup_configs:
-  #     - /var/atlassian/application-data/bitbucket/shared/bitbucket.properties
-  #   web_url: "https://bitbucket.local"
-  #   health_endpoint: /status
-  #   healthy_field: state
-  #   healthy_value: RUNNING
-  #   validate_certs: false
-  #   timeout: 30
 
 ############################################################
 # Approved Login Roles
-# Roles permitted to authenticate to this PostgreSQL instance.
 ############################################################
 postgresql_srg_approved_login_roles:
   - postgres
@@ -53,37 +33,28 @@ postgresql_srg_approved_login_roles:
 
 ############################################################
 # Allowed Databases
-# Databases permitted on this instance (V-206549).
-# Add entries for each app sharing this PostgreSQL server.
 ############################################################
 postgresql_srg_allowed_databases:
   - postgres
   - sonarqube
-  # Uncomment if these apps share this PostgreSQL instance:
-  # - bitbucket
-  # - confluence
-  # - satellite
+
+############################################################
+# V-206567 — HBA Application Entries
+############################################################
+postgresql_srg_hba_application_entries:
+  - { type: host, database: sonarqube, user: sonar, address: "127.0.0.1/32", method: scram-sha-256 }
 
 ############################################################
 # Feature Toggles
-# Override role defaults for this specific host.
 ############################################################
-
-# pgaudit — enabled on this host
 postgresql_srg_pgaudit_enabled: true
-
-# FIPS — set to true once OS-level FIPS is confirmed active
+postgresql_srg_pgaudit_package: "pgaudit_16"   # aarch64: uses underscore naming
 postgresql_srg_fips_required: false
-
-# Safety guard — set to true only after confirming allowed lists are complete
 postgresql_srg_allow_removal: false
-
-# SELinux — this host runs SELinux enforcing
 postgresql_srg_selinux_required: true
 
 ############################################################
 # Per-Control Toggles — CAT I
-# All CAT I controls enabled for this host.
 ############################################################
 postgresql_srg_v206520_enabled: true    # Authentication / isolation
 postgresql_srg_v206521_enabled: true    # Least-privilege access control
@@ -102,7 +73,6 @@ postgresql_srg_v233495_enabled: true    # NSA-approved cryptography
 
 ############################################################
 # Per-Control Toggles — CAT II
-# Set to true as controls are validated for this host.
 ############################################################
 postgresql_srg_v206519_enabled: false   # Concurrent session limits
 postgresql_srg_v206522_enabled: false   # Non-repudiation logging
@@ -140,4 +110,6 @@ postgresql_srg_v206566_enabled: false   # Session ID generation
 postgresql_srg_v206567_enabled: false   # MITM protection
 postgresql_srg_v206580_enabled: false   # Inactive session termination
 postgresql_srg_v206600_enabled: false   # Privilege escalation prevention
+postgresql_srg_v206610_enabled: false   # Audit log protection
 postgresql_srg_v206611_enabled: false   # Security patch maintenance
+postgresql_srg_v206612_enabled: false   # Audit record generation (pgaudit)

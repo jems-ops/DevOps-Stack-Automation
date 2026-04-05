@@ -169,9 +169,9 @@
       --------------------------------------------
       {{ web.item.name }} Web ({{ web.item.web_url }})
         HTTP    : {{ web.status | default('N/A') }}
-        {{ web.item.healthy_field | default('status') | capitalize }} : {{ web.json[web.item.healthy_field] | default('N/A') if web.json is defined else 'N/A' }}
+        {{ web.item.healthy_field | default('status') | capitalize }} : {{ web.json[web.item.healthy_field] | default('N/A') if (web.json is defined and web.item.healthy_field is defined) else 'N/A' }}
         Version : {{ web.json.version | default('N/A') if web.json is defined else 'N/A' }}
-        Status  : {{ 'HEALTHY' if (web.json is defined and web.json[web.item.healthy_field] | default('') == web.item.healthy_value) else 'UNHEALTHY' }}
+        Status  : {{ 'HEALTHY' if (web.status == 200 and (not (web.item.healthy_field is defined) or (web.json is defined and web.json[web.item.healthy_field] | default('') == web.item.healthy_value | default('')))) else 'UNHEALTHY' }}
       {% endif %}
       {% endfor %}
       --------------------------------------------

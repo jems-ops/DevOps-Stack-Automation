@@ -42,6 +42,16 @@
   tags:
     - always
 
+- name: PostgreSQL SRG | pgaudit Setup
+  ansible.builtin.include_tasks:
+    file: pgaudit_setup.yml
+    apply:
+      tags: [pgaudit, enforce]
+  when: postgresql_srg_pgaudit_enabled | bool
+  tags:
+    - pgaudit
+    - enforce
+
 - name: PostgreSQL SRG | Load Enforcement Tasks
   ansible.builtin.import_tasks: enforcement/main.yml
   when: postgresql_srg_enforcement_enabled | bool

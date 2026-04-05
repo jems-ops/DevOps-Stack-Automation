@@ -1,0 +1,28 @@
+# Managed by Ansible - do not edit manually
+# Keycloak configuration - Quarkus-based (v17+)
+
+# ── Database ───────────────────────────────────────────────────────────────
+# Database vendor: postgres, mysql, mariadb, mssql, oracle
+db={{ keycloak_db_vendor }}
+
+# The username of the database user
+db-username={{ keycloak_db_user }}
+
+# The password of the database user
+db-password={{ keycloak_db_password }}
+
+# Full JDBC URL for the database
+db-url=jdbc:postgresql://{{ keycloak_db_host }}:{{ keycloak_db_port }}/{{ keycloak_db_name }}
+
+# ── HTTP ───────────────────────────────────────────────────────────────────
+http-enabled=true
+http-port={{ keycloak_http_port }}
+https-port={{ keycloak_https_port }}
+
+# ── Hostname / Reverse Proxy ────────────────────────────────────────────────
+# Set the public hostname so the admin console SPA resolves correctly
+hostname={{ keycloak_hostname }}
+hostname-strict=false
+hostname-strict-https=false
+# Trust X-Forwarded-* headers from nginx (edge = SSL terminated at proxy)
+proxy=edge
