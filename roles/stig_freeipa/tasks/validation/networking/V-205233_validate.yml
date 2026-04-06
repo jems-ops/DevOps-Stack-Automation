@@ -12,12 +12,6 @@
 # - Multiple NS → OPEN (replication consistency required)
 ############################################################
 
-- name: "V-205233 | Check named service status"
-  shell: systemctl is-active named
-  register: v205233_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205233 | Get NS records"
   shell: dig +short NS {{ dns_domain }}
   register: v205233_ns_records

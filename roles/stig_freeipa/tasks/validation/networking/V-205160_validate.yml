@@ -13,30 +13,11 @@
 # - named not active → NOT APPLICABLE
 ############################################################
 
-- name: "V-205160 | Check named service status"
-  shell: systemctl is-active named
-  register: v205160_named_status
-  changed_when: false
-  failed_when: false
-
-- name: "V-205160 | Collect journald logs for named (recent events)"
-  shell: journalctl -u named --no-pager -n 50
-  register: v205160_journal_logs
-  changed_when: false
-  when: dns_named_active | bool
-
-- name: "V-205160 | Validate journald output not empty"
-  fail:
-    msg: "No journald logs found for named service. Logging may be misconfigured."
-  when:
-    - dns_named_active | bool
-    - v205160_journal_logs.stdout | trim == ""
-
 - name: "V-205160 | Detect audit event indicators"
   set_fact:
-    v205160_has_lifecycle: "{{ v205160_journal_logs.stdout is search('start|stop|restart|running') }}"
-    v205160_has_failures: "{{ v205160_journal_logs.stdout is search('denied|failed|refused|error') }}"
-    v205160_has_activity: "{{ v205160_journal_logs.stdout is search('query|client|transfer|update|command') }}"
+    v205160_has_lifecycle: "{{ dns_named_journal is search('start|stop|restart|running') }}"
+    v205160_has_failures: "{{ dns_named_journal is search('denied|failed|refused|error') }}"
+    v205160_has_activity: "{{ dns_named_journal is search('query|client|transfer|update|command') }}"
   when: dns_named_active | bool
 
 - name: "V-205160 | Compliance Result"
@@ -49,7 +30,7 @@
       ------------------------------------------------------------
       Journald Logs (Evidence):
       ------------------------------------------------------------
-      {{ v205160_journal_logs.stdout | default('N/A') }}
+      {{ dns_named_journal | default('N/A') }}
 
       ------------------------------------------------------------
       Event Detection:

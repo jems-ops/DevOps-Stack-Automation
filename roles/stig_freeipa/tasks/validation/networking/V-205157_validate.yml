@@ -14,11 +14,17 @@
 # - kerberos missing → ERROR (not OPEN)
 ############################################################
 
-- name: "V-205157 | Precheck - Ensure Kerberos ticket exists"
-  shell: klist
+- name: "V-205157 | Precheck - Check for valid (non-expired) Kerberos ticket"
+  shell: klist -s
   register: v205157_krb_check
   changed_when: false
-  failed_when: v205157_krb_check.rc != 0
+  failed_when: false
+
+- name: "V-205157 | Renew Kerberos ticket if expired or missing"
+  shell: echo "{{ freeipa_admin_password }}" | kinit admin
+  changed_when: false
+  no_log: true
+  when: v205157_krb_check.rc != 0
 
 - name: "V-205157 | Get DNS zones (FreeIPA)"
   shell: ipa dnszone-find

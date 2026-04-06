@@ -46,12 +46,12 @@
     - V-223000
 
 ############################################################
-# Resolve DNS facts (shared, runs once)
+# Common DNS Facts (shared, runs once for all networking controls)
 ############################################################
 
-- name: "STIG FreeIPA | Resolve DNS facts"
+- name: "STIG FreeIPA | Gather common DNS facts"
   ansible.builtin.include_tasks:
-    file: resolve-dns-facts.yml
+    file: common-dns-facts.yml
     apply:
       tags: [enforcement, validation, V-205157, V-205158, V-205160, V-205161, V-205224, V-205225, V-205227, V-205230, V-205231, V-205233, V-205235, V-205236]
   tags:

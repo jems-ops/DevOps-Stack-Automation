@@ -12,12 +12,6 @@
 # - Key files exist → verify permissions (600 root:named)
 ############################################################
 
-- name: "V-205231 | Check named service status"
-  shell: systemctl is-active named
-  register: v205231_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205231 | Find DNSSEC key files"
   shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
   register: v205231_key_files

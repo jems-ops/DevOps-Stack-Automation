@@ -13,12 +13,6 @@
 # - DNSSEC present → OPEN (further validation required)
 ############################################################
 
-- name: "V-205235 | Check named service status"
-  shell: systemctl is-active named
-  register: v205235_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205235 | Extract named configuration"
   shell: named-checkconf -p
   register: v205235_named_conf

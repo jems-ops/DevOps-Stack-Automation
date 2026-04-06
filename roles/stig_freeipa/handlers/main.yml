@@ -29,3 +29,14 @@
   become: true
   ansible.builtin.command: augenrules --load
   changed_when: true
+
+- name: restart named-pkcs11
+  become: true
+  ansible.builtin.command: "ipactl restart {{ dns_service_name | default('named-pkcs11') }}"
+  changed_when: true
+
+- name: restart systemd-journald
+  become: true
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted

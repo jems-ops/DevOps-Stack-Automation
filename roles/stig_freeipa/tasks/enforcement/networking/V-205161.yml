@@ -30,17 +30,6 @@
 # - event detail presence
 ############################################################
 
-- name: "V-205161 | Ensure systemd-journald is running"
-  systemd:
-    name: systemd-journald
-    state: started
-    enabled: yes
-
-- name: "V-205161 | Ensure named service is enabled"
-  systemd:
-    name: named
-    enabled: yes
-
 - name: "V-205161 | Informational Summary"
   debug:
     msg: |

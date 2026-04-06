@@ -22,7 +22,7 @@
 
 - name: "Health Check | Verify named (DNS) is running"
   ansible.builtin.systemd:
-    name: named
+    name: named-pkcs11
   register: hc_named
   failed_when: hc_named.status.ActiveState != "active"
 

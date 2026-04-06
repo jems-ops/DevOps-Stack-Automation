@@ -29,16 +29,6 @@
 # - confirming absence of external exposure
 ############################################################
 
-- name: "V-205236 | Ensure named service is enabled"
-  systemd:
-    name: named
-    enabled: yes
-
-- name: "V-205236 | Ensure named service is running"
-  systemd:
-    name: named
-    state: started
-
 - name: "V-205236 | Informational Summary"
   debug:
     msg: |

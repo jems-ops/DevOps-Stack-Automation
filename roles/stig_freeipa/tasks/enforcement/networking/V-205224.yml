@@ -24,17 +24,6 @@
 # - named service is properly managed by systemd
 ############################################################
 
-- name: "V-205224 | Ensure systemd-journald is running"
-  systemd:
-    name: systemd-journald
-    state: started
-    enabled: yes
-
-- name: "V-205224 | Ensure named service is enabled"
-  systemd:
-    name: named
-    enabled: yes
-
 - name: "V-205224 | Informational Summary"
   debug:
     msg: |

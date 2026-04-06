@@ -13,12 +13,6 @@
 # - named not active → NOT APPLICABLE
 ############################################################
 
-- name: "V-205161 | Check named service status"
-  shell: systemctl is-active named
-  register: v205161_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205161 | Extract full named configuration"
   shell: named-checkconf -p
   register: v205161_named_conf

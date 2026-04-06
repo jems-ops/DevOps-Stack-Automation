@@ -1,3 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for stig_freeipa
+
+# FreeIPA admin credentials (used for ipa CLI commands during validation)
+# Override in vault or group_vars as needed
+freeipa_admin_password: "{{ vault_freeipa_admin_password | default('FreeIPA123!') }}"

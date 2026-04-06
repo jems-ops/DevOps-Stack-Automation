@@ -1,0 +1,22 @@
+---
+############################################################
+# Common DNS Prerequisites — runs once before all
+# networking enforcement controls.
+#
+# named-pkcs11 is managed by FreeIPA (ipactl), NOT by
+# direct systemd enable/start (unit is masked by design).
+# We verify DNS is active via ipactl and ensure journald.
+############################################################
+
+- name: "DNS Prereqs | Verify {{ dns_service_name }} is active"
+  ansible.builtin.assert:
+    that: dns_named_active | bool
+    success_msg: "{{ dns_service_name }} is active."
+    fail_msg: "{{ dns_service_name }} is NOT running. Run: ipactl restart"
+  ignore_errors: true
+
+- name: "DNS Prereqs | Ensure systemd-journald is running"
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: started
+    enabled: true

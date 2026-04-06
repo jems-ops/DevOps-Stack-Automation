@@ -30,16 +30,6 @@
 # - verifying SOA authoritative responses
 ############################################################
 
-- name: "V-205230 | Ensure named service is enabled"
-  systemd:
-    name: named
-    enabled: yes
-
-- name: "V-205230 | Ensure named service is running"
-  systemd:
-    name: named
-    state: started
-
 - name: "V-205230 | Informational Summary"
   debug:
     msg: |

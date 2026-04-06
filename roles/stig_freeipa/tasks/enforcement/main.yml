@@ -82,6 +82,13 @@
 # Networking
 ############################################################
 
+- name: "DNS Prereqs | Ensure named-pkcs11 and journald are running"
+  ansible.builtin.include_tasks:
+    file: networking/common-dns-prereqs.yml
+    apply:
+      tags: [enforcement, V-205157, V-205158, V-205160, V-205161, V-205224, V-205225, V-205227, V-205230, V-205231, V-205233, V-205235, V-205236]
+  tags: [enforcement, V-205157, V-205158, V-205160, V-205161, V-205224, V-205225, V-205227, V-205230, V-205231, V-205233, V-205235, V-205236]
+
 - name: "V-205157 | Enforce zone transfer restriction"
   ansible.builtin.include_tasks:
     file: networking/V-205157.yml

@@ -1,0 +1,98 @@
+---
+############################################################
+# Common DNS Facts — shared by all networking STIG controls
+# Runs once; sets facts used across enforcement + validation.
+#
+# Facts set:
+#   dns_named_active    - bool, named-pkcs11 service is running
+#   dns_named_journal   - journald output for named-pkcs11
+#   dns_domain          - system DNS domain
+#   dns_ns_records      - NS records for the domain
+#   dns_named_conf      - /etc/named.conf content
+#   dns_listen_on       - listen-on directives
+#   dns_allow_query     - allow-query directives
+#   dns_dnssec_config   - whether DNSSEC is configured
+#   dns_dnssec_keys     - DNSSEC key files found
+#   dns_zone_files      - zone files under /var/named
+############################################################
+
+- name: "DNS Facts | Detect active named service (named or named-pkcs11)"
+  ansible.builtin.shell: >
+    systemctl list-units --type=service --state=running
+    | grep -oE 'named[a-z0-9-]*\.service'
+    | head -1
+    | sed 's/\.service//'
+  register: _dns_service_detect
+  changed_when: false
+  failed_when: false
+
+- name: "DNS Facts | Set dns_service_name"
+  ansible.builtin.set_fact:
+    dns_service_name: "{{ _dns_service_detect.stdout | trim if _dns_service_detect.stdout | trim != '' else 'named-pkcs11' }}"
+
+- name: "DNS Facts | Check if {{ dns_service_name }} is active"
+  ansible.builtin.command: "systemctl is-active {{ dns_service_name }}"
+  register: _dns_named_status
+  changed_when: false
+  failed_when: false
+
+- name: "DNS Facts | Set dns_named_active"
+  ansible.builtin.set_fact:
+    dns_named_active: "{{ _dns_named_status.rc == 0 }}"
+
+- name: "DNS Facts | Collect {{ dns_service_name }} journal logs"
+  ansible.builtin.command: "journalctl -u {{ dns_service_name }} --no-pager -n 50"
+  register: _dns_named_journal
+  changed_when: false
+  failed_when: false
+  when: dns_named_active | bool
+
+- name: "DNS Facts | Set dns_named_journal"
+  ansible.builtin.set_fact:
+    dns_named_journal: "{{ _dns_named_journal.stdout | default('') }}"
+  when: dns_named_active | bool
+
+- name: "DNS Facts | Detect domain"
+  ansible.builtin.command: hostname -d
+  register: _dns_domain_raw
+  changed_when: false
+
+- name: "DNS Facts | Set dns_domain"
+  ansible.builtin.set_fact:
+    dns_domain: "{{ _dns_domain_raw.stdout | trim }}"
+
+- name: "DNS Facts | Query NS records"
+  ansible.builtin.command: "dig NS {{ dns_domain }} +short"
+  register: _dns_ns_raw
+  changed_when: false
+
+- name: "DNS Facts | Set dns_ns_records"
+  ansible.builtin.set_fact:
+    dns_ns_records: "{{ _dns_ns_raw.stdout_lines }}"
+
+- name: "DNS Facts | Read named.conf"
+  ansible.builtin.slurp:
+    path: /etc/named.conf
+  register: _dns_named_raw
+  ignore_errors: true
+
+- name: "DNS Facts | Set dns_named_conf and derived facts"
+  ansible.builtin.set_fact:
+    dns_named_conf: "{{ (_dns_named_raw.content | b64decode) if _dns_named_raw.content is defined else '' }}"
+    dns_listen_on: "{{ ((_dns_named_raw.content | b64decode) if _dns_named_raw.content is defined else '') | regex_findall('listen-on[^;]*;') }}"
+    dns_allow_query: "{{ ((_dns_named_raw.content | b64decode) if _dns_named_raw.content is defined else '') | regex_findall('allow-query[^;]*;') }}"
+    dns_dnssec_config: "{{ ((_dns_named_raw.content | b64decode) if _dns_named_raw.content is defined else '') is search('dnssec-enable|dnssec-validation', ignorecase=True) }}"
+
+- name: "DNS Facts | Find DNSSEC key files"
+  ansible.builtin.find:
+    paths: /var/named
+    patterns: "*.key,*.private"
+  register: dns_dnssec_keys
+  ignore_errors: true
+
+- name: "DNS Facts | Find zone files"
+  ansible.builtin.find:
+    paths: /var/named
+    file_type: file
+  register: dns_zone_files
+  ignore_errors: true

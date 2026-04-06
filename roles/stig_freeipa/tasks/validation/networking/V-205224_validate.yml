@@ -13,30 +13,11 @@
 # - named not active → NOT APPLICABLE
 ############################################################
 
-- name: "V-205224 | Check named service status"
-  shell: systemctl is-active named
-  register: v205224_named_status
-  changed_when: false
-  failed_when: false
-
-- name: "V-205224 | Collect journald logs for named (recent lifecycle events)"
-  shell: journalctl -u named --no-pager -n 50
-  register: v205224_journal_logs
-  changed_when: false
-  when: dns_named_active | bool
-
-- name: "V-205224 | Validate journald output not empty"
-  fail:
-    msg: "No journald logs found for named service. Logging may be misconfigured."
-  when:
-    - dns_named_active | bool
-    - v205224_journal_logs.stdout | trim == ""
-
 - name: "V-205224 | Detect lifecycle events"
   set_fact:
-    v205224_has_start: "{{ v205224_journal_logs.stdout is search('start|starting|running') }}"
-    v205224_has_stop: "{{ v205224_journal_logs.stdout is search('stop|stopping|shutting|no longer listening') }}"
-    v205224_has_restart: "{{ v205224_journal_logs.stdout is search('restart|reloading') }}"
+    v205224_has_start: "{{ dns_named_journal is search('start|starting|running') }}"
+    v205224_has_stop: "{{ dns_named_journal is search('stop|stopping|shutting|no longer listening') }}"
+    v205224_has_restart: "{{ dns_named_journal is search('restart|reloading') }}"
   when: dns_named_active | bool
 
 - name: "V-205224 | Compliance Result"
@@ -49,7 +30,7 @@
       ------------------------------------------------------------
       Journald Logs (Evidence):
       ------------------------------------------------------------
-      {{ v205224_journal_logs.stdout | default('N/A') }}
+      {{ dns_named_journal | default('N/A') }}
 
       ------------------------------------------------------------
       Lifecycle Event Detection:

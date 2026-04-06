@@ -12,12 +12,6 @@
 # - External exposure → OPEN
 ############################################################
 
-- name: "V-205236 | Check named service status"
-  shell: systemctl is-active named
-  register: v205236_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205236 | Extract named configuration"
   shell: named-checkconf -p
   register: v205236_named_conf

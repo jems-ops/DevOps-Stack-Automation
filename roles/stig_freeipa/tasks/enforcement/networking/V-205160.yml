@@ -29,17 +29,6 @@
 # - confirming unauthorized access logs
 ############################################################
 
-- name: "V-205160 | Ensure systemd-journald is running"
-  systemd:
-    name: systemd-journald
-    state: started
-    enabled: yes
-
-- name: "V-205160 | Ensure named service is enabled"
-  systemd:
-    name: named
-    enabled: yes
-
 - name: "V-205160 | Informational Summary"
   debug:
     msg: |

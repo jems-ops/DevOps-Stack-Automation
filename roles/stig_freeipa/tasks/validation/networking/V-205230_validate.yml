@@ -14,12 +14,6 @@
 # - NS responds authoritatively (SOA)
 ############################################################
 
-- name: "V-205230 | Check named service status"
-  shell: systemctl is-active named
-  register: v205230_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205230 | Get NS records"
   shell: dig +short NS {{ dns_domain }}
   register: v205230_ns_records

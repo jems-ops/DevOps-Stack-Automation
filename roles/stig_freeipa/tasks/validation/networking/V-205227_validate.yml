@@ -14,12 +14,6 @@
 # - DNSSEC with NSEC3 → requires salt rotation review
 ############################################################
 
-- name: "V-205227 | Check named service status"
-  shell: systemctl is-active named
-  register: v205227_named_status
-  changed_when: false
-  failed_when: false
-
 - name: "V-205227 | Extract named configuration"
   shell: named-checkconf -p
   register: v205227_named_conf
