@@ -20,11 +20,17 @@
 # Shared setup (runs for both enforcement + validation)
 ############################################################
 - name: "Resolve Tomcat paths"
-  include_tasks: resolve-tomcat-paths.yml
+  ansible.builtin.include_tasks:
+    file: resolve-tomcat-paths.yml
+    apply:
+      tags: [always]
   tags: [enforcement, validation]
 
 - name: "Gather common DNS facts"
-  include_tasks: common-dns-facts.yml
+  ansible.builtin.include_tasks:
+    file: common-dns-facts.yml
+    apply:
+      tags: [always]
   tags: [enforcement, validation]
 
 ############################################################
