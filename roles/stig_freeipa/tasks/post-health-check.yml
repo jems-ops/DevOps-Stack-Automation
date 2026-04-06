@@ -20,9 +20,9 @@
   register: hc_tomcat
   failed_when: hc_tomcat.status.ActiveState != "active"
 
-- name: "Health Check | Verify named (DNS) is running"
+- name: "Health Check | Verify {{ dns_service_name | default('named') }} (DNS) is running"
   ansible.builtin.systemd:
-    name: named-pkcs11
+    name: "{{ dns_service_name | default('named') }}"
   register: hc_named
   failed_when: hc_named.status.ActiveState != "active"
 
@@ -133,7 +133,7 @@
       🔧 Services:
       • httpd:          {{ hc_httpd.status.ActiveState }}
       • pki-tomcatd:    {{ hc_tomcat.status.ActiveState }}
-      • named (DNS):    {{ hc_named.status.ActiveState }}
+      • {{ dns_service_name | default('named') }} (DNS): {{ hc_named.status.ActiveState }}
       • krb5kdc:        {{ hc_kerberos.status.ActiveState }}
       • auditd:         {{ hc_auditd.stdout }}
       • ipactl:         {{ 'OK' if hc_ipa_status.rc == 0 else 'FAILED' }}
