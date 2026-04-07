@@ -33,6 +33,13 @@
       tags: [always]
   tags: [enforcement, validation]
 
+- name: "Named Service Audit Rules"
+  ansible.builtin.include_tasks:
+    file: named-audit-rules.yml
+    apply:
+      tags: [named-audit, enforcement, validation]
+  tags: [named-audit, enforcement, validation]
+
 ############################################################
 # STIG Enforcement
 ############################################################

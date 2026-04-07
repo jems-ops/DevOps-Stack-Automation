@@ -35,13 +35,6 @@
       tags: [V-223000, validation]
   tags: [V-223000, validation]
 
-- name: "Named Audit | Validate auditd rules for named service"
-  ansible.builtin.include_tasks:
-    file: auditing/named-audit-rules_validate.yml
-    apply:
-      tags: [named-audit, validation]
-  tags: [named-audit, validation]
-
 ############################################################
 # Authentication & Authorization
 ############################################################

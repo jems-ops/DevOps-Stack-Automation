@@ -11,6 +11,7 @@
 # Expected Result:
 # - named active + lifecycle logs present → NOT A FINDING
 # - named not active → NOT APPLICABLE
+# comment : DNS service lifecycle events are logged via systemd journald. Evidence of service stop events confirms logging is functioning as required. No additional enforcement is necessary.
 ############################################################
 
 - name: "V-205224 | Detect lifecycle events"

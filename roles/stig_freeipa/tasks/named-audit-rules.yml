@@ -1,0 +1,56 @@
+---
+############################################################
+# Named Service Audit Rules
+# Enforcement + Validation
+#
+# Rules:
+#   -w <named_bin> -p x   -k named_exec
+#   -w /etc/named.conf -p rwa -k named_conf
+#   -w /var/named  -p wa  -k named_data
+############################################################
+
+# ── Enforcement ─────────────────────────────────────────
+
+- name: "Named Audit | Detect named binary path"
+  ansible.builtin.command: which named
+  register: _named_bin_path
+  changed_when: false
+  failed_when: false
+  tags: [named-audit, enforcement]
+
+- name: "Named Audit | Write auditd rules for named"
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/named.rules
+    create: true
+    mode: "0640"
+    marker: "# {mark} ANSIBLE MANAGED - named audit"
+    block: |
+      -w {{ _named_bin_path.stdout | trim | default('/usr/sbin/named') }} -p x -k named_exec
+      -w /etc/named.conf -p rwa -k named_conf
+      -w /var/named -p wa -k named_data
+  register: _named_audit_rules
+  notify: reload audit rules
+  tags: [named-audit, enforcement]
+
+- name: "Named Audit | Load audit rules into kernel"
+  ansible.builtin.command: augenrules --load
+  when: _named_audit_rules.changed
+  changed_when: true
+  tags: [named-audit, enforcement]
+
+# ── Validation ──────────────────────────────────────────
+
+- name: "Named Audit | Check active audit rules"
+  ansible.builtin.shell: auditctl -l | grep -E 'named_exec|named_conf|named_data'
+  register: _named_audit_check
+  changed_when: false
+  failed_when: false
+  tags: [named-audit, validation]
+
+- name: "Named Audit | Compliance Result"
+  ansible.builtin.debug:
+    msg: |
+      Rules Found: {{ _named_audit_check.stdout_lines | default([]) | length }}
+      {{ _named_audit_check.stdout | default('none') }}
+      RESULT      : {{ 'NOT A FINDING' if (_named_audit_check.stdout_lines | default([]) | length >= 3) else 'OPEN - named audit rules missing or incomplete' }}
+  tags: [named-audit, validation]

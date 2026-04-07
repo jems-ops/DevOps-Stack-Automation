@@ -35,13 +35,6 @@
       tags: [V-223000, enforcement]
   tags: [V-223000, enforcement]
 
-- name: "Named Audit | Enforce auditd rules for named service"
-  ansible.builtin.include_tasks:
-    file: auditing/named-audit-rules.yml
-    apply:
-      tags: [named-audit, enforcement]
-  tags: [named-audit, enforcement]
-
 ############################################################
 # Authentication & Authorization
 ############################################################
