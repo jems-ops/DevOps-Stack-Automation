@@ -46,38 +46,12 @@
   when: dns_named_active | bool
 
 - name: "V-205236 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      ===== V-205236 DNS Split Horizon Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      listen-on Configuration:
-      ------------------------------------------------------------
-      {{ v205236_listen_on | default([]) }}
-
-      ------------------------------------------------------------
-      allow-query Configuration:
-      ------------------------------------------------------------
-      {{ v205236_allow_query | default([]) }}
-
-      ------------------------------------------------------------
-      External Exposure Detected:
-      ------------------------------------------------------------
-      {{ v205236_external_exposure | default(false) }}
-
-      ------------------------------------------------------------
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if not (v205236_external_exposure | default(false))
-          else 'OPEN - DNS may be externally exposed or split-horizon not enforced'
-        )
-      }}
+      listen-on  : {{ v205236_listen_on | default([]) }}
+      allow-query: {{ v205236_allow_query | default([]) }}
+      Exposed    : {{ v205236_external_exposure | default(false) }}
+      RESULT     : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if not (v205236_external_exposure | default(false)) else 'OPEN - DNS may be externally exposed or split-horizon not enforced') }}
 
       ------------------------------------------------------------
       Reason:

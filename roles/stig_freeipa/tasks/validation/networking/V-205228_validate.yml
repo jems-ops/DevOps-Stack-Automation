@@ -20,17 +20,9 @@
   register: rrsig_records
   changed_when: false
 
-- name: "V-205228 | Informational Result"
-  debug:
+- name: "V-205228 | Compliance Result"
+  ansible.builtin.debug:
     msg: |
-      ===== V-205228 RRSIG Validation =====
-
-      DNSSEC Configuration:
-      {{ dnssec_config.stdout | default('Not configured') }}
-
-      RRSIG Records:
-      {{ rrsig_records.stdout | default('None found') }}
-
-      RESULT:
-      - No DNSSEC / RRSIG → NOT APPLICABLE
-      - If RRSIG exists → Validate signature validity period (2–7 days)
+      DNSSEC Config : {{ dnssec_config.stdout | default('not configured') | trim }}
+      RRSIG Records : {{ rrsig_records.stdout | default('none') | trim }}
+      RESULT        : {{ 'NOT APPLICABLE' if (rrsig_records.stdout | default('') | trim == '') else 'OPEN - RRSIG found, verify validity period (2-7 days)' }}

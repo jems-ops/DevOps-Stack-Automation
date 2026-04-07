@@ -31,42 +31,8 @@
   when: dns_named_active | bool
 
 - name: "V-205233 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      ===== V-205233 DNS Consistency Validation =====
-
-      Domain: {{ dns_domain }}
-
-      ------------------------------------------------------------
-      NS Records:
-      ------------------------------------------------------------
-      {{ v205233_ns_records.stdout_lines | default([]) }}
-
-      ------------------------------------------------------------
-      NS Count:
-      ------------------------------------------------------------
-      {{ v205233_ns_count | default(0) }}
-
-      ------------------------------------------------------------
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING: Single authoritative DNS server detected'
-          if (v205233_ns_count | default(0) <= 1)
-          else 'OPEN: Multiple DNS servers detected - replication consistency must be validated'
-        )
-      }}
-
-      ------------------------------------------------------------
-      Reason:
-      Multiple DNS servers introduce risk of inconsistent data
-      if replication is not properly managed.
-
-      Validation confirms:
-      - Number of authoritative name servers
-      - Whether consistency validation is required
-
-      Single-server deployments eliminate replication risk.
-      ------------------------------------------------------------
+      NS Records : {{ v205233_ns_records.stdout_lines | default([]) }}
+      NS Count   : {{ v205233_ns_count | default(0) }}
+      RESULT     : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if (v205233_ns_count | default(0) | int <= 1) else 'OPEN - multiple NS servers, validate replication consistency') }}

@@ -1,0 +1,17 @@
+---
+############################################################
+# Validation: Named Service Audit Rules
+############################################################
+
+- name: "Named Audit | Check active audit rules for named"
+  ansible.builtin.shell: auditctl -l | grep -E 'named_exec|named_conf|named_data'
+  register: _named_audit_check
+  changed_when: false
+  failed_when: false
+
+- name: "Named Audit | Compliance Result"
+  ansible.builtin.debug:
+    msg: |
+      Rules Found: {{ _named_audit_check.stdout_lines | default([]) | length }}
+      {{ _named_audit_check.stdout | default('none') }}
+      RESULT      : {{ 'NOT A FINDING' if (_named_audit_check.stdout_lines | default([]) | length >= 3) else 'OPEN - named audit rules missing or incomplete' }}

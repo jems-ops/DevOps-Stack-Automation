@@ -66,48 +66,9 @@
   when: dns_named_active | bool
 
 - name: "V-205230 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      ===== V-205230 NS Record Validation =====
-
-      Domain: {{ dns_domain }}
-
-      ------------------------------------------------------------
-      NS Records:
-      ------------------------------------------------------------
-      {{ v205230_ns_records.stdout_lines | default([]) }}
-
-      ------------------------------------------------------------
-      Resolved IPs:
-      ------------------------------------------------------------
-      {{ v205230_ns_ips.results | map(attribute='stdout') | list | default([]) }}
-
-      ------------------------------------------------------------
-      SOA Responses:
-      ------------------------------------------------------------
-      {{ v205230_soa_responses.results | map(attribute='stdout') | list | default([]) }}
-
-      ------------------------------------------------------------
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if (v205230_ns_valid | default(false))
-          else 'OPEN - NS records missing, not resolving, or not authoritative'
-        )
-      }}
-
-      ------------------------------------------------------------
-      Reason:
-      Authoritative DNS servers must be reachable and respond
-      with valid SOA records.
-
-      Validation confirms:
-      - NS records exist for the domain
-      - Each NS resolves to an IP address
-      - Each NS responds authoritatively with SOA
-
-      This ensures DNS availability and integrity.
-      ------------------------------------------------------------
+      NS Records : {{ v205230_ns_records.stdout_lines | default([]) }}
+      Resolved   : {{ v205230_ns_ips.results | map(attribute='stdout') | list | default([]) }}
+      SOA        : {{ v205230_soa_responses.results | map(attribute='stdout') | list | default([]) }}
+      RESULT     : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if (v205230_ns_valid | default(false)) else 'OPEN - NS records missing, not resolving, or not authoritative') }}

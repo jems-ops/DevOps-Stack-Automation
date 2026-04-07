@@ -45,39 +45,12 @@
   when: dns_named_active | bool
 
 - name: "V-205235 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      ===== V-205235 DNSSEC Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      Named Configuration (Evidence):
-      ------------------------------------------------------------
-      {{ v205235_named_conf.stdout | default('N/A') }}
-
-      ------------------------------------------------------------
-      DNSSEC Indicators:
-      ------------------------------------------------------------
-      DNSSEC Config Detected: {{ v205235_dnssec_enabled | default(false) }}
-      DNSSEC Key Files Found: {{ v205235_key_files.stdout_lines | default([]) | length }}
-      Signed Records Found: {{ v205235_signed_records.stdout_lines | default([]) | length }}
-
-      ------------------------------------------------------------
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT APPLICABLE'
-          if (
-            not (v205235_dnssec_enabled | default(false)) and
-            (v205235_key_files.stdout_lines | default([]) | length == 0) and
-            (v205235_signed_records.stdout_lines | default([]) | length == 0)
-          )
-          else 'OPEN - DNSSEC detected, verify FIPS-compliant algorithms'
-        )
-      }}
+      DNSSEC Config : {{ v205235_dnssec_enabled | default(false) }}
+      Key Files     : {{ v205235_key_files.stdout_lines | default([]) | length }}
+      Signed Records: {{ v205235_signed_records.stdout_lines | default([]) | length }}
+      RESULT        : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT APPLICABLE' if (not (v205235_dnssec_enabled | default(false)) and (v205235_key_files.stdout_lines | default([]) | length == 0) and (v205235_signed_records.stdout_lines | default([]) | length == 0)) else 'OPEN - DNSSEC detected, verify FIPS-compliant algorithms') }}
 
       ------------------------------------------------------------
       Reason:
