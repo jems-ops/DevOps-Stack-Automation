@@ -1,4 +1,12 @@
-## Manual Logs
+## Manual Verification Steps
+
+> **Note on DNS service name:** FreeIPA may run DNS as `named` or `named-pkcs11` depending on
+> the installation. Auto-detected at runtime via:
+> ```bash
+> DNS_SVC=$(systemctl list-units --type=service --state=running | grep -oE 'named[a-z0-9-]*\.service' | head -1 | sed 's/\.service//')
+> echo "DNS service: $DNS_SVC"
+> ```
+> Replace `named` in commands below with the detected service name if different.
 
 ## V-264341 — Web Server Must Generate Audit Records
 
@@ -401,7 +409,7 @@ grep -Ei 'denied|failed|unauthorized|refused' /var/log/* 2>/dev/null | head -n 1
 # Expected: log entries capturing failure/denial events
 
 # Check journald for service lifecycle events
-journalctl -u named --no-pager | grep -Ei 'listening|no longer listening|shutting|loading' | tail -n 10
+journalctl -u $DNS_SVC --no-pager | grep -Ei 'listening|no longer listening|shutting|loading' | tail -n 10
 # Expected: lifecycle events logged with timestamps
 ```
 
@@ -415,8 +423,11 @@ journalctl -u named --no-pager | grep -Ei 'listening|no longer listening|shuttin
 **SRG:** SRG-APP-000095-DNS-000006
 
 ```bash
-# Verify named service is running
-systemctl is-active named
+# Detect DNS service name
+DNS_SVC=$(systemctl list-units --type=service --state=running | grep -oE 'named[a-z0-9-]*\.service' | head -1 | sed 's/\.service//')
+
+# Verify DNS service is running
+systemctl is-active $DNS_SVC
 # Expected: active
 
 # Check print-category and print-severity are enabled
@@ -444,19 +455,241 @@ ls -la /var/named/data/named.run /var/log/named*.log 2>/dev/null
 **SRG:** SRG-APP-000504-DNS-000074
 
 ```bash
-# Verify named service is running
-systemctl is-active named
+# Detect DNS service name
+DNS_SVC=$(systemctl list-units --type=service --state=running | grep -oE 'named[a-z0-9-]*\.service' | head -1 | sed 's/\.service//')
+
+# Verify DNS service is running
+systemctl is-active $DNS_SVC
 # Expected: active
 
 # Check journald for BIND lifecycle events
-journalctl -u named --no-pager | grep -Ei 'start|stop|starting|stopping|listening|no longer listening|shutting|running|loading' | tail -n 20
-# Expected: log entries showing service lifecycle events such as:
-#   "listening on IPv4 interface ..."
-#   "no longer listening on ..."
+journalctl -u $DNS_SVC --no-pager | grep -Ei 'start|stop|starting|stopping|listening|no longer listening|shutting|running|loading' | tail -n 20
+# Expected: log entries showing service lifecycle events
 
 # Verify systemd tracks the service unit
-systemctl show named --property=ActiveState,SubState,ExecMainStartTimestamp
+systemctl show $DNS_SVC --property=ActiveState,SubState,ExecMainStartTimestamp
 # Expected: ActiveState=active, SubState=running, with a valid start timestamp
 ```
 
-**Pass criteria:** Journald contains BIND lifecycle events (listening/no longer listening/loading) and systemd tracks the named service with valid state information.
+**Pass criteria:** Journald contains BIND lifecycle events and systemd tracks the DNS service with valid state information.
+
+---
+
+## V-205225 — DNSSEC FIPS-Validated Cryptographic Modules
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000504-DNS-000082
+
+```bash
+# Check if DNSSEC is configured
+grep -Ei 'dnssec-enable[[:space:]]*yes|inline-signing[[:space:]]*yes|auto-dnssec' /etc/named.conf
+# Expected: no output (DNSSEC not enabled → NOT APPLICABLE)
+
+# If DNSSEC were enabled, verify FIPS-approved algorithms in signing policy
+grep -Ei 'RSASHA256|RSASHA512|ECDSAP256SHA256|ECDSAP384SHA384' /etc/named.conf /var/named/*.conf 2>/dev/null
+# Expected: only FIPS-approved algorithms listed
+
+# Check OS FIPS mode
+cat /proc/sys/crypto/fips_enabled
+# Expected: 1 (if FIPS required)
+```
+
+**Pass criteria:** DNSSEC not enabled → NOT APPLICABLE. If enabled, only RSASHA256/ECDSA algorithms used and OS FIPS mode is active.
+
+---
+
+## V-205227 — NSEC3 Salt Rotation
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000077
+
+```bash
+# Check if DNSSEC/NSEC3 is configured
+grep -Ei 'nsec3|auto-dnssec|inline-signing' /etc/named.conf /var/named/*.conf 2>/dev/null
+# Expected: no output (DNSSEC not enabled → NOT APPLICABLE)
+
+# If NSEC3 were in use, verify salt rotation policy
+# Check current NSEC3 parameters for each signed zone
+dig +short NSEC3PARAM <zone>.
+# Expected: NSEC3PARAM record with salt field present
+```
+
+**Pass criteria:** DNSSEC/NSEC3 not enabled → NOT APPLICABLE. If enabled, salt must be rotated on every complete zone re-signing.
+
+---
+
+## V-205228 — RRSIG Validity Period (2–7 Days)
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000078
+
+```bash
+# Check if DNSSEC is active
+grep -cEi 'dnssec-enable[[:space:]]*yes|inline-signing[[:space:]]*yes|auto-dnssec' /etc/named.conf
+# Expected: 0 (DNSSEC not configured → NOT APPLICABLE)
+
+# Check for signed zone files
+find /var/named -maxdepth 2 \( -name '*.db' -o -name '*.zone' \) | xargs grep -l 'RRSIG' 2>/dev/null
+# Expected: no output (no signed zones)
+
+# If DNSSEC were enabled, check RRSIG validity window
+zone="freeipa.local."
+dig +short +dnssec @localhost DNSKEY "$zone" | awk '/RRSIG/ {print $5, $6}'
+# Output: <expiry_YYYYMMDDHHMMSS> <inception_YYYYMMDDHHMMSS>
+# Calculate days: (expiry_epoch - inception_epoch) / 86400
+# Expected: 2 ≤ validity_days ≤ 7
+```
+
+**Pass criteria:** DNSSEC disabled → NOT APPLICABLE. If enabled: RRSIG validity window must be ≥ 2 days and ≤ 7 days.
+
+---
+
+## V-205230 — NS Records Point to Active Authoritative Servers
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000085
+
+```bash
+# Get NS records for the domain
+dig +short NS freeipa.local.
+# Expected: ipa.freeipa.local. (or configured NS)
+
+# Resolve each NS to an IP
+dig +short A ipa.freeipa.local.
+# Expected: IP address (e.g. 192.168.56.14)
+
+# Verify each NS responds authoritatively (SOA)
+dig @ipa.freeipa.local. +short SOA freeipa.local.
+# Expected: SOA record returned
+
+# Confirm NS is listed in zone
+ipa dnsrecord-find freeipa.local. --type=NS
+# Expected: NS record pointing to ipa.freeipa.local.
+```
+
+**Pass criteria:** All NS records resolve to an IP, each NS responds with a valid SOA for the zone.
+
+---
+
+## V-205231 — DNSSEC Key File Permissions
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000086
+
+```bash
+# Check for DNSSEC key files
+find /var/named -type f \( -name '*.key' -o -name '*.private' \)
+# Expected: no output (DNSSEC not enabled → NOT APPLICABLE)
+
+# If key files exist, verify permissions and ownership
+find /var/named -type f \( -name '*.key' -o -name '*.private' \) -exec stat -c "%n %a %U:%G" {} \;
+# Expected: mode 640 or 600, owned by root:named
+```
+
+**Pass criteria:** No DNSSEC keys present → NOT APPLICABLE. If present, all key files must be mode ≤ 640 owned by root:named.
+
+---
+
+## V-205233 — DNS Configuration Consistency (Single NS)
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000087
+
+```bash
+# Count authoritative name servers
+dig +short NS freeipa.local. | wc -l
+# Expected: 1 (single NS → NOT A FINDING)
+# If > 1: verify zone replication is consistent across all NS
+
+# If multiple NS, compare SOA serial across all
+for ns in $(dig +short NS freeipa.local.); do
+  echo "$ns: $(dig @$ns +short SOA freeipa.local. | awk '{print $3}')"
+done
+# Expected: all SOA serials match
+```
+
+**Pass criteria:** Single authoritative NS → NOT A FINDING. Multiple NS → verify consistent SOA serial across all.
+
+---
+
+## V-205235 — DNSSEC FIPS-Compliant Signing Algorithms
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000089
+
+```bash
+# Check for DNSSEC signing configuration
+named-checkconf -p 2>/dev/null | grep -Ei 'dnssec-enable|dnssec-validation|inline-signing|auto-dnssec'
+# Expected: no active DNSSEC directives (NOT APPLICABLE)
+
+# Check for DNSSEC key files (indicates signing is active)
+find /var/named -name '*.key' -o -name '*.private' 2>/dev/null
+# Expected: no output
+
+# Check for signed records in zone data
+find /var/named -name '*.db' -o -name '*.zone' 2>/dev/null | xargs grep -l 'RRSIG' 2>/dev/null
+# Expected: no output
+
+# If DNSSEC were active, verify only FIPS-compliant algorithms used
+dig +short +dnssec @localhost DNSKEY freeipa.local. | awk '/DNSKEY/ {print $5}'
+# Expected: 8 (RSASHA256) or 13 (ECDSAP256SHA256) or 14 (ECDSAP384SHA384)
+```
+
+**Pass criteria:** DNSSEC not active → NOT APPLICABLE. If active, algorithm field must be 8, 13, or 14.
+
+---
+
+## V-205236 — DNS Internal-Only / No External Exposure
+
+**Severity:** CAT II
+**SRG:** SRG-APP-000516-DNS-000090
+
+```bash
+# Check listen-on configuration
+named-checkconf -p 2>/dev/null | grep -E 'listen-on'
+# Expected: listen-on { 127.0.0.1; <internal_ip>; }; (no 0.0.0.0 or any)
+
+# Check allow-query configuration
+named-checkconf -p 2>/dev/null | grep -E 'allow-query'
+# Expected: allow-query { any; }; is acceptable for internal DNS
+# OPEN if external IPs or any are present on public-facing interface
+
+# Verify no external exposure via firewall
+firewall-cmd --list-services | grep dns
+# Expected: dns (if listening on internal interface only)
+
+# Confirm DNS port is not exposed externally
+ss -tlnp | grep ':53'
+# Expected: listening on internal IP only, not 0.0.0.0
+```
+
+**Pass criteria:** DNS service listens only on internal/loopback interfaces. No external exposure detected.
+
+---
+
+## Named Service Audit Rules
+
+**Control:** auditd file watch rules for DNS service
+**Category:** Auditing
+
+```bash
+# Check active audit rules for named
+auditctl -l | grep -E 'named_exec|named_conf|named_data'
+# Expected (3 rules):
+#   -w /sbin/named -p x -k named_exec
+#   -w /etc/named.conf -p rwa -k named_conf
+#   -w /var/named -p wa -k named_data
+
+# Check persistent rules file
+cat /etc/audit/rules.d/named.rules
+# Expected: the 3 rules above
+
+# Verify audit rules are loaded (augenrules)
+augenrules --check 2>/dev/null && echo 'Rules up to date' || echo 'Rules need reload'
+
+# Test audit is capturing named.conf access
+touch /etc/named.conf  # trigger an audit event
+audit2allow -i /var/log/audit/audit.log 2>/dev/null | grep named_conf | tail -3
+```
+
+**Pass criteria:** All 3 audit rules present and loaded in the kernel (`auditctl -l` shows all 3 keys).
