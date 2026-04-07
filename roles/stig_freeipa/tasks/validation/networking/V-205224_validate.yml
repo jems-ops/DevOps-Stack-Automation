@@ -23,22 +23,6 @@
 - name: "V-205224 | Compliance Result"
   debug:
     msg: |
-      ===== V-205224 Named Service Audit Logging Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      Journald Logs (Evidence):
-      ------------------------------------------------------------
-      {{ dns_named_journal | default('N/A') }}
-
-      ------------------------------------------------------------
-      Lifecycle Event Detection:
-      ------------------------------------------------------------
-      Start Events Present: {{ v205224_has_start | default(false) }}
-      Stop Events Present: {{ v205224_has_stop | default(false) }}
-      Restart/Reload Events Present: {{ v205224_has_restart | default(false) }}
-
       RESULT:
       {{
         'NOT APPLICABLE'
@@ -50,19 +34,6 @@
             (v205224_has_stop | default(false)) or
             (v205224_has_restart | default(false))
           )
-          else 'OPEN - named active but no lifecycle audit logs detected'
+          else 'OPEN'
         )
       }}
-
-      ------------------------------------------------------------
-      Reason:
-      DNS service must generate audit records for lifecycle
-      events including start, stop, and restart operations.
-
-      Validation confirms:
-      - systemd journald captures named service logs
-      - Logs include lifecycle indicators (start/stop/restart)
-      - Events are timestamped and attributable
-
-      This satisfies audit logging requirements (AU-12).
-      ------------------------------------------------------------

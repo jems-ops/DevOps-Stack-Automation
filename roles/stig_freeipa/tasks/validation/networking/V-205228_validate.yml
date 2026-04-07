@@ -1,0 +1,36 @@
+---
+############################################################
+# STIG Control: V-205228
+#
+# Validation Summary:
+# - Check for DNSSEC configuration
+# - Verify absence of RRSIG records
+#
+# Expected Result:
+# - No DNSSEC / RRSIG → NOT APPLICABLE
+############################################################
+
+- name: "V-205228 | Check DNSSEC configuration"
+  shell: grep -Ei 'dnssec-enable|dnssec-validation|inline-signing' /etc/named.conf 2>/dev/null || true
+  register: dnssec_config
+  changed_when: false
+
+- name: "V-205228 | Check for RRSIG records"
+  shell: grep -Ri 'RRSIG' /var/named/ 2>/dev/null || true
+  register: rrsig_records
+  changed_when: false
+
+- name: "V-205228 | Informational Result"
+  debug:
+    msg: |
+      ===== V-205228 RRSIG Validation =====
+
+      DNSSEC Configuration:
+      {{ dnssec_config.stdout | default('Not configured') }}
+
+      RRSIG Records:
+      {{ rrsig_records.stdout | default('None found') }}
+
+      RESULT:
+      - No DNSSEC / RRSIG → NOT APPLICABLE
+      - If RRSIG exists → Validate signature validity period (2–7 days)

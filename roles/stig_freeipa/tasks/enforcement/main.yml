@@ -131,6 +131,13 @@
       tags: [V-205227, enforcement]
   tags: [V-205227, enforcement]
 
+- name: "V-205228 | Enforce RRSIG validity period"
+  ansible.builtin.include_tasks:
+    file: networking/V-205228.yml
+    apply:
+      tags: [V-205228, enforcement]
+  tags: [V-205228, enforcement]
+
 - name: "V-205230 | Enforce NS record validation"
   ansible.builtin.include_tasks:
     file: networking/V-205230.yml

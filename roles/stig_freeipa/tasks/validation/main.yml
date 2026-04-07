@@ -131,6 +131,13 @@
       tags: [V-205227, validation]
   tags: [V-205227, validation]
 
+- name: "V-205228 | Validate RRSIG validity period"
+  ansible.builtin.include_tasks:
+    file: networking/V-205228_validate.yml
+    apply:
+      tags: [V-205228, validation]
+  tags: [V-205228, validation]
+
 - name: "V-205230 | Validate NS record validation"
   ansible.builtin.include_tasks:
     file: networking/V-205230_validate.yml

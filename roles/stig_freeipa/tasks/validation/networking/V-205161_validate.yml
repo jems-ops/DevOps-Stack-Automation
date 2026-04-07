@@ -37,23 +37,6 @@
 - name: "V-205161 | Compliance Result"
   debug:
     msg: |
-      ===== V-205161 DNS Audit Event Type Logging Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      Named Configuration (Evidence):
-      ------------------------------------------------------------
-      {{ v205161_named_conf.stdout | default('N/A') }}
-
-      ------------------------------------------------------------
-      Logging Configuration Detection:
-      ------------------------------------------------------------
-      print-category Enabled: {{ v205161_has_print_category | default(false) }}
-      print-severity Enabled: {{ v205161_has_print_severity | default(false) }}
-      Logging Channels Present: {{ v205161_has_channels | default(false) }}
-      Logging Categories Present: {{ v205161_has_categories | default(false) }}
-
       RESULT:
       {{
         'NOT APPLICABLE'
@@ -66,21 +49,6 @@
             (v205161_has_channels | default(false)) and
             (v205161_has_categories | default(false))
           )
-          else 'OPEN - logging flags or channels not properly configured'
+          else 'OPEN'
         )
       }}
-
-      ------------------------------------------------------------
-      Reason:
-      DNS audit logs must contain sufficient detail to identify
-      event types (queries, updates, transfers, security events).
-
-      Validation confirms:
-      - print-category enabled → identifies event type
-      - print-severity enabled → identifies severity level
-      - logging channels defined → log destinations configured
-      - logging categories defined → event classification present
-
-      This satisfies AU-3 (event content) requirements.
-      ------------------------------------------------------------
-

@@ -1,0 +1,56 @@
+---
+############################################################
+# STIG Control: V-205228
+#
+# Title:
+# The validity period for the RRSIGs covering a zone's DNSKEY
+# RRSet must be no less than two days and no more than one week.
+#
+# Severity:
+# CAT II
+#
+# Status:
+# NOT APPLICABLE
+#
+# Finding Details:
+# DNSSEC is not implemented in this FreeIPA DNS deployment.
+# Therefore, no RRSIG records exist and no signature validity
+# periods are configured.
+#
+# Implementation Summary:
+# - DNSSEC not enabled
+# - No signed zones
+# - No RRSIG records present
+#
+# Manual Procedure:
+# - Review named.conf for DNSSEC settings
+# - Verify absence of RRSIG records in /var/named/
+# - Confirm no DNSSEC signing configuration exists
+#
+# Expected Result:
+# - No DNSSEC / RRSIG → NOT APPLICABLE
+#
+# Comments:
+# While DNSSEC was considered, it was ultimately deemed that
+# integrity gains would be minimal to non-existent given the
+# fact that there is no intermediary DNS resolver (to verify
+# signed records) between the DNS server (FreeIPA) and the
+# endpoints. Network controls act as compensating controls to
+# protect the integrity of transmitted DNS information.
+############################################################
+
+- name: "V-205228 | Informational - No enforcement required"
+  debug:
+    msg: |
+      ===== V-205228 Enforcement =====
+      DNSSEC is not enabled.
+
+      RESULT:
+      NOT APPLICABLE
+
+      No remediation required.
+      If DNSSEC is enabled in future:
+      - Ensure RRSIG validity period is between 2 days and 1 week
+      - Review DNSSEC signing policies and configurations
+      - Validate presence and correctness of RRSIG records in signed zones
+      - Monitor for DNSSEC-related events and anomalies

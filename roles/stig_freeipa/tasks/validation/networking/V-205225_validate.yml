@@ -47,32 +47,6 @@
 - name: "V-205225 | Compliance Result"
   debug:
     msg: |
-      ===== V-205225 DNSSEC FIPS Cryptography Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      Named Configuration (Evidence):
-      ------------------------------------------------------------
-      {{ v205225_named_conf.stdout | default('N/A') }}
-
-      ------------------------------------------------------------
-      DNSSEC Indicators:
-      ------------------------------------------------------------
-      DNSSEC Config Detected: {{ v205225_dnssec_enabled | default(false) }}
-      DNSSEC Key Files Found: {{ v205225_key_files.stdout_lines | default([]) | length }}
-      Signed Records Found: {{ v205225_signed_records.stdout_lines | default([]) | length }}
-
-      ------------------------------------------------------------
-      Key Files:
-      ------------------------------------------------------------
-      {{ v205225_key_files.stdout | default('None') }}
-
-      ------------------------------------------------------------
-      Signed Records (Sample):
-      ------------------------------------------------------------
-      {{ v205225_signed_records.stdout | default('None') }}
-
       RESULT:
       {{
         'NOT APPLICABLE'
@@ -84,22 +58,6 @@
             (v205225_key_files.stdout_lines | default([]) | length == 0) and
             (v205225_signed_records.stdout_lines | default([]) | length == 0)
           )
-          else 'OPEN - DNSSEC detected, verify FIPS-validated cryptography in use'
+          else 'OPEN'
         )
       }}
-
-      ------------------------------------------------------------
-      Reason:
-      DNSSEC requires FIPS-validated cryptographic algorithms.
-
-      Validation confirms:
-      - DNSSEC not enabled in named configuration
-      - No DNSSEC key material present
-      - No signed DNS records detected
-
-      Therefore:
-      DNSSEC is not in use, and this control is NOT APPLICABLE.
-
-      If DNSSEC were enabled, further validation of FIPS-approved
-      algorithms (e.g., RSASHA256, ECDSA) would be required.
-      ------------------------------------------------------------

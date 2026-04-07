@@ -42,19 +42,6 @@
 - name: "V-205158 | Compliance Result"
   debug:
     msg: |
-      ===== V-205158 Dynamic Update Client Restriction Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      Raw Zone Output (Evidence):
-      ------------------------------------------------------------
-      {{ v205158_zone_raw.stdout | default('N/A') }}
-
-      ------------------------------------------------------------
-      Update Policy Found: {{ v205158_policy_present | default(false) }}
-      Kerberos krb5-self Present: {{ v205158_krb5_present | default(false) }}
-
       RESULT:
       {{
         'NOT APPLICABLE'
@@ -63,21 +50,6 @@
           'NOT A FINDING'
           if (v205158_policy_present | default(false))
              and (v205158_krb5_present | default(false))
-          else 'OPEN - update-policy or krb5-self enforcement not found in FreeIPA zone'
+          else 'OPEN'
         )
       }}
-
-      ------------------------------------------------------------
-      Reason:
-      Dynamic DNS updates must be restricted to authenticated
-      clients using GSS-TSIG (Kerberos).
-
-      Validation confirms:
-      - FreeIPA zone contains update-policy
-      - krb5-self enforcement restricts updates to host identity
-
-      This ensures:
-      - Finite set of update clients
-      - No anonymous updates
-      - Controlled update sessions (DoS protection)
-      ------------------------------------------------------------

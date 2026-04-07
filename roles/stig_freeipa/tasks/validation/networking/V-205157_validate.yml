@@ -20,102 +20,58 @@
   changed_when: false
   failed_when: false
 
-- name: "V-205157 | Renew Kerberos ticket securely"
-  expect:
-    command: kinit admin
-    responses:
-      (?i)password: "{{ freeipa_admin_password }}"
-  no_log: true
+- name: "V-205157 | Renew Kerberos ticket if expired or missing"
+  shell: echo "{{ freeipa_admin_password }}" | kinit admin
   changed_when: false
+  no_log: true
   when: v205157_krb_check.rc != 0
 
 - name: "V-205157 | Get DNS zones (FreeIPA)"
   shell: ipa dnszone-find
   register: v205157_zones_raw
   changed_when: false
-  failed_when: false
-  when: dns_named_active | default(false) | bool
+  when: dns_named_active | bool
 
 - name: "V-205157 | Extract zone names"
   set_fact:
-    v205157_zones: "{{ v205157_zones_raw.stdout | default('') | regex_findall('Zone name: (.+)') }}"
-  when: dns_named_active | default(false) | bool
+    v205157_zones: "{{ v205157_zones_raw.stdout | regex_findall('Zone name: (.+)') }}"
+  when: dns_named_active | bool
 
 - name: "V-205157 | Validate zones exist"
   fail:
     msg: "No DNS zones found. Unable to evaluate transfer restrictions."
   when:
-    - dns_named_active | default(false) | bool
+    - dns_named_active | bool
     - (v205157_zones | default([]) | length) == 0
 
 - name: "V-205157 | Collect zone transfer configurations"
   shell: ipa dnszone-show {{ item }} --all
-  loop: "{{ v205157_zones | default([]) }}"
+  loop: "{{ v205157_zones }}"
   register: v205157_zone_details
   changed_when: false
-  failed_when: false
-  when: dns_named_active | default(false) | bool
+  when: dns_named_active | bool
 
 - name: "V-205157 | Evaluate transfer restrictions"
   set_fact:
     v205157_insecure_zones: >-
       {{
-        v205157_zone_details.results | default([])
+        v205157_zone_details.results
         | selectattr('stdout', 'search', 'Allow transfer: any')
         | map(attribute='item')
         | list
       }}
-  when: dns_named_active | default(false) | bool
+  when: dns_named_active | bool
 
 - name: "V-205157 | Compliance Result"
   debug:
     msg: |
-      ===== V-205157 Zone Transfer Restriction Validation =====
-
-      Named Service Active: {{ dns_named_active | default(false) }}
-
-      ------------------------------------------------------------
-      DNS Zones:
-      ------------------------------------------------------------
-      {{ v205157_zones | default([]) }}
-
-      ------------------------------------------------------------
-      Zone Details (Evidence):
-      ------------------------------------------------------------
-      {% for zone in v205157_zone_details.results | default([]) %}
-      ---- {{ zone.item }} ----
-      {{ zone.stdout }}
-      {% endfor %}
-
-      ------------------------------------------------------------
-      Insecure Zones (Allow transfer: any):
-      ------------------------------------------------------------
-      {{ v205157_insecure_zones | default([]) }}
-
       RESULT:
       {{
         'NOT APPLICABLE'
-        if not (dns_named_active | default(false) | bool)
+        if not (dns_named_active | bool)
         else (
           'NOT A FINDING'
           if (v205157_insecure_zones | default([]) | length == 0)
-          else 'OPEN - one or more zones allow unrestricted transfer (any)'
+          else 'OPEN'
         )
       }}
-
-      ------------------------------------------------------------
-      Reason:
-      DNS zone transfers must be restricted to authorized
-      secondary servers.
-
-      Validation confirms:
-      - FreeIPA zones evaluated via ipa dnszone-show
-      - No zones configured with unrestricted transfer (any)
-      - Transfers either disabled (none) or restricted
-
-      This ensures:
-      - No unauthorized zone replication
-      - Controlled transfer sessions
-      - Protection against data leakage and DoS
-
-      ------------------------------------------------------------

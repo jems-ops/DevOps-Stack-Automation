@@ -23,22 +23,6 @@
 - name: "V-205160 | Compliance Result"
   debug:
     msg: |
-      ===== V-205160 DNS Audit Record Generation Validation =====
-
-      Named Service Active: {{ dns_named_active }}
-
-      ------------------------------------------------------------
-      Journald Logs (Evidence):
-      ------------------------------------------------------------
-      {{ dns_named_journal | default('N/A') }}
-
-      ------------------------------------------------------------
-      Event Detection:
-      ------------------------------------------------------------
-      Lifecycle Events Present: {{ v205160_has_lifecycle | default(false) }}
-      Failure/Denied Events Present: {{ v205160_has_failures | default(false) }}
-      DNS Activity Events Present: {{ v205160_has_activity | default(false) }}
-
       RESULT:
       {{
         'NOT APPLICABLE'
@@ -49,21 +33,7 @@
             (v205160_has_lifecycle | default(false)) or
             (v205160_has_activity | default(false))
           )
-          else 'OPEN - named active but no sufficient audit log evidence found'
+          else 'OPEN'
         )
       }}
 
-      ------------------------------------------------------------
-      Reason:
-      DNS server must generate audit records for DoD-defined
-      events including service lifecycle, operational activity,
-      and failure conditions.
-
-      Validation confirms:
-      - systemd journald captures named service logs
-      - Logs include lifecycle events (start/stop/restart)
-      - Logs include DNS activity (query/update/transfer)
-      - Logs may include failure or denied events
-
-      This satisfies audit generation requirements (AU-2 / AU-12).
-      ------------------------------------------------------------
