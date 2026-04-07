@@ -21,19 +21,9 @@
   when: dns_named_active | bool
 
 - name: "V-205224 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if (
-            (v205224_has_start | default(false)) or
-            (v205224_has_stop | default(false)) or
-            (v205224_has_restart | default(false))
-          )
-          else 'OPEN'
-        )
-      }}
+      Start Events  : {{ v205224_has_start | default(false) }}
+      Stop Events   : {{ v205224_has_stop | default(false) }}
+      Restart Events: {{ v205224_has_restart | default(false) }}
+      RESULT        : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if ((v205224_has_start | default(false)) or (v205224_has_stop | default(false)) or (v205224_has_restart | default(false))) else 'OPEN - no lifecycle events found in journald') }}

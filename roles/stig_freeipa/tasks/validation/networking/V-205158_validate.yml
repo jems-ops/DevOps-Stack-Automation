@@ -40,16 +40,8 @@
   when: dns_named_active | bool
 
 - name: "V-205158 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if (v205158_policy_present | default(false))
-             and (v205158_krb5_present | default(false))
-          else 'OPEN'
-        )
-      }}
+      Update Policy: {{ v205158_policy_present | default(false) }}
+      GSS-TSIG     : {{ v205158_krb5_present | default(false) }}
+      RESULT       : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if (v205158_policy_present | default(false)) and (v205158_krb5_present | default(false)) else 'OPEN - update policy or GSS-TSIG missing') }}

@@ -35,20 +35,10 @@
   when: dns_named_active | bool
 
 - name: "V-205161 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if (
-            (v205161_has_print_category | default(false)) and
-            (v205161_has_print_severity | default(false)) and
-            (v205161_has_channels | default(false)) and
-            (v205161_has_categories | default(false))
-          )
-          else 'OPEN'
-        )
-      }}
+      print-category : {{ v205161_has_print_category | default(false) }}
+      print-severity : {{ v205161_has_print_severity | default(false) }}
+      Channels       : {{ v205161_has_channels | default(false) }}
+      Categories     : {{ v205161_has_categories | default(false) }}
+      RESULT         : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if ((v205161_has_print_category | default(false)) and (v205161_has_print_severity | default(false)) and (v205161_has_channels | default(false)) and (v205161_has_categories | default(false))) else 'OPEN - logging configuration incomplete') }}

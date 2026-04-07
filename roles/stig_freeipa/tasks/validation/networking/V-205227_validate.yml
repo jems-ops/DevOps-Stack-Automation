@@ -46,23 +46,10 @@
   when: dns_named_active | bool
 
 - name: "V-205227 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT APPLICABLE'
-          if (
-            not (v205227_dnssec_enabled | default(false)) and
-            (v205227_key_files.stdout_lines | default([]) | length == 0)
-          )
-          else (
-            'NOT APPLICABLE'
-            if (v205227_nsec3_records.stdout_lines | default([]) | length == 0)
-            else 'OPEN'
-          )
-        )
-      }}
+      DNSSEC Enabled: {{ v205227_dnssec_enabled | default(false) }}
+      Key Files     : {{ v205227_key_files.stdout_lines | default([]) | length }}
+      NSEC3 Records : {{ v205227_nsec3_records.stdout_lines | default([]) | length }}
+      RESULT        : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT APPLICABLE' if (not (v205227_dnssec_enabled | default(false)) and (v205227_key_files.stdout_lines | default([]) | length == 0)) else ('NOT APPLICABLE' if (v205227_nsec3_records.stdout_lines | default([]) | length == 0) else 'OPEN - NSEC3 detected, verify salt rotation policy')) }}
 

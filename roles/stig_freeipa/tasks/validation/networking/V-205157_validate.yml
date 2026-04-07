@@ -63,15 +63,8 @@
   when: dns_named_active | bool
 
 - name: "V-205157 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if (v205157_insecure_zones | default([]) | length == 0)
-          else 'OPEN'
-        )
-      }}
+      Zones Found : {{ v205157_zones | default([]) }}
+      Insecure    : {{ v205157_insecure_zones | default([]) }}
+      RESULT      : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if (v205157_insecure_zones | default([]) | length == 0) else 'OPEN - zone(s) allow unrestricted transfer') }}

@@ -45,19 +45,9 @@
   when: dns_named_active | bool
 
 - name: "V-205225 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT APPLICABLE'
-          if (
-            not (v205225_dnssec_enabled | default(false)) and
-            (v205225_key_files.stdout_lines | default([]) | length == 0) and
-            (v205225_signed_records.stdout_lines | default([]) | length == 0)
-          )
-          else 'OPEN'
-        )
-      }}
+      DNSSEC Config : {{ v205225_dnssec_enabled | default(false) }}
+      Key Files     : {{ v205225_key_files.stdout_lines | default([]) | length }}
+      Signed Records: {{ v205225_signed_records.stdout_lines | default([]) | length }}
+      RESULT        : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT APPLICABLE' if (not (v205225_dnssec_enabled | default(false)) and (v205225_key_files.stdout_lines | default([]) | length == 0) and (v205225_signed_records.stdout_lines | default([]) | length == 0)) else 'OPEN - DNSSEC detected, verify FIPS-validated cryptographic modules') }}

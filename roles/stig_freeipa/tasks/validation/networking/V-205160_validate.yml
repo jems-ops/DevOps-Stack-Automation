@@ -21,19 +21,10 @@
   when: dns_named_active | bool
 
 - name: "V-205160 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: |
-      RESULT:
-      {{
-        'NOT APPLICABLE'
-        if not (dns_named_active | bool)
-        else (
-          'NOT A FINDING'
-          if (
-            (v205160_has_lifecycle | default(false)) or
-            (v205160_has_activity | default(false))
-          )
-          else 'OPEN'
-        )
-      }}
+      Lifecycle Events: {{ v205160_has_lifecycle | default(false) }}
+      Activity Events : {{ v205160_has_activity | default(false) }}
+      Failure Events  : {{ v205160_has_failures | default(false) }}
+      RESULT          : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if ((v205160_has_lifecycle | default(false)) or (v205160_has_activity | default(false))) else 'OPEN - no audit log evidence found in journald') }}
 
