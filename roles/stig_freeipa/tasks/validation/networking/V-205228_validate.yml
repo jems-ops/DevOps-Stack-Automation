@@ -3,28 +3,59 @@
 # STIG Control: V-205228
 #
 # Validation Summary:
-# - Check for DNSSEC configuration
-# - Verify absence of RRSIG records
+# - Check if DNSSEC is enabled in named.conf
+# - Check for presence of signed zones (RRSIG/DNSKEY)
+# - If DNSSEC not enabled → NOT APPLICABLE
+# - If enabled → validate RRSIG validity window (2–7 days)
 #
 # Expected Result:
-# - No DNSSEC / RRSIG → NOT APPLICABLE
+# - DNSSEC disabled → NOT APPLICABLE
+# - DNSSEC enabled:
+#     - Validity ≥ 2 days and ≤ 7 days → NOT A FINDING
+#     - Otherwise → FINDING
+#
+# Comments:
+# This environment uses internal-only FreeIPA DNS with no DNSSEC.
+# Therefore, this control is NOT APPLICABLE.
 ############################################################
 
-- name: "V-205228 | Check DNSSEC configuration"
-  ansible.builtin.shell: grep -cEi 'dnssec-enable|dnssec-validation|inline-signing' /etc/named.conf 2>/dev/null || echo 0
+- name: "V-205228 | Check DNSSEC configuration in named.conf"
+  ansible.builtin.shell: grep -cEi 'dnssec-enable[[:space:]]*yes|inline-signing[[:space:]]*yes|auto-dnssec' /etc/named.conf 2>/dev/null || echo 0
   register: _v205228_dnssec_config
   changed_when: false
   failed_when: false
 
-- name: "V-205228 | Check for RRSIG records (count only)"
-  ansible.builtin.shell: "grep -Ric 'RRSIG' /var/named/ 2>/dev/null | awk -F: '{sum+=$2} END{print sum+0}'"
-  register: _v205228_rrsig_count
+- name: "V-205228 | Check for signed zone files (RRSIG/DNSKEY)"
+  ansible.builtin.shell: |
+    find /var/named -maxdepth 2 \( -name '*.db' -o -name '*.zone' \) 2>/dev/null \
+      | xargs grep -l 'RRSIG' 2>/dev/null | wc -l | tr -d ' '
+  register: _v205228_rrsig_zones
   changed_when: false
   failed_when: false
+
+- name: "V-205228 | Check RRSIG validity window from live DNS (only when DNSSEC enabled)"
+  ansible.builtin.shell: |
+    ZONE=$(ipa dnszone-find --raw 2>/dev/null | awk '/^  idnsname:/{print $2; exit}')
+    RRSIG=$(dig +short +dnssec @localhost DNSKEY "${ZONE}" 2>/dev/null | awk 'NR==1 && /RRSIG/{print $5, $6}')
+    EXPIRY=$(echo "$RRSIG" | awk '{print $1}')
+    INCEPTION=$(echo "$RRSIG" | awk '{print $2}')
+    if [ -z "$EXPIRY" ] || [ -z "$INCEPTION" ]; then echo -1; exit; fi
+    EXP=$(date -d "${EXPIRY:0:4}-${EXPIRY:4:2}-${EXPIRY:6:2} ${EXPIRY:8:2}:${EXPIRY:10:2}:${EXPIRY:12:2}" +%s 2>/dev/null)
+    INC=$(date -d "${INCEPTION:0:4}-${INCEPTION:4:2}-${INCEPTION:6:2} ${INCEPTION:8:2}:${INCEPTION:10:2}:${INCEPTION:12:2}" +%s 2>/dev/null)
+    echo $(( (EXP - INC) / 86400 ))
+  register: _v205228_validity_days
+  changed_when: false
+  failed_when: false
+  when: (_v205228_dnssec_config.stdout | trim | int) > 0 or (_v205228_rrsig_zones.stdout | trim | int) > 0
 
 - name: "V-205228 | Compliance Result"
   ansible.builtin.debug:
     msg: |
-      DNSSEC Config : {{ (_v205228_dnssec_config.stdout | trim | int) > 0 }}
-      RRSIG Records : {{ _v205228_rrsig_count.stdout | trim }} found
-      RESULT        : {{ 'NOT APPLICABLE' if (_v205228_rrsig_count.stdout | trim | int == 0) else 'OPEN - RRSIG found, verify validity period (2-7 days)' }}
+      DNSSEC Enabled : {{ (_v205228_dnssec_config.stdout | trim | int) > 0 }}
+      Signed Zones   : {{ _v205228_rrsig_zones.stdout | trim }}
+      Validity (days): {{ _v205228_validity_days.stdout | default('-1') | trim }}
+      RESULT         : {%
+        set dnssec_on = (_v205228_dnssec_config.stdout | trim | int) > 0 or (_v205228_rrsig_zones.stdout | trim | int) > 0
+        %}{%
+        set days = _v205228_validity_days.stdout | default('-1') | trim | int
+        %}{{ 'NOT APPLICABLE' if not dnssec_on else ('NOT A FINDING' if (days >= 2 and days <= 7) else 'OPEN - RRSIG validity period is ' ~ days ~ ' days (must be 2-7 days)') }}
