@@ -11,18 +11,20 @@
 ############################################################
 
 - name: "V-205228 | Check DNSSEC configuration"
-  shell: grep -Ei 'dnssec-enable|dnssec-validation|inline-signing' /etc/named.conf 2>/dev/null || true
-  register: dnssec_config
+  ansible.builtin.shell: grep -cEi 'dnssec-enable|dnssec-validation|inline-signing' /etc/named.conf 2>/dev/null || echo 0
+  register: _v205228_dnssec_config
   changed_when: false
+  failed_when: false
 
-- name: "V-205228 | Check for RRSIG records"
-  shell: grep -Ri 'RRSIG' /var/named/ 2>/dev/null || true
-  register: rrsig_records
+- name: "V-205228 | Check for RRSIG records (count only)"
+  ansible.builtin.shell: "grep -Ric 'RRSIG' /var/named/ 2>/dev/null | awk -F: '{sum+=$2} END{print sum+0}'"
+  register: _v205228_rrsig_count
   changed_when: false
+  failed_when: false
 
 - name: "V-205228 | Compliance Result"
   ansible.builtin.debug:
     msg: |
-      DNSSEC Config : {{ dnssec_config.stdout | default('not configured') | trim }}
-      RRSIG Records : {{ rrsig_records.stdout | default('none') | trim }}
-      RESULT        : {{ 'NOT APPLICABLE' if (rrsig_records.stdout | default('') | trim == '') else 'OPEN - RRSIG found, verify validity period (2-7 days)' }}
+      DNSSEC Config : {{ (_v205228_dnssec_config.stdout | trim | int) > 0 }}
+      RRSIG Records : {{ _v205228_rrsig_count.stdout | trim }} found
+      RESULT        : {{ 'NOT APPLICABLE' if (_v205228_rrsig_count.stdout | trim | int == 0) else 'OPEN - RRSIG found, verify validity period (2-7 days)' }}
