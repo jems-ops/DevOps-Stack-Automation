@@ -1,12 +1,12 @@
 ---
 ############################################################
-# Named Service Audit Rules
-# Enforcement + Validation
+# STIG Control: V-205160 (SRG-APP-000089-DNS-000005)
+# Title: DNS must generate audit records for DoD-defined events
 #
-# Rules:
-#   -w <named_bin> -p x   -k named_exec
-#   -w /etc/named.conf -p rwa -k named_conf
-#   -w /var/named  -p wa  -k named_data
+# Enforcement: auditd file watch rules for the named service
+#   -w <named_bin>   -p x   -k named_exec    (execution)
+#   -w /etc/named.conf -p rwa -k named_conf  (config changes)
+#   -w /var/named    -p wa  -k named_data    (data changes)
 ############################################################
 
 # ── Enforcement ─────────────────────────────────────────
@@ -47,7 +47,7 @@
   failed_when: false
   tags: [named-audit, validation]
 
-- name: "Named Audit | Compliance Result"
+- name: "V-205160 | Named Audit Rules | Compliance Result"
   ansible.builtin.debug:
     msg: |
       Rules Found: {{ _named_audit_check.stdout_lines | default([]) | length }}

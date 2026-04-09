@@ -1,0 +1,28 @@
+---
+- name: "V-264341 | Web server audit logging"
+  ansible.builtin.include_tasks:
+    file: V-264341.yml
+    apply:
+      tags: [V-264341, enforcement]
+  tags: [V-264341, enforcement]
+
+- name: "V-222998 | Audit logging for Tomcat bin"
+  ansible.builtin.include_tasks:
+    file: V-222998.yml
+    apply:
+      tags: [V-222998, enforcement]
+  tags: [V-222998, enforcement]
+
+- name: "V-222999 | Audit logging for Tomcat conf"
+  ansible.builtin.include_tasks:
+    file: V-222999.yml
+    apply:
+      tags: [V-222999, enforcement]
+  tags: [V-222999, enforcement]
+
+- name: "V-223000 | Audit logging for Tomcat lib"
+  ansible.builtin.include_tasks:
+    file: V-223000.yml
+    apply:
+      tags: [V-223000, enforcement]
+  tags: [V-223000, enforcement]

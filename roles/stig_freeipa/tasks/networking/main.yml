@@ -1,8 +1,4 @@
 ---
-############################################################
-# DNS Controls (named / named-pkcs11)
-############################################################
-
 - name: "V-205157 | Zone transfer restriction"
   ansible.builtin.include_tasks:
     file: V-205157.yml

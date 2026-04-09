@@ -68,39 +68,44 @@ All controls are **CAT II** severity.
 
 ```
 stig_freeipa/
-├── defaults/
-│   └── main.yml                       # Default variables (freeipa_admin_password, etc.)
-├── handlers/
-│   └── main.yml                       # Handlers: restart httpd, auditd, named-pkcs11, journald
-├── tasks/
-│   ├── main.yml                       # Orchestrator: shared setup → enforcement → validation → health check
-│   ├── common/
-│   │   ├── webserver/                 # Webserver enforcement (httpd / PKI Tomcat)
-│   │   │   ├── main.yml
-│   │   │   ├── resolve-tomcat-paths.yml  # Resolves PKI Tomcat symlink paths
-│   │   │   └── V-2641341/222998/999/000/206374/380/383/412/433/437.yml
-│   │   └── dns/                       # DNS enforcement (named / named-pkcs11)
-│   │       ├── main.yml
-│   │       ├── common-dns-facts.yml      # Shared DNS facts (dns_named_active, dns_named_journal, etc.)
-│   │       ├── named-audit-rules.yml     # auditd rules for named (enforcement + validation)
-│   │       └── V-205157/158/160/161/224/225/227/228/230/231/233/235/236.yml
-│   ├── validation/
-│   │   ├── main.yml                   # Orchestrates all validation tasks
-│   │   ├── auditing/                  # V-264341, V-222998/999/000 validation
-│   │   ├── authentication/            # V-206374 validation
-│   │   ├── availability/              # V-206433 validation
-│   │   ├── networking/                # V-205157–V-205236 validation
-│   │   └── security-hardening/        # V-206380/383/412/437 validation
-│   ├── post-health-check.yml          # Verifies services, ports, web endpoints
-│   ├── backup-configs.yml             # Snapshots configs before enforcement
-│   └── rollback-configs.yml           # Restores pre-STIG configs from backup
+├── defaults/main.yml              # Role variables (freeipa_admin_password, etc.)
+├── handlers/main.yml              # Service restart handlers (httpd, auditd, named)
 ├── docs/
-│   ├── MANUAL_VERIFICATION.md         # Manual verification steps for all controls
-│   ├── STIG_FIXES.md                  # Bug fix changelog and enforcement strategy
-│   └── FREEIPA_UI_FIX.md
-├── defaults/main.yml
-├── handlers/main.yml
-└── meta/main.yml
+│   ├── MANUAL_VERIFICATION.md     # Manual verification steps per control
+│   └── STIG_FIXES.md              # Fix changelog and enforcement strategy
+└── tasks/
+    ├── main.yml                   # Orchestrator (entry point)
+    ├── common/                    # Shared helper files only (no controls here)
+    │   ├── webserver/
+    │   │   └── resolve-tomcat-paths.yml
+    │   └── dns/
+    │       ├── common-dns-facts.yml   # DNS service detection + shared facts
+    │       └── named-audit-rules.yml  # V-205160 auditd rules (enforce + validate)
+    ├── auditing/                  # ← add auditing controls here
+    │   ├── main.yml
+    │   └── V-XXXXXX.yml
+    ├── authentication/            # ← add authentication controls here
+    │   ├── main.yml
+    │   └── V-XXXXXX.yml
+    ├── hardening/                 # ← add security hardening controls here
+    │   ├── main.yml
+    │   └── V-XXXXXX.yml
+    ├── availability/              # ← add availability controls here
+    │   ├── main.yml
+    │   └── V-XXXXXX.yml
+    ├── networking/                # ← add DNS/networking controls here
+    │   ├── main.yml
+    │   └── V-XXXXXX.yml
+    ├── validation/                # Validation tasks mirror enforcement structure
+    │   ├── main.yml
+    │   ├── auditing/
+    │   ├── authentication/
+    │   ├── availability/
+    │   ├── networking/
+    │   └── security-hardening/
+    ├── backup-configs.yml
+    ├── rollback-configs.yml
+    └── post-health-check.yml
 ```
 
 ---
@@ -109,15 +114,18 @@ stig_freeipa/
 
 ```
 tasks/main.yml
-  1. backup-configs.yml          — snapshot configs (--tags backup)
-  2. resolve-tomcat-paths.yml    — resolve PKI Tomcat symlinks (always)
-  3. common-dns-facts.yml        — gather DNS service facts (always)
-  4. named-audit-rules.yml       — enforce + validate named auditd rules
-  5. common/webserver/main.yml   — enforce all webserver controls
-  6. common/dns/main.yml         — enforce all DNS controls
-  7. flush_handlers              — apply pending restarts before validation
-  8. validation/main.yml         — validate all controls
-  9. post-health-check.yml       — verify service health
+  1. backup-configs.yml              — snapshot configs  (--tags backup)
+  2. common/webserver/               — resolve Tomcat paths (always)
+  3. common/dns/common-dns-facts.yml — detect DNS service, gather facts (always)
+  4. common/dns/named-audit-rules.yml— V-205160 auditd rules
+  5. auditing/main.yml               — enforce auditing controls
+  6. authentication/main.yml         — enforce authentication controls
+  7. hardening/main.yml              — enforce hardening controls
+  8. availability/main.yml           — enforce availability controls
+  9. networking/main.yml             — enforce networking/DNS controls
+  10. flush_handlers                 — apply restarts before validation
+  11. validation/main.yml            — validate all controls
+  12. post-health-check.yml          — verify service health
 ```
 
 ---
@@ -129,8 +137,7 @@ tasks/main.yml
 | `freeipa_admin_password` | `FreeIPA123!` | Admin password for `kinit` during validation |
 | `freeipa_admin_user` | `admin` | FreeIPA admin username |
 
-> Sensitive values should be stored in `group_vars/all/vault.yml`
-> using `vault_freeipa_admin_password`.
+> Store sensitive values in `group_vars/all/vault.yml` using `vault_freeipa_admin_password`.
 
 ---
 
@@ -142,68 +149,90 @@ tasks/main.yml
 # Verify connectivity
 ansible freeipa -i inventory -m ping
 
-# Verify FreeIPA services are running
+# Verify FreeIPA is up
 ansible freeipa -i inventory -m shell -a "ipactl status"
 ```
 
-### Run Full Playbook (Enforcement + Validation + Health Check)
+### Full Run (Enforcement + Validation + Health Check)
 
 ```bash
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml
 ```
 
-### Run Enforcement Only
+### Enforcement Only
 
 ```bash
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags enforcement
 ```
 
-### Run Validation Only
+### Validation Only
 
 ```bash
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags validation
 ```
 
-### Run Health Check Only
+### Health Check Only
 
 ```bash
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags health-check
 ```
 
-### Run a Specific Control
+### Single Control
 
 ```bash
-# Single control
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags V-205157
-
-# Multiple controls
-ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags "V-205157,V-205158"
 ```
 
-### Run DNS Controls Only
-
-```bash
-ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml \
-  --tags "V-205157,V-205158,V-205160,V-205161,V-205224,V-205225,V-205227,V-205228,V-205230,V-205231,V-205233,V-205235,V-205236"
-```
-
-### Rollback to Pre-STIG State
+### Rollback / Backup
 
 ```bash
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags rollback
-```
-
-### Backup Configs Only
-
-```bash
 ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags backup
 ```
 
 ---
 
-## Playbook
+## Adding a New Control
 
-`playbooks/apply-stig-freeipa.yml`:
+Pick the right category folder and follow the 4-step pattern:
+
+**Step 1 — Create enforcement task**
+```
+tasks/<category>/V-XXXXXX.yml
+```
+
+**Step 2 — Register in category main.yml**
+```yaml
+# tasks/<category>/main.yml
+- name: "V-XXXXXX | <description>"
+  ansible.builtin.include_tasks:
+    file: V-XXXXXX.yml
+    apply:
+      tags: [V-XXXXXX, enforcement]
+  tags: [V-XXXXXX, enforcement]
+```
+
+**Step 3 — Create validation task**
+```
+tasks/validation/<category>/V-XXXXXX_validate.yml
+```
+
+**Step 4 — Register in validation/main.yml**
+```yaml
+# tasks/validation/main.yml
+- name: "V-XXXXXX | <description>"
+  ansible.builtin.include_tasks:
+    file: <category>/V-XXXXXX_validate.yml
+    apply:
+      tags: [V-XXXXXX, validation]
+  tags: [V-XXXXXX, validation]
+```
+
+> Add manual verification steps to `docs/MANUAL_VERIFICATION.md`.
+
+---
+
+## Playbook
 
 ```yaml
 ---
@@ -217,22 +246,11 @@ ansible-playbook -i inventory playbooks/apply-stig-freeipa.yml --tags backup
 
 ---
 
-## Adding a New Control
-
-1. **Enforcement task** — create `tasks/common/webserver/V-XXXXXX.yml` or
-   `tasks/common/dns/V-XXXXXX.yml` depending on the application area.
-2. **Validation task** — create `tasks/validation/<category>/V-XXXXXX_validate.yml`.
-3. **Wire it up** — add `include_tasks` entries in `common/<category>/main.yml`
-   and `validation/main.yml`.
-4. **Manual steps** — add a section to `docs/MANUAL_VERIFICATION.md`.
-
----
-
 ## Documentation
 
 | File | Description |
 |------|-------------|
-| `docs/MANUAL_VERIFICATION.md` | Manual verification commands for all controls |
+| `docs/MANUAL_VERIFICATION.md` | Manual verification commands for every control |
 | `docs/STIG_FIXES.md` | Enforcement strategy and bug fix changelog |
 
 ---

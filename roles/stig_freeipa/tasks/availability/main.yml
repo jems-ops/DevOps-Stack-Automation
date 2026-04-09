@@ -1,0 +1,7 @@
+---
+- name: "V-206433 | DoS prevention tuning"
+  ansible.builtin.include_tasks:
+    file: V-206433.yml
+    apply:
+      tags: [V-206433, enforcement]
+  tags: [V-206433, enforcement]

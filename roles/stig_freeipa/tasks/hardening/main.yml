@@ -1,0 +1,28 @@
+---
+- name: "V-206412 | Minimal server identity in headers"
+  ansible.builtin.include_tasks:
+    file: V-206412.yml
+    apply:
+      tags: [V-206412, enforcement]
+  tags: [V-206412, enforcement]
+
+- name: "V-206437 | Cookie protection flags"
+  ansible.builtin.include_tasks:
+    file: V-206437.yml
+    apply:
+      tags: [V-206437, enforcement]
+  tags: [V-206437, enforcement]
+
+- name: "V-206380 | Disable ExecCGI / shell programs"
+  ansible.builtin.include_tasks:
+    file: V-206380.yml
+    apply:
+      tags: [V-206380, enforcement]
+  tags: [V-206380, enforcement]
+
+- name: "V-206383 | WebDAV disabled"
+  ansible.builtin.include_tasks:
+    file: V-206383.yml
+    apply:
+      tags: [V-206383, enforcement]
+  tags: [V-206383, enforcement]
