@@ -59,7 +59,7 @@
 # Discover all httpd config files dynamically
 # ---------------------------------------------------------
 - name: "V-206374 | Find httpd configuration files"
-  find:
+  ansible.builtin.find:
     paths: /etc/httpd
     patterns: "*.conf"
     recurse: yes
@@ -73,7 +73,7 @@
     path: "{{ item.path }}"
     regexp: '^\s*AuthUserFile\s+.*'
     replace: '# \g<0>  # Disabled by STIG V-206374'
-    backup: yes
+    backup: true
   loop: "{{ v206374_conf_files.files }}"
   notify: restart httpd
 
@@ -85,7 +85,7 @@
     path: "{{ item.path }}"
     regexp: '^\s*AuthType\s+(?!GSSAPI).*'
     replace: '# \g<0>  # Disabled by STIG V-206374'
-    backup: yes
+    backup: true
   loop: "{{ v206374_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
   notify: restart httpd
 
@@ -97,7 +97,7 @@
     path: "{{ item.path }}"
     regexp: '^\s*Require\s+valid-user.*'
     replace: '# \g<0>  # Disabled by STIG V-206374'
-    backup: yes
+    backup: true
   loop: "{{ v206374_conf_files.files | rejectattr('path', 'search', 'ipa.conf') | list }}"
   notify: restart httpd
 
@@ -107,13 +107,13 @@
 # prevent appending outside <Location> blocks.
 # ---------------------------------------------------------
 - name: "V-206374 | Check AuthName anchor in ipa.conf"
-  shell: grep -c 'AuthName.*Kerberos' /etc/httpd/conf.d/ipa.conf
+  ansible.builtin.shell: grep -c 'AuthName.*Kerberos' /etc/httpd/conf.d/ipa.conf
   register: _ipa_authname_anchor
   changed_when: false
   failed_when: false
 
 - name: "V-206374 | Ensure AuthType GSSAPI in FreeIPA config"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/httpd/conf.d/ipa.conf
     insertafter: 'AuthName.*Kerberos'
     regexp: '^\s*AuthType\s+GSSAPI'
@@ -123,13 +123,13 @@
   notify: restart httpd
 
 - name: "V-206374 | Check GssapiUseS4U2Proxy anchor in ipa.conf"
-  shell: grep -c 'GssapiUseS4U2Proxy' /etc/httpd/conf.d/ipa.conf
+  ansible.builtin.shell: grep -c 'GssapiUseS4U2Proxy' /etc/httpd/conf.d/ipa.conf
   register: _ipa_s4u2_anchor
   changed_when: false
   failed_when: false
 
 - name: "V-206374 | Ensure Require valid-user in FreeIPA config"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/httpd/conf.d/ipa.conf
     insertafter: 'GssapiUseS4U2Proxy'
     regexp: '^\s*Require\s+valid-user'
@@ -142,7 +142,7 @@
 # FreeIPA WSGI Exception (safe + idempotent)
 # ---------------------------------------------------------
 - name: "V-206374 | Allow FreeIPA WSGI application access"
-  copy:
+  ansible.builtin.copy:
     dest: /etc/httpd/conf.d/ipa-stig-exception.conf
     content: |
       ############################################################

@@ -51,20 +51,20 @@
 ############################################################
 
 - name: "V-206437 | Check if ipa.conf already handles cookie security"
-  shell: grep -c 'Header always edit Set-Cookie' /etc/httpd/conf.d/ipa.conf
+  ansible.builtin.shell: grep -c 'Header always edit Set-Cookie' /etc/httpd/conf.d/ipa.conf
   register: v206437_ipa_cookie
   changed_when: false
   failed_when: false
 
 - name: "V-206437 | Remove redundant cookie_security.conf (if present)"
-  file:
+  ansible.builtin.file:
     path: /etc/httpd/conf.d/cookie_security.conf
     state: absent
   when: v206437_ipa_cookie.stdout | int > 0
   notify: restart httpd
 
 - name: "V-206437 | Enforce HttpOnly cookie flag (non-FreeIPA fallback)"
-  copy:
+  ansible.builtin.copy:
     dest: /etc/httpd/conf.d/cookie_security.conf
     content: |
       ############################################################

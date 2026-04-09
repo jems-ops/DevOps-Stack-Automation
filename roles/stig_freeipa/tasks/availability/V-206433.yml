@@ -54,7 +54,7 @@
 # Apache Tuning
 ############################
 - name: "V-206433 | Configure Apache DoS tuning"
-  copy:
+  ansible.builtin.copy:
     dest: /etc/httpd/conf.d/tuning.conf
     content: |
       # STIG V-206433 Apache DoS Tuning

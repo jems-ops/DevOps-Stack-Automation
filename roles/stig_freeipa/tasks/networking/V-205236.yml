@@ -30,7 +30,7 @@
 ############################################################
 
 - name: "V-205236 | Informational Summary"
-  debug:
+  ansible.builtin.debug:
     msg: |
       STIG V-205236 Enforcement:
 

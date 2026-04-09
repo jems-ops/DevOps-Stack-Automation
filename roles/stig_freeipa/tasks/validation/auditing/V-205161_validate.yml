@@ -14,20 +14,20 @@
 ############################################################
 
 - name: "V-205161 | Extract full named configuration"
-  shell: named-checkconf -p
+  ansible.builtin.shell: named-checkconf -p
   register: v205161_named_conf
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205161 | Validate configuration output not empty"
-  fail:
+  ansible.builtin.fail:
     msg: "named-checkconf returned no output. BIND configuration may be invalid."
   when:
     - dns_named_active | bool
     - v205161_named_conf.stdout | trim == ""
 
 - name: "V-205161 | Detect logging flags and channels"
-  set_fact:
+  ansible.builtin.set_fact:
     v205161_has_print_category: "{{ v205161_named_conf.stdout is search('print-category') }}"
     v205161_has_print_severity: "{{ v205161_named_conf.stdout is search('print-severity') }}"
     v205161_has_channels: "{{ v205161_named_conf.stdout is search('channel') }}"

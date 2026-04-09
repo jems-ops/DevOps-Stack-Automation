@@ -15,31 +15,31 @@
 ############################################################
 
 - name: "V-205227 | Extract named configuration"
-  shell: named-checkconf -p
+  ansible.builtin.shell: named-checkconf -p
   register: v205227_named_conf
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205227 | Validate configuration output not empty"
-  fail:
+  ansible.builtin.fail:
     msg: "named-checkconf returned no output. BIND configuration may be invalid."
   when:
     - dns_named_active | bool
     - v205227_named_conf.stdout | trim == ""
 
 - name: "V-205227 | Detect DNSSEC configuration"
-  set_fact:
+  ansible.builtin.set_fact:
     v205227_dnssec_enabled: "{{ v205227_named_conf.stdout is search('dnssec-enable|dnssec-validation|inline-signing|auto-dnssec') }}"
   when: dns_named_active | bool
 
 - name: "V-205227 | Check for DNSSEC key files"
-  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  ansible.builtin.shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
   register: v205227_key_files
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205227 | Check for NSEC3 records"
-  shell: grep -Ri 'NSEC3' /var/named 2>/dev/null
+  ansible.builtin.shell: grep -Ri 'NSEC3' /var/named 2>/dev/null
   register: v205227_nsec3_records
   changed_when: false
   failed_when: false

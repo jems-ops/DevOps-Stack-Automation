@@ -18,14 +18,14 @@
 ############################################################
 
 - name: "V-206433 | Check Apache tuning config"
-  shell: |
+  ansible.builtin.shell: |
     grep -E "MaxRequestWorkers|Timeout|KeepAlive|KeepAliveTimeout" /etc/httpd/conf.d/*.conf 2>/dev/null || true
   register: v206433_tuning
   changed_when: false
   failed_when: false
 
 - name: "V-206433 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if 'MaxRequestWorkers' in v206433_tuning.stdout
          and 'Timeout 60' in v206433_tuning.stdout

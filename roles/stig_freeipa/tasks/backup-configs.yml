@@ -12,12 +12,12 @@
 ############################################################
 
 - name: "Backup | Check if backup already exists"
-  stat:
+  ansible.builtin.stat:
     path: /etc/httpd/stig-backup/.backup-complete
   register: _backup_marker
 
 - name: "Backup | Create backup directory"
-  file:
+  ansible.builtin.file:
     path: /etc/httpd/stig-backup
     state: directory
     owner: root
@@ -26,7 +26,7 @@
   when: not _backup_marker.stat.exists
 
 - name: "Backup | Capture current configs (first-run only)"
-  copy:
+  ansible.builtin.copy:
     src: "{{ item }}"
     dest: "/etc/httpd/stig-backup/{{ item | basename }}.pre-stig"
     remote_src: true
@@ -39,7 +39,7 @@
   when: not _backup_marker.stat.exists
 
 - name: "Backup | Capture ipa.conf (if exists)"
-  copy:
+  ansible.builtin.copy:
     src: /etc/httpd/conf.d/ipa.conf
     dest: /etc/httpd/stig-backup/ipa.conf.pre-stig
     remote_src: true
@@ -50,13 +50,13 @@
   ignore_errors: true
 
 - name: "Backup | Capture conf.d file list"
-  shell: ls -1 /etc/httpd/conf.d/*.conf
+  ansible.builtin.shell: ls -1 /etc/httpd/conf.d/*.conf
   register: _confd_listing
   changed_when: false
   when: not _backup_marker.stat.exists
 
 - name: "Backup | Save conf.d manifest"
-  copy:
+  ansible.builtin.copy:
     content: "{{ _confd_listing.stdout | default('') }}"
     dest: /etc/httpd/stig-backup/confd-manifest.txt
     owner: root
@@ -65,7 +65,7 @@
   when: not _backup_marker.stat.exists
 
 - name: "Backup | Record backup timestamp"
-  copy:
+  ansible.builtin.copy:
     content: |
       backup_date: {{ ansible_date_time.iso8601 }}
       backup_host: {{ inventory_hostname }}

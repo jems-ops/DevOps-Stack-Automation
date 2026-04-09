@@ -33,12 +33,12 @@
 ############################################################
 
 - name: "V-264341 | Read server baseline httpd.conf"
-  slurp:
+  ansible.builtin.slurp:
     path: /etc/httpd/stig-backup/httpd.conf.pre-stig
   register: _httpd_baseline_raw
 
 - name: "V-264341 | Prepare baseline (strip STIG-managed directives)"
-  set_fact:
+  ansible.builtin.set_fact:
     httpd_baseline_content: >-
       {{ _httpd_baseline_raw.content | b64decode
          | regex_replace('(?m)^CustomLog.*$', '')
@@ -50,13 +50,13 @@
 
 - name: "V-264341 | Deploy STIG-hardened httpd.conf from template"
   become: true
-  template:
+  ansible.builtin.template:
     src: httpd.conf.j2
     dest: /etc/httpd/conf/httpd.conf
     owner: root
     group: root
     mode: '0644'
-    backup: yes
+    backup: true
   notify: restart httpd
 
 - name: "V-264341 | Ensure auditd is configured"

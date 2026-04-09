@@ -17,7 +17,7 @@
 # Check .htaccess HTTP access
 # ---------------------------------------------------------
 - name: "V-206374 | Check .htaccess access"
-  shell: "curl -k -s -o /dev/null -w '%{http_code}' https://localhost/.htaccess || true"
+  ansible.builtin.shell: "curl -k -s -o /dev/null -w '%{http_code}' https://localhost/.htaccess || true"
   register: v206374_http
   changed_when: false
 
@@ -25,7 +25,7 @@
 # Check AllowOverride None
 # ---------------------------------------------------------
 - name: "V-206374 | Check AllowOverride"
-  shell: "grep -Rsi 'AllowOverride None' /etc/httpd || true"
+  ansible.builtin.shell: "grep -Rsi 'AllowOverride None' /etc/httpd || true"
   register: v206374_override
   changed_when: false
 
@@ -34,7 +34,7 @@
 # FreeIPA requires AuthType GSSAPI and Require valid-user)
 # ---------------------------------------------------------
 - name: "V-206374 | Check AuthUserFile/AuthType/Require"
-  shell: >
+  ansible.builtin.shell: >
     grep -RnE '^[^#]*(AuthUserFile|AuthType|Require\s+valid-user)'
     /etc/httpd/conf /etc/httpd/conf.d
     --exclude=ipa.conf 2>/dev/null || true
@@ -45,7 +45,7 @@
 # Final Result
 # ---------------------------------------------------------
 - name: "V-206374 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if v206374_http.stdout == '403'
          and v206374_override.stdout != ''

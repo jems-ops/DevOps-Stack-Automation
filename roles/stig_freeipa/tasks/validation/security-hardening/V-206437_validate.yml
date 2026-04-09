@@ -13,7 +13,7 @@
 # Check HttpOnly flag in config
 # ---------------------------------------------------------
 - name: "V-206437 | Check HttpOnly cookie flag"
-  shell: "grep -Rsi 'HttpOnly' /etc/httpd 2>/dev/null || true"
+  ansible.builtin.shell: "grep -Rsi 'HttpOnly' /etc/httpd 2>/dev/null || true"
   register: v206437_cookie
   changed_when: false
 
@@ -21,7 +21,7 @@
 # Optional: Check Secure flag (informational)
 # ---------------------------------------------------------
 - name: "V-206437 | Check Secure flag (optional)"
-  shell: "grep -Rsi 'Secure' /etc/httpd 2>/dev/null || true"
+  ansible.builtin.shell: "grep -Rsi 'Secure' /etc/httpd 2>/dev/null || true"
   register: v206437_secure
   changed_when: false
 
@@ -29,7 +29,7 @@
 # Final result
 # ---------------------------------------------------------
 - name: "V-206437 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if v206437_cookie.stdout != '' %}
       NOT A FINDING

@@ -35,7 +35,7 @@
 # Detect FreeIPA / PKI Tomcat conf path
 # ---------------------------------------------------------
 - name: "V-222999 | Check PKI Tomcat conf path"
-  stat:
+  ansible.builtin.stat:
     path: /var/lib/pki/pki-tomcat/conf
   register: v222999_pki_conf
 
@@ -43,7 +43,7 @@
 # Resolve real path (symlink-aware)
 # ---------------------------------------------------------
 - name: "V-222999 | Resolve real Tomcat conf path"
-  command: readlink -f /var/lib/pki/pki-tomcat/conf
+  ansible.builtin.command: readlink -f /var/lib/pki/pki-tomcat/conf
   register: v222999_conf_real
   changed_when: false
   when: v222999_pki_conf.stat.exists
@@ -52,12 +52,12 @@
 # Fallback (standard Tomcat)
 # ---------------------------------------------------------
 - name: "V-222999 | Set fallback Tomcat conf path"
-  set_fact:
+  ansible.builtin.set_fact:
     v222999_conf_path: "/etc/tomcat/conf"
   when: not v222999_pki_conf.stat.exists
 
 - name: "V-222999 | Set resolved Tomcat conf path"
-  set_fact:
+  ansible.builtin.set_fact:
     v222999_conf_path: "{{ v222999_conf_real.stdout }}"
   when: v222999_pki_conf.stat.exists
 
@@ -65,10 +65,10 @@
 # Configure persistent audit rule
 # ---------------------------------------------------------
 - name: "V-222999 | Configure audit rule for Tomcat conf"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/audit/rules.d/tomcat.rules
     line: "-w {{ v222999_conf_path }} -p wa -k tomcat"
-    create: yes
+    create: true
     state: present
     mode: '0640'
   notify: reload audit rules

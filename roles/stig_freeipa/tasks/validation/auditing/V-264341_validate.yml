@@ -20,7 +20,7 @@
 # Check Apache logging directives
 # ---------------------------------------------------------
 - name: "V-264341 | Check logging directives"
-  shell: "grep -RsiE 'CustomLog|ErrorLog' /etc/httpd 2>/dev/null || true"
+  ansible.builtin.shell: "grep -RsiE 'CustomLog|ErrorLog' /etc/httpd 2>/dev/null || true"
   register: v264341_logs
   changed_when: false
 
@@ -28,7 +28,7 @@
 # Check log directory
 # ---------------------------------------------------------
 - name: "V-264341 | Check log directory"
-  stat:
+  ansible.builtin.stat:
     path: /var/log/httpd
   register: v264341_logdir
 
@@ -36,7 +36,7 @@
 # Check auditd status
 # ---------------------------------------------------------
 - name: "V-264341 | Check auditd service"
-  command: systemctl is-active auditd
+  ansible.builtin.command: systemctl is-active auditd
   register: v264341_auditd
   changed_when: false
   failed_when: false
@@ -45,7 +45,7 @@
 # Final result
 # ---------------------------------------------------------
 - name: "V-264341 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if v264341_logs.stdout != ''
          and v264341_logdir.stat.exists

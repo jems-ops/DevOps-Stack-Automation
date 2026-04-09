@@ -16,7 +16,7 @@
 # WSGI directories require ExecCGI as documented exception)
 # ---------------------------------------------------------
 - name: "V-206380 | Check CGI/MIME/ExecCGI"
-  shell: >
+  ansible.builtin.shell: >
     grep -RnE '^[^#]*(application/x-httpd-cgi|cgi-script|Options.*ExecCGI)'
     /etc/httpd/conf /etc/httpd/conf.d
     --exclude=ipa.conf 2>/dev/null || true
@@ -27,7 +27,7 @@
 # Result
 # ---------------------------------------------------------
 - name: "V-206380 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if v206380_check.stdout == "" %}
       NOT A FINDING

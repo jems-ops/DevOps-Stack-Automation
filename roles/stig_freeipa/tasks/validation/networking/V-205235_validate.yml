@@ -14,31 +14,31 @@
 ############################################################
 
 - name: "V-205235 | Extract named configuration"
-  shell: named-checkconf -p
+  ansible.builtin.shell: named-checkconf -p
   register: v205235_named_conf
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205235 | Validate configuration output not empty"
-  fail:
+  ansible.builtin.fail:
     msg: "named-checkconf returned no output. BIND configuration may be invalid."
   when:
     - dns_named_active | bool
     - v205235_named_conf.stdout | trim == ""
 
 - name: "V-205235 | Detect DNSSEC configuration"
-  set_fact:
+  ansible.builtin.set_fact:
     v205235_dnssec_enabled: "{{ v205235_named_conf.stdout is search('dnssec-enable|dnssec-validation|inline-signing|auto-dnssec') }}"
   when: dns_named_active | bool
 
 - name: "V-205235 | Check for DNSSEC key files"
-  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  ansible.builtin.shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
   register: v205235_key_files
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205235 | Check for signed DNS records"
-  shell: grep -RiE 'RRSIG|DNSKEY|NSEC|NSEC3' /var/named 2>/dev/null
+  ansible.builtin.shell: grep -RiE 'RRSIG|DNSKEY|NSEC|NSEC3' /var/named 2>/dev/null
   register: v205235_signed_records
   changed_when: false
   failed_when: false

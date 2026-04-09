@@ -14,7 +14,7 @@
 ############################################################
 
 - name: "V-205160 | Detect audit event indicators"
-  set_fact:
+  ansible.builtin.set_fact:
     v205160_has_lifecycle: "{{ dns_named_journal is search('start|stop|restart|running') }}"
     v205160_has_failures: "{{ dns_named_journal is search('denied|failed|refused|error') }}"
     v205160_has_activity: "{{ dns_named_journal is search('query|client|transfer|update|command') }}"

@@ -15,34 +15,34 @@
 ############################################################
 
 - name: "V-205230 | Get NS records"
-  shell: dig +short NS {{ dns_domain }}
+  ansible.builtin.shell: dig +short NS {{ dns_domain }}
   register: v205230_ns_records
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205230 | Validate NS records exist"
-  fail:
+  ansible.builtin.fail:
     msg: "No NS records found for {{ dns_domain }}"
   when:
     - dns_named_active | bool
     - v205230_ns_records.stdout_lines | length == 0
 
 - name: "V-205230 | Resolve NS records to IPs"
-  shell: dig +short {{ item }}
+  ansible.builtin.shell: dig +short {{ item }}
   loop: "{{ v205230_ns_records.stdout_lines }}"
   register: v205230_ns_ips
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205230 | Query SOA from each NS"
-  shell: dig @{{ item.item }} +short SOA {{ dns_domain }}
+  ansible.builtin.shell: dig @{{ item.item }} +short SOA {{ dns_domain }}
   loop: "{{ v205230_ns_ips.results }}"
   register: v205230_soa_responses
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205230 | Evaluate NS validation"
-  set_fact:
+  ansible.builtin.set_fact:
     v205230_ns_valid: >-
       {{
         (v205230_ns_records.stdout_lines | length > 0) and

@@ -15,7 +15,7 @@
 # Check loaded modules
 ########################################
 - name: "V-206383 | Check loaded modules"
-  command: httpd -M
+  ansible.builtin.command: httpd -M
   register: v206383_modules
   changed_when: false
   failed_when: false
@@ -24,7 +24,7 @@
 # Check DAV directives
 ########################################
 - name: "V-206383 | Check DAV directives"
-  shell: 'grep -Rsi "^[[:space:]]*DAV[[:space:]]+On" /etc/httpd 2>/dev/null || true'
+  ansible.builtin.shell: 'grep -Rsi "^[[:space:]]*DAV[[:space:]]+On" /etc/httpd 2>/dev/null || true'
   register: v206383_config
   changed_when: false
 
@@ -32,7 +32,7 @@
 # Final result
 ########################################
 - name: "V-206383 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if (v206383_modules.stdout | lower is not search('dav'))
          and v206383_config.stdout == '' %}

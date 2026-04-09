@@ -40,7 +40,7 @@
 ############################################################
 
 - name: "V-205228 | Informational - No enforcement required"
-  debug:
+  ansible.builtin.debug:
     msg: |
       ===== V-205228 Enforcement =====
       DNSSEC is not enabled.

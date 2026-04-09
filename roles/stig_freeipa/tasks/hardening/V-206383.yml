@@ -47,7 +47,7 @@
 # Disable DAV modules (if present)
 ########################################
 - name: "V-206383 | Check if DAV module config exists"
-  stat:
+  ansible.builtin.stat:
     path: /etc/httpd/conf.modules.d/00-dav.conf
   register: v206383_dav_conf
 
@@ -56,7 +56,7 @@
     path: /etc/httpd/conf.modules.d/00-dav.conf
     regexp: '^\s*LoadModule\s+.*dav.*'
     replace: '# \g<0>  # Disabled by STIG V-206383'
-    backup: yes
+    backup: true
   when: v206383_dav_conf.stat.exists
   notify: restart httpd
 
@@ -64,7 +64,7 @@
 # Discover httpd config files dynamically
 ########################################
 - name: "V-206383 | Find httpd configuration files"
-  find:
+  ansible.builtin.find:
     paths: /etc/httpd
     patterns: "*.conf"
     recurse: yes

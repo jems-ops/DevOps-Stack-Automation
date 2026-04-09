@@ -36,7 +36,7 @@
 # Detect FreeIPA / PKI Tomcat (symlink-aware)
 # ---------------------------------------------------------
 - name: "V-222998 | Check PKI Tomcat path"
-  stat:
+  ansible.builtin.stat:
     path: /var/lib/pki/pki-tomcat/bin
   register: v222998_pki_bin
 
@@ -44,7 +44,7 @@
 # Resolve real path (important for symlink)
 # ---------------------------------------------------------
 - name: "V-222998 | Resolve real Tomcat bin path"
-  command: readlink -f /var/lib/pki/pki-tomcat/bin
+  ansible.builtin.command: readlink -f /var/lib/pki/pki-tomcat/bin
   register: v222998_bin_real
   changed_when: false
   when: v222998_pki_bin.stat.exists
@@ -53,12 +53,12 @@
 # Fallback (standard Tomcat)
 # ---------------------------------------------------------
 - name: "V-222998 | Set fallback Tomcat bin path"
-  set_fact:
+  ansible.builtin.set_fact:
     v222998_bin_path: "/usr/share/tomcat/bin"
   when: not v222998_pki_bin.stat.exists
 
 - name: "V-222998 | Set resolved Tomcat bin path"
-  set_fact:
+  ansible.builtin.set_fact:
     v222998_bin_path: "{{ v222998_bin_real.stdout }}"
   when: v222998_pki_bin.stat.exists
 
@@ -66,10 +66,10 @@
 # Ensure audit rule is present (persistent)
 # ---------------------------------------------------------
 - name: "V-222998 | Configure audit rule for Tomcat bin"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/audit/rules.d/tomcat.rules
     line: "-w {{ v222998_bin_path }} -p wa -k tomcat"
-    create: yes
+    create: true
     state: present
     mode: '0640'
   notify: reload audit rules

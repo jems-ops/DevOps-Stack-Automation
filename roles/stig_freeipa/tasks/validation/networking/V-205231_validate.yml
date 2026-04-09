@@ -13,20 +13,20 @@
 ############################################################
 
 - name: "V-205231 | Find DNSSEC key files"
-  shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
+  ansible.builtin.shell: find /var/named -type f \( -name "*.key" -o -name "*.private" \)
   register: v205231_key_files
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205231 | Collect file permissions"
-  shell: stat -c "%n %a %U:%G" {{ item }}
+  ansible.builtin.shell: stat -c "%n %a %U:%G" {{ item }}
   loop: "{{ v205231_key_files.stdout_lines | default([]) }}"
   register: v205231_file_stats
   changed_when: false
   when: dns_named_active | bool and (v205231_key_files.stdout_lines | length > 0)
 
 - name: "V-205231 | Evaluate compliance"
-  set_fact:
+  ansible.builtin.set_fact:
     v205231_insecure_files: >-
       {{
         v205231_file_stats.results

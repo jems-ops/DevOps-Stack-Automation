@@ -16,7 +16,7 @@
 # Resolve Tomcat bin path
 # ---------------------------------------------------------
 - name: "V-222998 | Resolve Tomcat bin path"
-  command: readlink -f /var/lib/pki/pki-tomcat/bin
+  ansible.builtin.command: readlink -f /var/lib/pki/pki-tomcat/bin
   register: v222998_bin_path
   changed_when: false
   failed_when: false
@@ -25,7 +25,7 @@
 # Check audit rules
 # ---------------------------------------------------------
 - name: "V-222998 | Check audit rules"
-  shell: "auditctl -l | grep '{{ v222998_bin_path.stdout }}' || true"
+  ansible.builtin.shell: "auditctl -l | grep '{{ v222998_bin_path.stdout }}' || true"
   register: v222998_audit
   changed_when: false
 
@@ -33,7 +33,7 @@
 # Final result
 # ---------------------------------------------------------
 - name: "V-222998 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if '-p wa' in v222998_audit.stdout and '-k tomcat' in v222998_audit.stdout %}
       NOT A FINDING

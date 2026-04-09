@@ -36,7 +36,7 @@
 # Detect FreeIPA / PKI Tomcat lib path
 # ---------------------------------------------------------
 - name: "V-223000 | Check PKI Tomcat lib path"
-  stat:
+  ansible.builtin.stat:
     path: /var/lib/pki/pki-tomcat/lib
   register: v223000_pki_lib
 
@@ -44,7 +44,7 @@
 # Resolve real path (symlink-aware)
 # ---------------------------------------------------------
 - name: "V-223000 | Resolve real Tomcat lib path"
-  command: readlink -f /var/lib/pki/pki-tomcat/lib
+  ansible.builtin.command: readlink -f /var/lib/pki/pki-tomcat/lib
   register: v223000_lib_real
   changed_when: false
   when: v223000_pki_lib.stat.exists
@@ -53,12 +53,12 @@
 # Fallback (standard Tomcat)
 # ---------------------------------------------------------
 - name: "V-223000 | Set fallback Tomcat lib path"
-  set_fact:
+  ansible.builtin.set_fact:
     v223000_lib_path: "/usr/share/tomcat/lib"
   when: not v223000_pki_lib.stat.exists
 
 - name: "V-223000 | Set resolved Tomcat lib path"
-  set_fact:
+  ansible.builtin.set_fact:
     v223000_lib_path: "{{ v223000_lib_real.stdout }}"
   when: v223000_pki_lib.stat.exists
 
@@ -66,10 +66,10 @@
 # Configure persistent audit rule
 # ---------------------------------------------------------
 - name: "V-223000 | Configure audit rule for Tomcat lib"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/audit/rules.d/tomcat.rules
     line: "-w {{ v223000_lib_path }} -p wa -k tomcat"
-    create: yes
+    create: true
     state: present
     mode: '0640'
   notify: reload audit rules

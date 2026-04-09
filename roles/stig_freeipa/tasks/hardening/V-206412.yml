@@ -40,7 +40,7 @@
 ############################################################
 
 - name: "V-206412 | Configure minimal server identity"
-  copy:
+  ansible.builtin.copy:
     dest: /etc/httpd/conf.d/security.conf
     content: |
       ############################################################

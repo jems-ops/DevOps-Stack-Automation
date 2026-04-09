@@ -16,7 +16,7 @@
 # Check ServerTokens
 # ---------------------------------------------------------
 - name: "V-206412 | Check ServerTokens"
-  shell: "grep -Rsi 'ServerTokens Prod' /etc/httpd 2>/dev/null || true"
+  ansible.builtin.shell: "grep -Rsi 'ServerTokens Prod' /etc/httpd 2>/dev/null || true"
   register: v206412_tokens
   changed_when: false
 
@@ -24,7 +24,7 @@
 # Check ServerSignature
 # ---------------------------------------------------------
 - name: "V-206412 | Check ServerSignature"
-  shell: "grep -Rsi 'ServerSignature Off' /etc/httpd 2>/dev/null || true"
+  ansible.builtin.shell: "grep -Rsi 'ServerSignature Off' /etc/httpd 2>/dev/null || true"
   register: v206412_signature
   changed_when: false
 
@@ -32,7 +32,7 @@
 # Optional: Check Server header hardening
 # ---------------------------------------------------------
 - name: "V-206412 | Check Server header hardening"
-  shell: "grep -Rsi 'Header always unset Server' /etc/httpd 2>/dev/null || true"
+  ansible.builtin.shell: "grep -Rsi 'Header always unset Server' /etc/httpd 2>/dev/null || true"
   register: v206412_header
   changed_when: false
 
@@ -40,7 +40,7 @@
 # Final result
 # ---------------------------------------------------------
 - name: "V-206412 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if v206412_tokens.stdout != ''
          and v206412_signature.stdout != '' %}

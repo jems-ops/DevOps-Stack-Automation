@@ -16,12 +16,12 @@
 ############################################################
 
 - name: "Rollback | Verify backup exists"
-  stat:
+  ansible.builtin.stat:
     path: /etc/httpd/stig-backup/.backup-complete
   register: _rollback_marker
 
 - name: "Rollback | Fail if no backup found"
-  fail:
+  ansible.builtin.fail:
     msg: >
       No pre-STIG backup found at /etc/httpd/stig-backup/.
       Cannot rollback without a baseline backup.
@@ -29,7 +29,7 @@
   when: not _rollback_marker.stat.exists
 
 - name: "Rollback | Restore httpd.conf"
-  copy:
+  ansible.builtin.copy:
     src: /etc/httpd/stig-backup/httpd.conf.pre-stig
     dest: /etc/httpd/conf/httpd.conf
     remote_src: true
@@ -39,7 +39,7 @@
   notify: restart httpd
 
 - name: "Rollback | Restore ssl.conf"
-  copy:
+  ansible.builtin.copy:
     src: /etc/httpd/stig-backup/ssl.conf.pre-stig
     dest: /etc/httpd/conf.d/ssl.conf
     remote_src: true
@@ -49,12 +49,12 @@
   notify: restart httpd
 
 - name: "Rollback | Check if ipa.conf backup exists"
-  stat:
+  ansible.builtin.stat:
     path: /etc/httpd/stig-backup/ipa.conf.pre-stig
   register: _rollback_ipa
 
 - name: "Rollback | Restore ipa.conf"
-  copy:
+  ansible.builtin.copy:
     src: /etc/httpd/stig-backup/ipa.conf.pre-stig
     dest: /etc/httpd/conf.d/ipa.conf
     remote_src: true
@@ -65,7 +65,7 @@
   notify: restart httpd
 
 - name: "Rollback | Remove STIG-added config files"
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
@@ -76,14 +76,14 @@
   notify: restart httpd
 
 - name: "Rollback | Remove STIG audit rules"
-  file:
+  ansible.builtin.file:
     path: /etc/audit/rules.d/tomcat.rules
     state: absent
   notify: reload audit rules
   ignore_errors: true
 
 - name: "Rollback | Summary"
-  debug:
+  ansible.builtin.debug:
     msg: |
       ===== STIG Rollback Complete =====
 

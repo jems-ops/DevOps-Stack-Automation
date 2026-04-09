@@ -13,20 +13,20 @@
 ############################################################
 
 - name: "V-205233 | Get NS records"
-  shell: dig +short NS {{ dns_domain }}
+  ansible.builtin.shell: dig +short NS {{ dns_domain }}
   register: v205233_ns_records
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205233 | Validate NS records exist"
-  fail:
+  ansible.builtin.fail:
     msg: "No NS records found for {{ dns_domain }}"
   when:
     - dns_named_active | bool
     - v205233_ns_records.stdout_lines | length == 0
 
 - name: "V-205233 | Evaluate NS count"
-  set_fact:
+  ansible.builtin.set_fact:
     v205233_ns_count: "{{ v205233_ns_records.stdout_lines | length }}"
   when: dns_named_active | bool
 

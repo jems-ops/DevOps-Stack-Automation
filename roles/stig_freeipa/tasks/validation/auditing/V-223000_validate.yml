@@ -16,7 +16,7 @@
 # Resolve Tomcat lib path
 # ---------------------------------------------------------
 - name: "V-223000 | Resolve Tomcat lib path"
-  command: readlink -f /var/lib/pki/pki-tomcat/lib
+  ansible.builtin.command: readlink -f /var/lib/pki/pki-tomcat/lib
   register: v223000_lib_path
   changed_when: false
   failed_when: false
@@ -25,7 +25,7 @@
 # Check audit rules
 # ---------------------------------------------------------
 - name: "V-223000 | Check audit rules"
-  shell: "auditctl -l | grep '{{ v223000_lib_path.stdout }}' || true"
+  ansible.builtin.shell: "auditctl -l | grep '{{ v223000_lib_path.stdout }}' || true"
   register: v223000_audit
   changed_when: false
 
@@ -33,7 +33,7 @@
 # Final result
 # ---------------------------------------------------------
 - name: "V-223000 | Compliance Result"
-  debug:
+  ansible.builtin.debug:
     msg: >-
       {% if '-p wa' in v223000_audit.stdout and '-k tomcat' in v223000_audit.stdout %}
       NOT A FINDING

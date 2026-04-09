@@ -59,7 +59,7 @@
 # Discover httpd config files
 # ---------------------------------------------------------
 - name: "V-206380 | Find httpd configuration files"
-  find:
+  ansible.builtin.find:
     paths: /etc/httpd
     patterns: "*.conf"
     recurse: yes
@@ -69,7 +69,7 @@
 # REQUIRED: Remove CGI handlers
 # ---------------------------------------------------------
 - name: "V-206380 | Remove AddHandler cgi-script"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ item.path }}"
     regexp: '^\s*AddHandler\s+cgi-script.*'
     state: absent
@@ -80,7 +80,7 @@
 # REQUIRED: Remove executable MIME types
 # ---------------------------------------------------------
 - name: "V-206380 | Remove application/x-httpd-cgi MIME types"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ item.path }}"
     regexp: '^\s*AddType\s+application/x-httpd-cgi.*'
     state: absent

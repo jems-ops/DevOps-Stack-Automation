@@ -15,7 +15,7 @@
 ############################################################
 
 - name: "V-205224 | Detect lifecycle events"
-  set_fact:
+  ansible.builtin.set_fact:
     v205224_has_start: "{{ dns_named_journal is search('start|starting|running') }}"
     v205224_has_stop: "{{ dns_named_journal is search('stop|stopping|shutting|no longer listening') }}"
     v205224_has_restart: "{{ dns_named_journal is search('restart|reloading') }}"

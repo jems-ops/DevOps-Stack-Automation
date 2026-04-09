@@ -28,7 +28,7 @@
 ############################################################
 
 - name: "V-205225 | Informational - DNSSEC not enabled"
-  debug:
+  ansible.builtin.debug:
     msg: |
       STIG V-205225 Enforcement:
 

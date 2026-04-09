@@ -28,7 +28,7 @@
 ############################################################
 
 - name: "V-205227 | Informational - DNSSEC NSEC3 not in use"
-  debug:
+  ansible.builtin.debug:
     msg: |
       STIG V-205227 Enforcement:
 

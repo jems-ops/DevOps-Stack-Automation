@@ -29,7 +29,7 @@
 ############################################################
 
 - name: "V-205231 | Informational - No DNSSEC key enforcement required"
-  debug:
+  ansible.builtin.debug:
     msg: |
       STIG V-205231 Enforcement:
 

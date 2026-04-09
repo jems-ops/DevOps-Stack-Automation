@@ -13,26 +13,26 @@
 ############################################################
 
 - name: "V-205236 | Extract named configuration"
-  shell: named-checkconf -p
+  ansible.builtin.shell: named-checkconf -p
   register: v205236_named_conf
   changed_when: false
   when: dns_named_active | bool
 
 - name: "V-205236 | Validate configuration output not empty"
-  fail:
+  ansible.builtin.fail:
     msg: "named-checkconf returned no output. BIND configuration may be invalid."
   when:
     - dns_named_active | bool
     - v205236_named_conf.stdout | trim == ""
 
 - name: "V-205236 | Extract listen-on and allow-query"
-  set_fact:
+  ansible.builtin.set_fact:
     v205236_listen_on: "{{ v205236_named_conf.stdout | regex_findall('listen-on.*?;') }}"
     v205236_allow_query: "{{ v205236_named_conf.stdout | regex_findall('allow-query.*?;') }}"
   when: dns_named_active | bool
 
 - name: "V-205236 | Evaluate exposure"
-  set_fact:
+  ansible.builtin.set_fact:
     v205236_external_exposure: >-
       {{
         (

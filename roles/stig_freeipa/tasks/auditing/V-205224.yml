@@ -25,7 +25,7 @@
 ############################################################
 
 - name: "V-205224 | Informational Summary"
-  debug:
+  ansible.builtin.debug:
     msg: |
       STIG V-205224 Enforcement:
 
