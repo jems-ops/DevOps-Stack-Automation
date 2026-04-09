@@ -1,0 +1,95 @@
+---
+############################################################
+# DNS Controls (named / named-pkcs11)
+############################################################
+
+- name: "V-205157 | Zone transfer restriction"
+  ansible.builtin.include_tasks:
+    file: V-205157.yml
+    apply:
+      tags: [V-205157, enforcement]
+  tags: [V-205157, enforcement]
+
+- name: "V-205158 | Dynamic update client restriction"
+  ansible.builtin.include_tasks:
+    file: V-205158.yml
+    apply:
+      tags: [V-205158, enforcement]
+  tags: [V-205158, enforcement]
+
+- name: "V-205160 | DNS audit record generation"
+  ansible.builtin.include_tasks:
+    file: V-205160.yml
+    apply:
+      tags: [V-205160, enforcement]
+  tags: [V-205160, enforcement]
+
+- name: "V-205161 | DNS audit event type logging"
+  ansible.builtin.include_tasks:
+    file: V-205161.yml
+    apply:
+      tags: [V-205161, enforcement]
+  tags: [V-205161, enforcement]
+
+- name: "V-205224 | Named service audit logging"
+  ansible.builtin.include_tasks:
+    file: V-205224.yml
+    apply:
+      tags: [V-205224, enforcement]
+  tags: [V-205224, enforcement]
+
+- name: "V-205225 | DNSSEC FIPS cryptography"
+  ansible.builtin.include_tasks:
+    file: V-205225.yml
+    apply:
+      tags: [V-205225, enforcement]
+  tags: [V-205225, enforcement]
+
+- name: "V-205227 | NSEC3 salt rotation"
+  ansible.builtin.include_tasks:
+    file: V-205227.yml
+    apply:
+      tags: [V-205227, enforcement]
+  tags: [V-205227, enforcement]
+
+- name: "V-205228 | RRSIG validity period"
+  ansible.builtin.include_tasks:
+    file: V-205228.yml
+    apply:
+      tags: [V-205228, enforcement]
+  tags: [V-205228, enforcement]
+
+- name: "V-205230 | NS record validation"
+  ansible.builtin.include_tasks:
+    file: V-205230.yml
+    apply:
+      tags: [V-205230, enforcement]
+  tags: [V-205230, enforcement]
+
+- name: "V-205231 | DNSSEC key file protection"
+  ansible.builtin.include_tasks:
+    file: V-205231.yml
+    apply:
+      tags: [V-205231, enforcement]
+  tags: [V-205231, enforcement]
+
+- name: "V-205233 | SOA consistency"
+  ansible.builtin.include_tasks:
+    file: V-205233.yml
+    apply:
+      tags: [V-205233, enforcement]
+  tags: [V-205233, enforcement]
+
+- name: "V-205235 | DNSSEC FIPS-compliant algorithms"
+  ansible.builtin.include_tasks:
+    file: V-205235.yml
+    apply:
+      tags: [V-205235, enforcement]
+  tags: [V-205235, enforcement]
+
+- name: "V-205236 | DNS zone separation"
+  ansible.builtin.include_tasks:
+    file: V-205236.yml
+    apply:
+      tags: [V-205236, enforcement]
+  tags: [V-205236, enforcement]
