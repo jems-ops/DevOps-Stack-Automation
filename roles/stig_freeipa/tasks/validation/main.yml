@@ -7,6 +7,29 @@
 # Auditing
 ############################################################
 
+# ── DNS Audit Controls
+- name: "V-205160 | Validate DNS audit record generation"
+  ansible.builtin.include_tasks:
+    file: auditing/V-205160_validate.yml
+    apply:
+      tags: [V-205160, validation]
+  tags: [V-205160, validation]
+
+- name: "V-205161 | Validate DNS audit event type logging"
+  ansible.builtin.include_tasks:
+    file: auditing/V-205161_validate.yml
+    apply:
+      tags: [V-205161, validation]
+  tags: [V-205161, validation]
+
+- name: "V-205224 | Validate named service start/stop audit records"
+  ansible.builtin.include_tasks:
+    file: auditing/V-205224_validate.yml
+    apply:
+      tags: [V-205224, validation]
+  tags: [V-205224, validation]
+
+# ── Webserver Audit Controls
 - name: "V-264341 | Validate web server audit logging"
   ansible.builtin.include_tasks:
     file: auditing/V-264341_validate.yml
@@ -95,27 +118,6 @@
     apply:
       tags: [V-205158, validation]
   tags: [V-205158, validation]
-
-- name: "V-205160 | Validate DNS audit record generation"
-  ansible.builtin.include_tasks:
-    file: networking/V-205160_validate.yml
-    apply:
-      tags: [V-205160, validation]
-  tags: [V-205160, validation]
-
-- name: "V-205161 | Validate DNS audit event type logging"
-  ansible.builtin.include_tasks:
-    file: networking/V-205161_validate.yml
-    apply:
-      tags: [V-205161, validation]
-  tags: [V-205161, validation]
-
-- name: "V-205224 | Validate named service audit logging"
-  ansible.builtin.include_tasks:
-    file: networking/V-205224_validate.yml
-    apply:
-      tags: [V-205224, validation]
-  tags: [V-205224, validation]
 
 - name: "V-205225 | Validate DNSSEC FIPS cryptography"
   ansible.builtin.include_tasks:

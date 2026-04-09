@@ -1,4 +1,29 @@
 ---
+# ── DNS Audit Controls ────────────────────────────────────
+
+- name: "V-205160 | DNS audit record generation"
+  ansible.builtin.include_tasks:
+    file: V-205160.yml
+    apply:
+      tags: [V-205160, enforcement]
+  tags: [V-205160, enforcement]
+
+- name: "V-205161 | DNS audit event type logging"
+  ansible.builtin.include_tasks:
+    file: V-205161.yml
+    apply:
+      tags: [V-205161, enforcement]
+  tags: [V-205161, enforcement]
+
+- name: "V-205224 | Named service start/stop audit records"
+  ansible.builtin.include_tasks:
+    file: V-205224.yml
+    apply:
+      tags: [V-205224, enforcement]
+  tags: [V-205224, enforcement]
+
+# ── Webserver Audit Controls ──────────────────────────────
+
 - name: "V-264341 | Web server audit logging"
   ansible.builtin.include_tasks:
     file: V-264341.yml
