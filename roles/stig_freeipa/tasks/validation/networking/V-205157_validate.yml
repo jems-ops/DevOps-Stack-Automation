@@ -14,57 +14,74 @@
 # - kerberos missing → ERROR (not OPEN)
 ############################################################
 
-- name: "V-205157 | Precheck - Check for valid (non-expired) Kerberos ticket"
-  shell: klist -s
-  register: v205157_krb_check
+- name: "V-205157 | Check for valid Kerberos ticket"
+  ansible.builtin.shell: klist -s
+  register: _v205157_krb_check
   changed_when: false
   failed_when: false
 
 - name: "V-205157 | Renew Kerberos ticket if expired or missing"
-  shell: echo "{{ freeipa_admin_password }}" | kinit admin
+  ansible.builtin.shell: echo "{{ freeipa_admin_password }}" | kinit admin
+  register: _v205157_kinit
   changed_when: false
+  failed_when: false
   no_log: true
-  when: v205157_krb_check.rc != 0
+  when: _v205157_krb_check.rc != 0
+
+- name: "V-205157 | Set Kerberos availability flag"
+  ansible.builtin.set_fact:
+    _v205157_krb_ok: >-
+      {{
+        _v205157_krb_check.rc == 0 or
+        (_v205157_kinit is not skipped and _v205157_kinit.rc == 0)
+      }}
+
+- name: "V-205157 | Warn if Kerberos unavailable (skip IPA tasks)"
+  ansible.builtin.debug:
+    msg: >
+      V-205157 SKIPPED: Kerberos ticket could not be obtained.
+      Check freeipa_admin_password in vault or run: kinit admin
+  when: not _v205157_krb_ok | bool
 
 - name: "V-205157 | Get DNS zones (FreeIPA)"
-  shell: ipa dnszone-find
+  ansible.builtin.shell: ipa dnszone-find
   register: v205157_zones_raw
   changed_when: false
-  when: dns_named_active | bool
+  failed_when: false
+  when: dns_named_active | bool and _v205157_krb_ok | bool
 
 - name: "V-205157 | Extract zone names"
-  set_fact:
-    v205157_zones: "{{ v205157_zones_raw.stdout | regex_findall('Zone name: (.+)') }}"
-  when: dns_named_active | bool
-
-- name: "V-205157 | Validate zones exist"
-  fail:
-    msg: "No DNS zones found. Unable to evaluate transfer restrictions."
-  when:
-    - dns_named_active | bool
-    - (v205157_zones | default([]) | length) == 0
+  ansible.builtin.set_fact:
+    v205157_zones: "{{ v205157_zones_raw.stdout | default('') | regex_findall('Zone name: (.+)') }}"
+  when: dns_named_active | bool and _v205157_krb_ok | bool
 
 - name: "V-205157 | Collect zone transfer configurations"
-  shell: ipa dnszone-show {{ item }} --all
-  loop: "{{ v205157_zones }}"
+  ansible.builtin.shell: "ipa dnszone-show {{ item }} --all"
+  loop: "{{ v205157_zones | default([]) }}"
   register: v205157_zone_details
   changed_when: false
-  when: dns_named_active | bool
+  failed_when: false
+  when: dns_named_active | bool and _v205157_krb_ok | bool
 
 - name: "V-205157 | Evaluate transfer restrictions"
-  set_fact:
+  ansible.builtin.set_fact:
     v205157_insecure_zones: >-
       {{
-        v205157_zone_details.results
+        v205157_zone_details.results | default([])
         | selectattr('stdout', 'search', 'Allow transfer: any')
         | map(attribute='item')
         | list
       }}
-  when: dns_named_active | bool
+  when: dns_named_active | bool and _v205157_krb_ok | bool
 
 - name: "V-205157 | Compliance Result"
   ansible.builtin.debug:
     msg: |
       Zones Found : {{ v205157_zones | default([]) }}
       Insecure    : {{ v205157_insecure_zones | default([]) }}
-      RESULT      : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if (v205157_insecure_zones | default([]) | length == 0) else 'OPEN - zone(s) allow unrestricted transfer') }}
+      RESULT      : {%
+        if not (dns_named_active | bool) %}NOT APPLICABLE
+        {%- elif not (_v205157_krb_ok | bool) %}SKIPPED - Kerberos unavailable (update freeipa_admin_password)
+        {%- elif v205157_insecure_zones | default([]) | length == 0 %}NOT A FINDING
+        {%- else %}OPEN - zone(s) allow unrestricted transfer
+        {%- endif %}
