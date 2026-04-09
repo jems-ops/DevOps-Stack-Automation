@@ -3,42 +3,46 @@
 # Common DNS Facts — shared by all networking STIG controls
 # Runs once; sets facts used across enforcement + validation.
 #
+# Service detection order:
+#   1. named-pkcs11  (FreeIPA HSM-backed DNS, preferred)
+#   2. named         (standard BIND, fallback)
+#
 # Facts set:
-#   dns_named_active    - bool, named-pkcs11 service is running
-#   dns_named_journal   - journald output for named-pkcs11
-#   dns_domain          - system DNS domain
-#   dns_ns_records      - NS records for the domain
-#   dns_named_conf      - /etc/named.conf content
-#   dns_listen_on       - listen-on directives
-#   dns_allow_query     - allow-query directives
-#   dns_dnssec_config   - whether DNSSEC is configured
-#   dns_dnssec_keys     - DNSSEC key files found
-#   dns_zone_files      - zone files under /var/named
+#   dns_service_name - detected service (named-pkcs11 or named)
+#   dns_named_active - bool, whether the DNS service is running
+#   dns_named_journal - journald output for the DNS service
+#   dns_domain       - system DNS domain
+#   dns_ns_records   - NS records for the domain
+#   dns_named_conf   - /etc/named.conf content
+#   dns_listen_on    - listen-on directives
+#   dns_allow_query  - allow-query directives
+#   dns_dnssec_config - whether DNSSEC is configured
+#   dns_dnssec_keys  - DNSSEC key files found
+#   dns_zone_files   - zone files under /var/named
 ############################################################
 
-- name: "DNS Facts | Detect active named service (named or named-pkcs11)"
-  ansible.builtin.shell: >
-    systemctl list-units --type=service --state=running
-    | grep -oE 'named[a-z0-9-]*\.service'
-    | head -1
-    | sed 's/\.service//'
-  register: _dns_service_detect
+# ── Service Detection ──────────────────────────────────────────────
+
+- name: "DNS Facts | Check named-pkcs11 (preferred)"
+  ansible.builtin.command: systemctl is-active named-pkcs11
+  register: _dns_pkcs11_status
   changed_when: false
   failed_when: false
 
-- name: "DNS Facts | Set dns_service_name"
-  ansible.builtin.set_fact:
-    dns_service_name: "{{ _dns_service_detect.stdout | trim if _dns_service_detect.stdout | trim != '' else 'named-pkcs11' }}"
-
-- name: "DNS Facts | Check if {{ dns_service_name }} is active"
-  ansible.builtin.command: "systemctl is-active {{ dns_service_name }}"
+- name: "DNS Facts | Check named (fallback)"
+  ansible.builtin.command: systemctl is-active named
   register: _dns_named_status
   changed_when: false
   failed_when: false
 
-- name: "DNS Facts | Set dns_named_active"
+- name: "DNS Facts | Set dns_service_name and dns_named_active"
   ansible.builtin.set_fact:
-    dns_named_active: "{{ _dns_named_status.rc == 0 }}"
+    dns_service_name: "{{ 'named-pkcs11' if _dns_pkcs11_status.rc == 0 else 'named' }}"
+    dns_named_active: "{{ _dns_pkcs11_status.rc == 0 or _dns_named_status.rc == 0 }}"
+
+- name: "DNS Facts | Report detected DNS service"
+  ansible.builtin.debug:
+    msg: "DNS service detected: {{ dns_service_name }} (active: {{ dns_named_active }})"
 
 - name: "DNS Facts | Collect {{ dns_service_name }} journal logs"
   ansible.builtin.command: "journalctl -u {{ dns_service_name }} --no-pager -n 50"
