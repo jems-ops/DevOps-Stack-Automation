@@ -126,33 +126,37 @@
 - name: "Health Check | Summary"
   ansible.builtin.debug:
     msg: |
-      ============================================
-      🏥 FreeIPA Post-STIG Health Check Report
-      ============================================
 
-      🔧 Services:
-      • httpd:          {{ hc_httpd.status.ActiveState }}
-      • pki-tomcatd:    {{ hc_tomcat.status.ActiveState }}
-      • {{ dns_service_name | default('named') }} (DNS): {{ hc_named.status.ActiveState }}
-      • krb5kdc:        {{ hc_kerberos.status.ActiveState }}
-      • auditd:         {{ hc_auditd.stdout }}
-      • ipactl:         {{ 'OK' if hc_ipa_status.rc == 0 else 'FAILED' }}
+      ╔══════════════════════════════════════════════╗
+      ║     FreeIPA Post-STIG Health Check Report    ║
+      ╚══════════════════════════════════════════════╝
 
-      🌐 Ports:
-      • HTTPS (443):    ✅
-      • LDAP (389):     ✅
-      • LDAPS (636):    ✅
-      • Kerberos (88):  ✅
-      • DNS (53):       ✅
-      • CA (8443):      ✅
+      ── Services ──────────────────────────────────
+        httpd              : {{ '✅ active' if hc_httpd.status.ActiveState == 'active' else '❌ ' + hc_httpd.status.ActiveState }}
+        pki-tomcatd        : {{ '✅ active' if hc_tomcat.status.ActiveState == 'active' else '❌ ' + hc_tomcat.status.ActiveState }}
+        {{ dns_service_name | default('named') }} (DNS)    : {{ '✅ active' if hc_named.status.ActiveState == 'active' else '❌ ' + hc_named.status.ActiveState }}
+        krb5kdc            : {{ '✅ active' if hc_kerberos.status.ActiveState == 'active' else '❌ ' + hc_kerberos.status.ActiveState }}
+        auditd             : {{ '✅ active' if hc_auditd.stdout == 'active' else '❌ ' + hc_auditd.stdout }}
+        ipactl             : {{ '✅ OK' if hc_ipa_status.rc == 0 else '❌ FAILED' }}
 
-      🖥️  Web Endpoints:
-      • FreeIPA UI:     {{ hc_webui.status }}
-      • Dogtag CA:      {{ hc_ca.status }}
+      ── Ports ─────────────────────────────────────
+        443  HTTPS          : ✅ open
+        389  LDAP           : ✅ open
+        636  LDAPS          : ✅ open
+        88   Kerberos       : ✅ open
+        53   DNS            : ✅ open
+        8443 Dogtag CA      : ✅ open
 
-      📋 Logs:
-      • All critical log paths verified ✅
+      ── Web Endpoints ─────────────────────────────
+        FreeIPA UI  (/ipa/ui)     : {{ '✅ HTTP ' + (hc_webui.status | string) if hc_webui.status is defined else '❌ unreachable' }}
+        Dogtag CA   (:8443/ca)    : {{ '✅ HTTP ' + (hc_ca.status | string) if hc_ca.status is defined else '❌ unreachable' }}
 
-      ============================================
-      ✅ All health checks PASSED
-      ============================================
+      ── Log Paths ─────────────────────────────────
+        /var/log/httpd/access_log  : ✅ exists
+        /var/log/httpd/error_log   : ✅ exists
+        /var/log/pki/pki-tomcat    : ✅ exists
+        /var/log/dirsrv            : ✅ exists
+
+      ══════════════════════════════════════════════
+        ✅  ALL HEALTH CHECKS PASSED
+      ══════════════════════════════════════════════
