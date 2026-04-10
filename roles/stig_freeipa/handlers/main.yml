@@ -23,7 +23,7 @@
 - name: reload systemd
   become: true
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: reload audit rules
   become: true

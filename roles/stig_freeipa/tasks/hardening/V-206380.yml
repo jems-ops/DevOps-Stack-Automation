@@ -62,7 +62,7 @@
   ansible.builtin.find:
     paths: /etc/httpd
     patterns: "*.conf"
-    recurse: yes
+    recurse: true
   register: v206380_conf_files
 
 # ---------------------------------------------------------
@@ -93,7 +93,7 @@
 # ExecCGI for the web UI and API to function.
 # ---------------------------------------------------------
 - name: "V-206380 | Remove ExecCGI from Options (excluding ipa.conf)"
-  replace:
+  ansible.builtin.replace:
     path: "{{ item.path }}"
     regexp: '(^\s*Options\s+.*)\bExecCGI\b'
     replace: '\1'

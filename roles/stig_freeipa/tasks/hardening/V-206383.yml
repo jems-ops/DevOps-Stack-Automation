@@ -52,7 +52,7 @@
   register: v206383_dav_conf
 
 - name: "V-206383 | Disable DAV LoadModule directives"
-  replace:
+  ansible.builtin.replace:
     path: /etc/httpd/conf.modules.d/00-dav.conf
     regexp: '^\s*LoadModule\s+.*dav.*'
     replace: '# \g<0>  # Disabled by STIG V-206383'
@@ -67,14 +67,14 @@
   ansible.builtin.find:
     paths: /etc/httpd
     patterns: "*.conf"
-    recurse: yes
+    recurse: true
   register: v206383_conf_files
 
 ########################################
 # Disable DAV On directives
 ########################################
 - name: "V-206383 | Disable DAV On directives"
-  replace:
+  ansible.builtin.replace:
     path: "{{ item.path }}"
     regexp: '^\s*DAV\s+On.*'
     replace: '# DAV On  # Disabled by STIG V-206383'

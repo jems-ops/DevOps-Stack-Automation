@@ -91,7 +91,7 @@
 - name: "Health Check | Verify FreeIPA Web UI is reachable"
   ansible.builtin.uri:
     url: "https://{{ ansible_host }}/ipa/ui/"
-    validate_certs: no
+    validate_certs: false
     status_code: [200, 301, 302, 303]
     timeout: 30
   register: hc_webui
@@ -99,7 +99,7 @@
 - name: "Health Check | Verify Dogtag CA API is reachable"
   ansible.builtin.uri:
     url: "https://{{ ansible_host }}:8443/ca/ee/ca"
-    validate_certs: no
+    validate_certs: false
     status_code: [200, 301, 302, 303]
     timeout: 30
   register: hc_ca

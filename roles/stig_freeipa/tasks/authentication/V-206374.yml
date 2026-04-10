@@ -62,14 +62,14 @@
   ansible.builtin.find:
     paths: /etc/httpd
     patterns: "*.conf"
-    recurse: yes
+    recurse: true
   register: v206374_conf_files
 
 # ---------------------------------------------------------
 # Disable AuthUserFile (SAFE - comment instead of delete)
 # ---------------------------------------------------------
 - name: "V-206374 | Disable AuthUserFile"
-  replace:
+  ansible.builtin.replace:
     path: "{{ item.path }}"
     regexp: '^\s*AuthUserFile\s+.*'
     replace: '# \g<0>  # Disabled by STIG V-206374'
@@ -81,7 +81,7 @@
 # Disable AuthType (exclude ipa.conf)
 # ---------------------------------------------------------
 - name: "V-206374 | Disable AuthType (excluding ipa.conf)"
-  replace:
+  ansible.builtin.replace:
     path: "{{ item.path }}"
     regexp: '^\s*AuthType\s+(?!GSSAPI).*'
     replace: '# \g<0>  # Disabled by STIG V-206374'
@@ -93,7 +93,7 @@
 # Disable Require valid-user (exclude ipa.conf)
 # ---------------------------------------------------------
 - name: "V-206374 | Disable Require valid-user (excluding ipa.conf)"
-  replace:
+  ansible.builtin.replace:
     path: "{{ item.path }}"
     regexp: '^\s*Require\s+valid-user.*'
     replace: '# \g<0>  # Disabled by STIG V-206374'

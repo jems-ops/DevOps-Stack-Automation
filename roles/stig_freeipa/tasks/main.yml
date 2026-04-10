@@ -88,9 +88,18 @@
     file: networking/main.yml
     apply:
       tags: [enforcement]
-  tags: [enforcement,
-    V-205157, V-205158, V-205225, V-205227, V-205228,
-    V-205230, V-205231, V-205233, V-205235, V-205236]
+  tags:
+    - enforcement
+    - V-205157
+    - V-205158
+    - V-205225
+    - V-205227
+    - V-205228
+    - V-205230
+    - V-205231
+    - V-205233
+    - V-205235
+    - V-205236
 
 ############################################################
 # Ensure handlers run before validation
