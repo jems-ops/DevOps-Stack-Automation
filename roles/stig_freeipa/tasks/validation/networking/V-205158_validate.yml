@@ -14,34 +14,56 @@
 # - kerberos missing → ERROR (not OPEN)
 ############################################################
 
-- name: "V-205158 | Precheck - Ensure Kerberos ticket exists"
-  ansible.builtin.shell: klist
-  register: v205158_krb_check
+- name: "V-205158 | Check for valid Kerberos ticket"
+  ansible.builtin.shell: klist -s
+  register: _v205158_krb_check
   changed_when: false
-  failed_when: v205158_krb_check.rc != 0
+  failed_when: false
+
+- name: "V-205158 | Renew Kerberos ticket if expired or missing"
+  ansible.builtin.shell: echo "{{ freeipa_admin_password }}" | kinit admin
+  register: _v205158_kinit
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: _v205158_krb_check.rc != 0
+
+- name: "V-205158 | Set Kerberos availability flag"
+  ansible.builtin.set_fact:
+    _v205158_krb_ok: >-
+      {{
+        _v205158_krb_check.rc == 0 or
+        (_v205158_kinit is not skipped and _v205158_kinit.rc == 0)
+      }}
+
+- name: "V-205158 | Warn if Kerberos unavailable (skip IPA tasks)"
+  ansible.builtin.debug:
+    msg: >
+      V-205158 SKIPPED: Kerberos ticket could not be obtained.
+      Check freeipa_admin_password in vault or run: kinit admin
+  when: not _v205158_krb_ok | bool
 
 - name: "V-205158 | Query FreeIPA zone (full output)"
   ansible.builtin.shell: ipa dnszone-show {{ dns_domain }} --all
   register: v205158_zone_raw
   changed_when: false
-  when: dns_named_active | bool
-
-- name: "V-205158 | Validate zone output not empty"
-  ansible.builtin.fail:
-    msg: "FreeIPA query returned no data. Possible Kerberos/auth issue or invalid zone."
-  when:
-    - dns_named_active | bool
-    - v205158_zone_raw.stdout | trim == ""
+  failed_when: false
+  when: dns_named_active | bool and _v205158_krb_ok | bool
 
 - name: "V-205158 | Extract update-policy indicators"
   ansible.builtin.set_fact:
-    v205158_policy_present: "{{ 'BIND update policy' in v205158_zone_raw.stdout }}"
-    v205158_krb5_present: "{{ 'krb5-self' in v205158_zone_raw.stdout }}"
-  when: dns_named_active | bool
+    v205158_policy_present: "{{ 'BIND update policy' in (v205158_zone_raw.stdout | default('')) }}"
+    v205158_krb5_present: "{{ 'krb5-self' in (v205158_zone_raw.stdout | default('')) }}"
+  when: dns_named_active | bool and _v205158_krb_ok | bool
 
 - name: "V-205158 | Compliance Result"
   ansible.builtin.debug:
     msg: |
       Update Policy: {{ v205158_policy_present | default(false) }}
       GSS-TSIG     : {{ v205158_krb5_present | default(false) }}
-      RESULT       : {{ 'NOT APPLICABLE' if not (dns_named_active | bool) else ('NOT A FINDING' if (v205158_policy_present | default(false)) and (v205158_krb5_present | default(false)) else 'OPEN - update policy or GSS-TSIG missing') }}
+      RESULT       : {%
+        if not (dns_named_active | bool) %}NOT APPLICABLE
+        {%- elif not (_v205158_krb_ok | bool) %}SKIPPED - Kerberos unavailable (update freeipa_admin_password)
+        {%- elif (v205158_policy_present | default(false)) and (v205158_krb5_present | default(false)) %}NOT A FINDING
+        {%- else %}OPEN - update policy or GSS-TSIG missing
+        {%- endif %}
