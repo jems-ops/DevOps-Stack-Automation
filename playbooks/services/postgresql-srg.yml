@@ -1,6 +1,6 @@
 ---
 - name: Apply PostgreSQL SRG role
-  hosts: "{{ target_hosts | default('sonarqube') }}"
+  hosts: "{{ target_hosts | default('postgresql') }}"
   gather_facts: true
   become: true
 

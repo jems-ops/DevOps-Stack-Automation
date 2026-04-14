@@ -17,6 +17,10 @@ freeipa.local ansible_host=192.168.201.13
 [keycloak]
 keycloak.local ansible_host=192.168.56.12
 
+[postgresql]
+sonar.local
+keycloak.local
+
 # Group variables for all hosts
 [all:vars]
 ansible_become=yes
