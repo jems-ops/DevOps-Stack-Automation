@@ -112,7 +112,36 @@
 ############################################################
 - name: "Run validation tasks"
   include_tasks: validation/main.yml
-  tags: [validation]
+  tags:
+    - validation
+    # Auditing
+    - V-264341
+    - V-222998
+    - V-222999
+    - V-223000
+    - V-205160
+    - V-205161
+    - V-205224
+    # Authentication
+    - V-206374
+    # Hardening
+    - V-206412
+    - V-206437
+    - V-206380
+    - V-206383
+    # Availability
+    - V-206433
+    # Networking
+    - V-205157
+    - V-205158
+    - V-205225
+    - V-205227
+    - V-205228
+    - V-205230
+    - V-205231
+    - V-205233
+    - V-205235
+    - V-205236
 
 ############################################################
 # Post-STIG Health Check
