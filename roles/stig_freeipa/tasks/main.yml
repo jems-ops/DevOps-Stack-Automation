@@ -24,21 +24,54 @@
     file: common/webserver/resolve-tomcat-paths.yml
     apply:
       tags: [always]
-  tags: [enforcement, validation]
+  tags:
+    - enforcement
+    - validation
+    - V-264341
+    - V-222998
+    - V-222999
+    - V-223000
+    - V-206374
+    - V-206412
+    - V-206437
+    - V-206380
+    - V-206383
+    - V-206433
 
 - name: "Gather common DNS facts"
   ansible.builtin.include_tasks:
     file: common/dns/common-dns-facts.yml
     apply:
       tags: [always]
-  tags: [enforcement, validation]
+  tags:
+    - enforcement
+    - validation
+    - V-205157
+    - V-205158
+    - V-205160
+    - V-205161
+    - V-205224
+    - V-205225
+    - V-205227
+    - V-205228
+    - V-205230
+    - V-205231
+    - V-205233
+    - V-205235
+    - V-205236
 
 - name: "Named Service Audit Rules"
   ansible.builtin.include_tasks:
     file: common/dns/named-audit-rules.yml
     apply:
-      tags: [named-audit, enforcement, validation]
-  tags: [named-audit, enforcement, validation]
+      tags: [always]
+  tags:
+    - named-audit
+    - enforcement
+    - validation
+    - V-205160
+    - V-205161
+    - V-205224
 
 ############################################################
 # Enforcement — Auditing
@@ -147,5 +180,8 @@
 # Post-STIG Health Check
 ############################################################
 - name: "Run post-STIG health check"
-  include_tasks: post-health-check.yml
+  ansible.builtin.include_tasks:
+    file: post-health-check.yml
+    apply:
+      tags: [always]
   tags: [health-check, enforcement]
