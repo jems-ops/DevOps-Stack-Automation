@@ -21,21 +21,35 @@
   failed_when: false
 
 ########################################
-# Check DAV directives
+# Check DAV directives (single scan)
 ########################################
 - name: "V-206383 | Check DAV directives"
-  ansible.builtin.shell: 'grep -Rsi "^[[:space:]]*DAV[[:space:]]+On" /etc/httpd 2>/dev/null || true'
+  ansible.builtin.shell: |
+    grep -Rsi "^[[:space:]]*DAV[[:space:]]+On" /etc/httpd 2>/dev/null || true
   register: v206383_config
   changed_when: false
+
+########################################
+# Normalize results (avoid repeated logic)
+########################################
+- name: "V-206383 | Set validation facts"
+  ansible.builtin.set_fact:
+    v206383_dav_module_present: "{{ 'dav' in (v206383_modules.stdout | lower) }}"
+    v206383_dav_directive_present: "{{ v206383_config.stdout != '' }}"
 
 ########################################
 # Final result
 ########################################
 - name: "V-206383 | Compliance Result"
   ansible.builtin.debug:
-    msg: >-
-      {% if (v206383_modules.stdout | lower is not search('dav'))
-         and v206383_config.stdout == '' %}
+    msg: |
+      ===== V-206383 Validation =====
+
+      DAV Module Present: {{ v206383_dav_module_present }}
+      DAV Directive Present: {{ v206383_dav_directive_present }}
+
+      RESULT:
+      {% if not v206383_dav_module_present and not v206383_dav_directive_present %}
       NOT A FINDING
       {% else %}
       FINDING

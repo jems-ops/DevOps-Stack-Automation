@@ -61,7 +61,7 @@
   notify: restart httpd
 
 ########################################
-# Discover httpd config files dynamically
+# Discover httpd config files ONCE
 ########################################
 - name: "V-206383 | Find httpd configuration files"
   ansible.builtin.find:
@@ -71,7 +71,7 @@
   register: v206383_conf_files
 
 ########################################
-# Disable DAV On directives
+# Disable DAV On directives (reuse list)
 ########################################
 - name: "V-206383 | Disable DAV On directives"
   ansible.builtin.replace:
