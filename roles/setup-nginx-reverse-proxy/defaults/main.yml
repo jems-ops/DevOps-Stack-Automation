@@ -41,8 +41,8 @@ jenkins_war_root: /var/run/jenkins/war
 
 # Default site_backends (will be overridden by group_vars/all.yml)
 site_backends:
-  - server_name: "jenkins.example.com"
-    ip: "192.168.201.14"
+  - server_name: "jenkins.local"
+    ip: "192.168.56.13"
     port: "8080"
     # Optional per-backend rewrite rule:
     # rewrite_rule: "^/jenkins/(.*) /$1 break"
@@ -52,7 +52,7 @@ site_backends:
     # Optional per-backend rewrite rule:
     # rewrite_rule: "^/sonar/(.*) /$1 break"
   - server_name: "keycloak.example.com"
-    ip: "192.168.201.12"
+    ip: "192.168.56.12"
     port: "8080"
     # Optional per-backend rewrite rule:
     # rewrite_rule: "^/keycloak/(.*) /$1 break"
@@ -60,8 +60,8 @@ site_backends:
 setup_nginx_reverse_proxy_sites:
   - name: jenkins
     server_name:
-      - jenkins.local.com
-    backend_host: "192.168.201.14"
+      - jenkins.local
+    backend_host: "192.168.56.13"
     backend_port: "8080"
 
   - name: sonar
@@ -79,5 +79,5 @@ setup_nginx_reverse_proxy_sites:
   - name: keycloak
     server_name:
       - keycloak.local.com
-    backend_host: "192.168.201.12"
+    backend_host: "192.168.56.12"
     backend_port: "8080"

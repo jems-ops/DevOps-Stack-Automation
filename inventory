@@ -3,10 +3,10 @@
 # Hostnames represent DNS names (after reverse proxy where applicable)
 
 [jenkins]
-jenkins.local ansible_host=192.168.201.14
+jenkins.local ansible_host=192.168.56.13
 
 [nginx]
-nginx-proxy ansible_host=192.168.201.15
+nginx-proxy ansible_host=192.168.56.15
 
 [sonarqube]
 sonar.local ansible_host=192.168.201.16
@@ -15,7 +15,7 @@ sonar.local ansible_host=192.168.201.16
 freeipa.local ansible_host=192.168.56.14
 
 [keycloak]
-keycloak.local ansible_host=192.168.201.12
+keycloak.local ansible_host=192.168.56.12
 
 # Group variables for all hosts
 [all:vars]
