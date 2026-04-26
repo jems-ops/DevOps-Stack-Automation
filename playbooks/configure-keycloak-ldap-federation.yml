@@ -42,6 +42,11 @@
   tags:
     - ldap
     - federation
+  vars:
+    # Federation runs on the Keycloak host itself; hit the local backend on
+    # http://localhost:8080 directly so we don't depend on the public HTTPS
+    # reverse proxy being up. This mirrors the reference's keycloak_kcadm_url.
+    keycloak_admin_api_url: "http://localhost:8080"
   pre_tasks:
     # The federation submodule expects the same Keycloak admin URL / realm
     # vars the rest of the role uses. We only need the realm to be 'master'

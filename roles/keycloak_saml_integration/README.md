@@ -34,16 +34,11 @@ keycloak_saml_integration_app_config:
   service_name: "myapp"
   saml_callback_url: "/saml/callback"
 
-keycloak_saml_integration_app_groups:
-  admins:
-    name: "myapp-admins"
-  users:
-    name: "myapp-users"
-
-keycloak_saml_integration_test_user:
-  username: "myapp-demo"
-  password: "demo123!"
-  groups: ["myapp-users", "myapp-admins"]
+# Authorization is driven by the SAML `groups` attribute populated from
+# FreeIPA via the LDAP group-ldap-mapper. Create your app's admin group
+# in FreeIPA (e.g. `myapp-administrators`) and rely on it appearing in
+# the SAML assertion; do not declare Keycloak-side groups or test users
+# in this role.
 ```
 
 ### 2. Create `tasks/configure_myapp_saml.yml`
@@ -90,10 +85,13 @@ ansible-playbook playbooks/configure-keycloak-saml-integration.yml -e "app=artif
 
 1. ✅ Creates Keycloak realm and SAML client
 2. ✅ Configures protocol mappers (username, email, groups)
-3. ✅ Creates groups and test users
-4. ✅ Fetches and validates SAML metadata (with curl fallback)
-5. ✅ Applies app-specific SAML configuration
-6. ✅ Restarts application service
+3. ✅ Fetches and validates SAML metadata (with curl fallback)
+4. ✅ Applies app-specific SAML configuration
+5. ✅ Restarts application service
+
+User identities and group membership are sourced from FreeIPA via the
+`ldap_federation` submodule of this role; this role does NOT create
+Keycloak-managed users, groups, or client roles.
 
 ## Metadata Validation
 

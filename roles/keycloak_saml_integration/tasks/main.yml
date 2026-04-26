@@ -50,31 +50,12 @@
   when: not ansible_check_mode
   tags: ['keycloak', 'saml', 'client']
 
-# Legacy `devops/<app>-users` Keycloak group/role model.
-# Retired on the keycloak-freeipa-template branch in favor of FreeIPA-side
-# groups (e.g. jenkins-administrators, sonar-administrators) synced via the
-# LDAP group-ldap-mapper. Default is now skipped; opt back in by passing
-# -e skip_client_roles=false on the command line.
-- name: Configure client roles and hierarchical groups (legacy, off by default)
-  ansible.builtin.include_tasks: configure_client_roles.yml
-  when:
-    - not ansible_check_mode
-    - not (skip_client_roles | default(true) | bool)
-  tags: ['keycloak', 'client_roles', 'groups', 'legacy']
-
 - name: Configure SAML protocol mappers
   ansible.builtin.include_tasks: configure_protocol_mappers.yml
   when:
     - not ansible_check_mode
     - not (skip_protocol_mappers | default(false) | bool)
   tags: ['keycloak', 'saml', 'mappers']
-
-- name: Create test user (optional)
-  ansible.builtin.include_tasks: create_test_user.yml
-  when:
-    - not ansible_check_mode
-    - keycloak_saml_integration_test_user.enabled | default(false) | bool
-  tags: ['keycloak', 'test_user']
 
 - name: Get Keycloak certificate
   ansible.builtin.include_tasks: get_keycloak_certificate.yml
@@ -93,18 +74,5 @@
       - ""
       - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
       - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Group: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
-      - "👤 Test User: {{ keycloak_saml_integration_test_user.username }} / {{ keycloak_saml_integration_test_user.password }}"
+      - "👥 Authorization: groups synced from FreeIPA via the LDAP group-ldap-mapper"
   tags: ['summary']
-  when: keycloak_saml_integration_test_user.enabled | default(false) | bool
-
-- name: Display completion summary (no test user)
-  ansible.builtin.debug:
-    msg:
-      - "✅ {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML integration completed!"
-      - ""
-      - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
-      - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Group: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}"
-  tags: ['summary']
-  when: not (keycloak_saml_integration_test_user.enabled | default(false) | bool)

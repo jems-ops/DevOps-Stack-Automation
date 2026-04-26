@@ -23,7 +23,7 @@ keycloak_saml_integration_keycloak:
   port: 443
   protocol: "https"
   realm: "{{ keycloak_saml_integration_realm_name }}"
-  admin_user: "{{ vault_keycloak_admin_user }}"
+  admin_user: "{{ vault_keycloak_admin_user | default('admin') }}"
   admin_password: "{{ vault_keycloak_admin_password }}"
   base_url: "{{ keycloak_base_url }}"
   admin_api_url: "{{ keycloak_admin_api_url | default(keycloak_base_url) }}"
@@ -105,16 +105,6 @@ keycloak_saml_integration_protocol_mappers:
       "single": "false"
       "full.path": "false"
 
-# Test User Configuration - Per Confluence Guide Section 9
-keycloak_saml_integration_test_user:
-  enabled: true
-  username: "demo.user"  # Keycloak login username
-  email: "demo@dns.com"  # Used as SAML NameID and username attribute
-  first_name: "demo"
-  last_name: "user"
-  password: "demo123!"
-  email_verified: true
-
 # SAML Configuration for Applications
 keycloak_saml_integration_app_saml:
   enabled: true
@@ -132,26 +122,9 @@ keycloak_saml_integration_use_https: true
 # Logging
 keycloak_saml_integration_debug_logging: false
 
-# ──────────────────────────────────────────────────────────────────────────
-# Legacy hierarchical groups + client roles configuration.
-# Retired on the keycloak-freeipa-template branch in favor of FreeIPA-side
-# groups (e.g. jenkins-administrators, sonar-administrators) created by
-# roles/freeipa_keycloak_prep and synced into Keycloak via the LDAP
-# group-ldap-mapper. The values below are kept ONLY so the unused
-# configure_client_roles.yml task tree still renders if anyone explicitly
-# opts back in with -e skip_client_roles=false.
-# ──────────────────────────────────────────────────────────────────────────
-# Parent group name (all subgroups will be created under this)
-keycloak_saml_integration_parent_group: "devops"
-
-# Client roles to create for each application
-keycloak_saml_integration_client_roles:
-  - name: "user"
-    description: "User role for {{ keycloak_saml_integration_app_type }}"
-
-# Subgroup definitions disabled; create flat group name only
-keycloak_saml_integration_subgroups:
-  users:
-    name: "{{ keycloak_saml_integration_app_type }}-users"
-    description: "{{ keycloak_saml_integration_app_type | capitalize }} Users"
-    client_role: "user"  # Maps to which client role
+# Authorization model: SAML `groups` attribute (wired in
+# configure_protocol_mappers.yml) carries IPA group names. Apps map their
+# matching admin group (e.g. jenkins-administrators, sonar-administrators)
+# created by roles/freeipa_keycloak_prep and synced into Keycloak via the
+# LDAP group-ldap-mapper. No Keycloak-side parent groups, subgroups, client
+# roles, or test users are managed by this role.

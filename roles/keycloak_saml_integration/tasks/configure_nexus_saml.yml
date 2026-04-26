@@ -10,7 +10,6 @@
       📋 Keycloak Configuration: COMPLETE ✓
       • SAML Client Created: {{ keycloak_saml_integration_client.client_id }}
       • Client ID (UUID): {{ keycloak_saml_integration_saml_client_id }}
-      • Hierarchical Groups Created
       • Protocol Mappers Configured
 
       🔧 Manual Steps Required in Nexus UI:
@@ -37,15 +36,11 @@
 
       9. Map Groups to Roles:
          • Navigate to: Administration → Security → Roles
-         • Create external role mappings:
-           - /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }} → nx-admin
-           - /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }} → nx-developer
+         • Create external role mappings backed by IPA groups synced via the
+           LDAP group-ldap-mapper, e.g.:
+           - nexus-administrators → nx-admin
+           - nexus-users          → nx-developer
 
       🔗 Useful Resources:
       • Nexus SAML Documentation: https://help.sonatype.com/repomanager3/nexus-repository-administration/access-control/saml
       • Keycloak SAML Descriptor: {{ keycloak_saml_integration_keycloak.admin_api_url }}/realms/{{ keycloak_saml_integration_keycloak.realm }}/protocol/saml/descriptor
-
-      👤 Test User Credentials:
-      • Username: {{ keycloak_saml_integration_test_user.username }}
-      • Password: {{ keycloak_saml_integration_test_user.password }}
-      • Groups: /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.admins.name }}, /{{ keycloak_saml_integration_parent_group }}/{{ keycloak_saml_integration_subgroups.users.name }}

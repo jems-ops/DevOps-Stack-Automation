@@ -18,7 +18,9 @@ sonar.auth.saml.user.email={{ keycloak_saml_integration_sonarqube_saml_active.us
 
 # User Provisioning
 sonar.auth.saml.user.signUpEnabled={{ keycloak_saml_integration_sonarqube_saml_active.sign_up_enabled | lower }}
-sonar.auth.saml.user.defaultGroup={{ keycloak_saml_integration_subgroups.users.name }}
+# defaultGroup intentionally left empty: group membership is driven by the
+# SAML `groups` attribute populated from FreeIPA via the LDAP group-ldap-mapper.
+sonar.auth.saml.user.defaultGroup=
 
 # Group Mapping
 sonar.auth.saml.group.name={{ keycloak_saml_integration_sonarqube_saml_active.group_name_attribute }}
