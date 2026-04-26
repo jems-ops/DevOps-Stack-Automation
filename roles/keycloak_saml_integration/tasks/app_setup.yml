@@ -1,0 +1,59 @@
+---
+# App-side flow for the per-app SAML configuration. Runs on the application
+# host (or local controller for SecurityCenter). Picks up the SAML client
+# UUID and IdP certificate produced by tasks/keycloak_setup.yml on the
+# Keycloak host via hostvars.
+
+- name: Load app-specific configuration
+  ansible.builtin.include_vars:
+    file: "vars/apps/{{ keycloak_saml_integration_app_type }}.yml"
+  tags: ['always']
+
+- name: Set app-specific variables for role
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_app_config: "{{ {keycloak_saml_integration_app_type: keycloak_saml_integration_app_config} }}"
+  tags: ['always']
+
+- name: Pull SAML client UUID from Keycloak host facts
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_saml_client_id: "{{ hostvars[groups['keycloak'][0]].keycloak_saml_integration_saml_client_id }}"
+  when: hostvars[groups['keycloak'][0]].keycloak_saml_integration_saml_client_id is defined
+
+- name: Pull Keycloak IdP certificate from Keycloak host facts
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_certificate: "{{ hostvars[groups['keycloak'][0]].keycloak_saml_integration_certificate }}"
+  when: hostvars[groups['keycloak'][0]].keycloak_saml_integration_certificate is defined
+
+- name: Pull Keycloak admin access token from Keycloak host facts
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_access_token: "{{ hostvars[groups['keycloak'][0]].keycloak_saml_integration_access_token }}"
+  when: hostvars[groups['keycloak'][0]].keycloak_saml_integration_access_token is defined
+  no_log: true
+
+- name: Pull Keycloak SAML descriptor (IdP metadata) from Keycloak host facts
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_saml_descriptor: "{{ hostvars[groups['keycloak'][0]].keycloak_saml_integration_saml_descriptor }}"
+  when: hostvars[groups['keycloak'][0]].keycloak_saml_integration_saml_descriptor is defined
+
+- name: Display app-side setup information
+  ansible.builtin.debug:
+    msg:
+      - "🔐 {{ keycloak_saml_integration_app_type | capitalize }} - App side"
+      - "🏗️  Application: {{ keycloak_saml_integration_app.base_url }}"
+      - "🔑 SAML Client UUID: {{ keycloak_saml_integration_saml_client_id | default('<not set>') }}"
+  tags: ['info']
+
+- name: Configure application SAML integration
+  ansible.builtin.include_tasks: "apps/configure_{{ keycloak_saml_integration_app_type }}_saml.yml"
+  when: not (skip_app_config | default(false) | bool)
+  tags: ['app', 'saml', 'configure']
+
+- name: Display completion summary
+  ansible.builtin.debug:
+    msg:
+      - "✅ {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML integration completed!"
+      - ""
+      - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
+      - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
+      - "👥 Authorization: groups synced from FreeIPA via the LDAP group-ldap-mapper"
+  tags: ['summary']

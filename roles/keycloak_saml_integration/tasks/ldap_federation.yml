@@ -15,16 +15,16 @@
 #   5. Trigger a full user sync.
 
 - name: Configure FreeIPA CA truststore on Keycloak host
-  ansible.builtin.include_tasks: ldap_truststore.yml
+  ansible.builtin.include_tasks: ldap/ldap_truststore.yml
 
 - name: Get Keycloak admin token (post-restart)
-  ansible.builtin.include_tasks: get_keycloak_token.yml
+  ansible.builtin.include_tasks: keycloak/get_keycloak_token.yml
 
 - name: Create or update FreeIPA LDAP user federation provider
-  ansible.builtin.include_tasks: ldap_provider.yml
+  ansible.builtin.include_tasks: ldap/ldap_provider.yml
 
 - name: Create LDAP attribute and group mappers
-  ansible.builtin.include_tasks: ldap_mappers.yml
+  ansible.builtin.include_tasks: ldap/ldap_mappers.yml
 
 - name: Trigger full user sync from FreeIPA
-  ansible.builtin.include_tasks: ldap_sync.yml
+  ansible.builtin.include_tasks: ldap/ldap_sync.yml

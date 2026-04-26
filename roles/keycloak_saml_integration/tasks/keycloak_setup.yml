@@ -1,5 +1,9 @@
 ---
-# Main tasks for Generic Keycloak SAML Integration
+# Keycloak-side flow for the per-app SAML configuration.
+# Runs on the Keycloak host (against http://localhost:8080) so the admin REST
+# calls don't depend on the app hosts being able to reach the public HTTPS
+# proxy. The app-side counterpart lives in tasks/app_setup.yml and pulls the
+# resulting SAML client UUID + IdP certificate from this host's facts.
 
 - name: Load app-specific configuration
   ansible.builtin.include_vars:
@@ -18,23 +22,18 @@
       - keycloak_saml_integration_app_type in ['jenkins', 'sonarqube', 'artifactory', 'nexus', 'securitycenter', 'wazuh']
       - keycloak_saml_integration_keycloak.realm is defined
       - keycloak_saml_integration_keycloak.admin_api_url is defined
-    fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube, artifactory, nexus, securitycenter"
+    fail_msg: "Required variables are not defined or app_type is invalid. Supported apps: jenkins, sonarqube, artifactory, nexus, securitycenter, wazuh"
     success_msg: "All required variables are defined for {{ keycloak_saml_integration_app_type | upper }} SAML integration"
   tags: ['validate']
 
-- name: Display integration information
+- name: Display Keycloak setup information
   ansible.builtin.debug:
     msg:
-      - "🔐 {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML Integration"
-      - "🏗️  Application: {{ keycloak_saml_integration_app.base_url }}"
+      - "🔐 {{ keycloak_saml_integration_app_type | capitalize }} - Keycloak side"
       - "🔑 Keycloak: {{ keycloak_saml_integration_keycloak.admin_api_url }}"
       - "🏛️  Realm: {{ keycloak_saml_integration_keycloak.realm }}"
       - "👤 SAML Client: {{ keycloak_saml_integration_client.client_id }}"
   tags: ['info']
-
-- name: Run pre-flight checks
-  ansible.builtin.include_tasks: keycloak/preflight_checks.yml
-  tags: ['preflight', 'checks']
 
 - name: Get Keycloak access token
   ansible.builtin.include_tasks: keycloak/get_keycloak_token.yml
@@ -61,18 +60,3 @@
   ansible.builtin.include_tasks: keycloak/get_keycloak_certificate.yml
   when: not ansible_check_mode
   tags: ['keycloak', 'certificate']
-
-- name: Configure application SAML integration
-  ansible.builtin.include_tasks: "apps/configure_{{ keycloak_saml_integration_app_type }}_saml.yml"
-  when: not (skip_app_config | default(false) | bool)
-  tags: ['app', 'saml', 'configure']
-
-- name: Display completion summary
-  ansible.builtin.debug:
-    msg:
-      - "✅ {{ keycloak_saml_integration_app_type | capitalize }}-Keycloak SAML integration completed!"
-      - ""
-      - "🌐 Application URL: {{ keycloak_saml_integration_app.base_url }}"
-      - "🔐 SAML Client ID: {{ keycloak_saml_integration_client.client_id }}"
-      - "👥 Authorization: groups synced from FreeIPA via the LDAP group-ldap-mapper"
-  tags: ['summary']

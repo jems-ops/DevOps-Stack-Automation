@@ -141,10 +141,10 @@ configure-keycloak-ldap-federation: ## End-to-end FreeIPA prep + Keycloak LDAP f
 	@ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml
 	@echo "$(GREEN)✅ FreeIPA → Keycloak LDAP federation deployed!$(RESET)"
 
-deploy-saml-stack: ## Federation first, then loop per-app SAML configs (jenkins, sonarqube, ...)
-	@echo "$(CYAN)🚀 Deploying full SAML stack on top of FreeIPA federation...$(RESET)"
+deploy-saml-stack: ## Federation first, then per-app SAML configs (jenkins, sonarqube)
+	@echo "$(CYAN)🚀 Deploying SAML stack on top of FreeIPA federation...$(RESET)"
 	@$(MAKE) configure-keycloak-ldap-federation
-	@for app in jenkins sonarqube artifactory nexus securitycenter wazuh; do \
+	@for app in jenkins sonarqube; do \
 		echo "$(YELLOW)→ Configuring SAML for $$app...$(RESET)"; \
 		ansible-playbook -i inventory playbooks/configure-keycloak-saml-integration.yml -e "app=$$app" || exit $$?; \
 	done

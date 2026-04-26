@@ -46,9 +46,12 @@
   when:
     - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
 
-- name: Download mod_auth_mellon metadata ZIP from Keycloak
+# Delegate to the Keycloak host so the admin API call uses the local backend
+# (http://localhost:8080) rather than going through the public HTTPS proxy,
+# which app hosts (including Wazuh) generally cannot reach.
+- name: Download mod_auth_mellon metadata ZIP from Keycloak (on Keycloak host)
   ansible.builtin.uri:
-    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/installation/providers/mod-auth-mellon"
+    url: "http://localhost:8080/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/clients/{{ keycloak_saml_integration_saml_client_id }}/installation/providers/mod-auth-mellon"
     method: GET
     headers:
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
@@ -56,10 +59,30 @@
     status_code: 200
     validate_certs: false
   register: wazuh_mellon_download
+  delegate_to: "{{ groups['keycloak'][0] }}"
   when:
     - keycloak_saml_integration_saml_client_id is defined
     - keycloak_saml_integration_access_token is defined
     - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
+
+- name: Slurp Mellon metadata ZIP from Keycloak host
+  ansible.builtin.slurp:
+    src: "{{ wazuh_mellon_zip_path }}"
+  register: wazuh_mellon_zip_slurp
+  delegate_to: "{{ groups['keycloak'][0] }}"
+  when:
+    - wazuh_mellon_download is defined
+    - wazuh_mellon_download is not skipped
+    - (not wazuh_idp_metadata.stat.exists | default(false)) or (not wazuh_sp_metadata.stat.exists | default(false))
+
+- name: Write Mellon metadata ZIP to Wazuh host
+  ansible.builtin.copy:
+    content: "{{ wazuh_mellon_zip_slurp.content | b64decode }}"
+    dest: "{{ wazuh_mellon_zip_path }}"
+    mode: "0644"
+  when:
+    - wazuh_mellon_zip_slurp is defined
+    - wazuh_mellon_zip_slurp.content is defined
 
 - name: Stat Mellon metadata ZIP
   ansible.builtin.stat:

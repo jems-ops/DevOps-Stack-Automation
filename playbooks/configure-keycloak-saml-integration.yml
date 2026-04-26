@@ -1,24 +1,59 @@
 ---
-- name: Configure Keycloak SAML Integration
-  hosts: "{{ 'local' if app == 'securitycenter' else app + '_servers' }}"
-  become: "{{ false if app == 'securitycenter' else true }}"
-  gather_facts: yes
+# Configure Keycloak <-> per-app SAML in two plays:
+#   1. On the Keycloak host (against http://localhost:8080) — token, realm,
+#      client, mappers, IdP cert.
+#   2. On the application host (or controller for securitycenter) — pulls the
+#      SAML client UUID + IdP cert from the Keycloak host's facts and writes
+#      the app-side SAML configuration.
+#
+# Splitting the work this way avoids the "No route to host" failures we hit
+# when app hosts (e.g. jenkins.local) cannot reach https://keycloak.local.
 
+- name: Configure Keycloak side of {{ app | default('jenkins') | upper }} SAML
+  hosts: keycloak
+  become: true
+  gather_facts: true
+  vars:
+    # Hit the local Keycloak backend directly; the public HTTPS proxy may
+    # not be reachable from here either.
+    keycloak_admin_api_url: "http://localhost:8080"
   pre_tasks:
-    - name: Set application type for deployment
+    - name: Set application type for Keycloak setup play
       ansible.builtin.set_fact:
         keycloak_saml_integration_app_type: "{{ app | default('jenkins') }}"
 
-    - name: Display deployment information
+    - name: Display Keycloak setup play info
       ansible.builtin.debug:
         msg:
-          - "🚀 Deploying {{ keycloak_saml_integration_app_type | upper }} SAML Integration"
+          - "🚀 Configuring Keycloak side for {{ keycloak_saml_integration_app_type | upper }}"
+          - "Keycloak admin API: http://localhost:8080 (delegated)"
+          - "Realm: master"
+  tasks:
+    - name: Run Keycloak-side setup of keycloak_saml_integration
+      ansible.builtin.import_role:
+        name: keycloak_saml_integration
+        tasks_from: keycloak_setup
+
+- name: Configure {{ app | default('jenkins') | upper }} application for SAML
+  hosts: "{{ 'local' if app == 'securitycenter' else app + '_servers' }}"
+  become: "{{ false if app == 'securitycenter' else true }}"
+  gather_facts: yes
+  pre_tasks:
+    - name: Set application type for app setup play
+      ansible.builtin.set_fact:
+        keycloak_saml_integration_app_type: "{{ app | default('jenkins') }}"
+
+    - name: Display app-side play info
+      ansible.builtin.debug:
+        msg:
+          - "🚀 Configuring {{ keycloak_saml_integration_app_type | upper }} application side"
           - "Target: {{ inventory_hostname }}"
           - "Application: {{ lookup('vars', keycloak_saml_integration_app_type + '_base_url') }}"
-          - "Keycloak: {{ keycloak_base_url }}"
-
-  roles:
-    - keycloak_saml_integration
+  tasks:
+    - name: Run app-side setup of keycloak_saml_integration
+      ansible.builtin.import_role:
+        name: keycloak_saml_integration
+        tasks_from: app_setup
 
   post_tasks:
     - name: Display next steps
@@ -29,7 +64,7 @@
           - "📋 Next Steps:"
           - "1. Access {{ lookup('vars', keycloak_saml_integration_app_type + '_base_url') }}"
           - "2. Look for 'Log in with SAML' or 'SSO' option"
-          - "3. Test with Keycloak credentials"
+          - "3. Test with a FreeIPA user (synced via the LDAP federation)"
           - ""
           - "🔧 Usage:"
           - "  ansible-playbook -i inventory playbooks/configure-keycloak-saml-integration.yml -e 'app=jenkins'"
