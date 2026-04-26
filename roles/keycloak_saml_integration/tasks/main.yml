@@ -50,12 +50,17 @@
   when: not ansible_check_mode
   tags: ['keycloak', 'saml', 'client']
 
-- name: Configure client roles and hierarchical groups
+# Legacy `devops/<app>-users` Keycloak group/role model.
+# Retired on the keycloak-freeipa-template branch in favor of FreeIPA-side
+# groups (e.g. jenkins-administrators, sonar-administrators) synced via the
+# LDAP group-ldap-mapper. Default is now skipped; opt back in by passing
+# -e skip_client_roles=false on the command line.
+- name: Configure client roles and hierarchical groups (legacy, off by default)
   ansible.builtin.include_tasks: configure_client_roles.yml
   when:
     - not ansible_check_mode
-    - not (skip_client_roles | default(false) | bool)
-  tags: ['keycloak', 'client_roles', 'groups']
+    - not (skip_client_roles | default(true) | bool)
+  tags: ['keycloak', 'client_roles', 'groups', 'legacy']
 
 - name: Configure SAML protocol mappers
   ansible.builtin.include_tasks: configure_protocol_mappers.yml

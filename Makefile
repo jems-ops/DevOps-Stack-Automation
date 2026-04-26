@@ -1,5 +1,6 @@
 # Jenkins Ansible Automation Makefile
-.PHONY: help install-jenkins setup-nginx-proxy install-ssl-cert test-connection deploy-all clean
+.PHONY: help install-jenkins setup-nginx-proxy install-ssl-cert test-connection deploy-all clean \
+        freeipa-prep keycloak-ldap configure-keycloak-ldap-federation deploy-saml-stack
 
 # Colors
 CYAN := \\033[36m
@@ -123,6 +124,31 @@ deploy-all-services: ## Deploy both Jenkins and SonarQube with proxies
 	@echo "  • Jenkins: https://192.168.201.15 (SSL)"
 	@echo "  • SonarQube: http://192.168.201.16:9000 (direct)"
 	@echo "  • Note: Switch nginx proxy between services as needed"
+
+##@ FreeIPA + Keycloak LDAP Federation
+freeipa-prep: ## Run FreeIPA prep play only (bind user, admin groups, CA export)
+	@echo "$(CYAN)🪪  Preparing FreeIPA for Keycloak LDAP federation...$(RESET)"
+	@ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml --tags freeipa_prep
+	@echo "$(GREEN)✅ FreeIPA prep completed!$(RESET)"
+
+keycloak-ldap: ## Configure Keycloak LDAP federation against FreeIPA (Keycloak host only)
+	@echo "$(CYAN)🔗 Configuring Keycloak LDAP federation...$(RESET)"
+	@ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml --tags ldap
+	@echo "$(GREEN)✅ Keycloak LDAP federation configured!$(RESET)"
+
+configure-keycloak-ldap-federation: ## End-to-end FreeIPA prep + Keycloak LDAP federation
+	@echo "$(CYAN)🚀 Running end-to-end FreeIPA → Keycloak LDAP federation...$(RESET)"
+	@ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml
+	@echo "$(GREEN)✅ FreeIPA → Keycloak LDAP federation deployed!$(RESET)"
+
+deploy-saml-stack: ## Federation first, then loop per-app SAML configs (jenkins, sonarqube, ...)
+	@echo "$(CYAN)🚀 Deploying full SAML stack on top of FreeIPA federation...$(RESET)"
+	@$(MAKE) configure-keycloak-ldap-federation
+	@for app in jenkins sonarqube artifactory nexus securitycenter wazuh; do \
+		echo "$(YELLOW)→ Configuring SAML for $$app...$(RESET)"; \
+		ansible-playbook -i inventory playbooks/configure-keycloak-saml-integration.yml -e "app=$$app" || exit $$?; \
+	done
+	@echo "$(GREEN)✅ SAML stack deployment completed!$(RESET)"
 
 ##@ Validation and Testing
 validate-deployment: ## Validate the complete deployment

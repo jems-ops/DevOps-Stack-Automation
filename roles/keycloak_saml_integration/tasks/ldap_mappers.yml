@@ -1,0 +1,107 @@
+---
+# Create six LDAP mappers (username/email/firstName/lastName/full-name/groups)
+# parented to the FreeIPA LDAP UserStorageProvider component.
+#
+# Mappers are created via POST /admin/realms/{realm}/components.
+# Re-runs return 409 when the mapper already exists by name; we accept that
+# status so the play stays idempotent.
+
+- name: List existing LDAP sub-mappers (parented to provider)
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/components?parent={{ keycloak_saml_integration_ldap_provider_id }}&type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_saml_integration_ldap_mapper_existing
+
+- name: Build attribute LDAP mapper specs
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_ldap_attribute_mappers:
+      - name: username
+        ldap_attr: uid
+        user_model_attr: username
+      - name: email
+        ldap_attr: mail
+        user_model_attr: email
+      - name: firstName
+        ldap_attr: givenName
+        user_model_attr: firstName
+      - name: lastName
+        ldap_attr: sn
+        user_model_attr: lastName
+
+- name: Create user-attribute LDAP mappers (username/email/firstName/lastName)
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/components"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      providerId: "user-attribute-ldap-mapper"
+      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+      parentId: "{{ keycloak_saml_integration_ldap_provider_id }}"
+      config:
+        "ldap.attribute":              ["{{ item.ldap_attr }}"]
+        "user.model.attribute":        ["{{ item.user_model_attr }}"]
+        "read.only":                   ["true"]
+        "always.read.value.from.ldap": ["true"]
+        "is.mandatory.in.ldap":        ["false"]
+    status_code: [201, 409]
+    validate_certs: false
+  loop: "{{ keycloak_saml_integration_ldap_attribute_mappers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: "item.name not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
+
+- name: Create full-name LDAP mapper
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/components"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "full-name"
+      providerId: "full-name-ldap-mapper"
+      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+      parentId: "{{ keycloak_saml_integration_ldap_provider_id }}"
+      config:
+        "ldap.full.name.attribute": ["cn"]
+        "read.only":                ["true"]
+        "write.only":               ["false"]
+    status_code: [201, 409]
+    validate_certs: false
+  when: "'full-name' not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
+
+- name: Create group LDAP mapper
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/components"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "freeipa-groups"
+      providerId: "group-ldap-mapper"
+      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+      parentId: "{{ keycloak_saml_integration_ldap_provider_id }}"
+      config:
+        "groups.dn":                            ["{{ freeipa_groups_dn }}"]
+        "group.name.ldap.attribute":            ["cn"]
+        "group.object.classes":                 ["groupOfNames"]
+        "preserve.group.inheritance":           ["true"]
+        "membership.ldap.attribute":            ["member"]
+        "membership.attribute.type":            ["DN"]
+        "mode":                                 ["LDAP_ONLY"]
+        "user.roles.retrieve.strategy":         ["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"]
+        "drop.non.existing.groups.during.sync": ["false"]
+    status_code: [201, 409]
+    validate_certs: false
+  when: "'freeipa-groups' not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"

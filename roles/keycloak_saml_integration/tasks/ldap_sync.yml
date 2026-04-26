@@ -1,0 +1,18 @@
+---
+# Trigger a full user sync from FreeIPA. Status code is non-fatal — Keycloak
+# returns 200 with a small JSON summary; on transient/no-op runs it can
+# return 204. We accept both.
+
+- name: Trigger full user sync from FreeIPA LDAP
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/user-storage/{{ keycloak_saml_integration_ldap_provider_id }}/sync?action=triggerFullSync"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: [200, 204]
+    validate_certs: false
+  register: keycloak_saml_integration_ldap_full_sync
+
+- name: Show sync result
+  ansible.builtin.debug:
+    msg: "FreeIPA full sync result: {{ keycloak_saml_integration_ldap_full_sync.json | default(keycloak_saml_integration_ldap_full_sync.status) }}"

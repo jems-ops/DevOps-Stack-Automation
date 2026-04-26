@@ -132,7 +132,15 @@ keycloak_saml_integration_use_https: true
 # Logging
 keycloak_saml_integration_debug_logging: false
 
-# Hierarchical Groups and Client Roles Configuration
+# ──────────────────────────────────────────────────────────────────────────
+# Legacy hierarchical groups + client roles configuration.
+# Retired on the keycloak-freeipa-template branch in favor of FreeIPA-side
+# groups (e.g. jenkins-administrators, sonar-administrators) created by
+# roles/freeipa_keycloak_prep and synced into Keycloak via the LDAP
+# group-ldap-mapper. The values below are kept ONLY so the unused
+# configure_client_roles.yml task tree still renders if anyone explicitly
+# opts back in with -e skip_client_roles=false.
+# ──────────────────────────────────────────────────────────────────────────
 # Parent group name (all subgroups will be created under this)
 keycloak_saml_integration_parent_group: "devops"
 

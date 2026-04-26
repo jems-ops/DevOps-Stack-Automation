@@ -1,15 +1,23 @@
 # Ansible Inventory for Jenkins Automation Project
 # Rocky Linux 9 hosts - credentials managed via vault
 # Hostnames represent DNS names (after reverse proxy where applicable)
+#
+# IPs aligned with the FreeIPA + Keycloak SSO reference
+# (keycloak-ipa-integration @ keycloak-ipa-multi-app):
+#   freeipa.local  192.168.56.14
+#   keycloak.local 192.168.56.12
+#   sonar.local    192.168.56.18
+#   jenkins.local  192.168.56.13
+# wazuh.local was previously also at .13; reassigned to .19 to avoid collision.
 
 [jenkins_servers]
-jenkins.local ansible_host=192.168.56.14
+jenkins.local ansible_host=192.168.56.13
 
 [nginx]
 nginx-proxy ansible_host=192.168.56.15
 
 [sonarqube_servers]
-sonar.local ansible_host=192.168.56.16
+sonar.local ansible_host=192.168.56.18
 
 [artifactory_servers]
 artifactory.local ansible_host=192.168.56.11
@@ -21,10 +29,10 @@ nexus.local ansible_host=192.168.56.11
 tenable.local ansible_host=192.168.56.10
 
 [wazuh_servers]
-wazuh.local ansible_host=192.168.56.13
+wazuh.local ansible_host=192.168.56.19
 
-# [freeipa]
-# freeipa.local ansible_host=192.168.56.13
+[freeipa]
+freeipa.local ansible_host=192.168.56.14
 
 [keycloak]
 keycloak.local ansible_host=192.168.56.12
