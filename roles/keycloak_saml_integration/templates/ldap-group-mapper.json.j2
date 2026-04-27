@@ -7,7 +7,7 @@
     "groups.dn":                          ["{{ freeipa_groups_dn }}"],
     "group.name.ldap.attribute":          ["cn"],
     "group.object.classes":               ["groupOfNames"],
-    "preserve.group.inheritance":         ["true"],
+    "preserve.group.inheritance":         ["{{ keycloak_ldap_preserve_group_inheritance | default('false') }}"],
     "membership.ldap.attribute":          ["member"],
     "membership.attribute.type":          ["DN"],
     "mode":                               ["LDAP_ONLY"],

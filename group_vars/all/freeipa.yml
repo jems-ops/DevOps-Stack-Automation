@@ -76,6 +76,26 @@ keycloak_ldap_user_object_classes:
 keycloak_ldap_bind_password:      "{{ vault_freeipa_bind_password }}"
 keycloak_ldap_use_truststore_spi: "ALWAYS"
 
+# Group LDAP mapper behaviour.
+#
+# preserve.group.inheritance:
+#   "true"  - mirror the LDAP group hierarchy into Keycloak's group tree.
+#             Requires every group to have at most one parent. With
+#             FreeIPA's nested groups (groupOfNames + member), a single
+#             group can appear under multiple parents and Keycloak will
+#             abort the full sync with HTTP 400 "GroupsMultipleParents".
+#   "false" - import every LDAP group as a flat top-level group in
+#             Keycloak. Always works; group-membership is preserved per
+#             user, only the parent/child relationships between groups
+#             are dropped. This is what we want when authorization is
+#             driven by per-app admin groups (e.g. jenkins-administrators)
+#             rather than a hierarchy.
+#
+# Default "false" mirrors what most FreeIPA deployments need. Override to
+# "true" only if your IPA tree is single-parent and you need the hierarchy
+# in Keycloak.
+keycloak_ldap_preserve_group_inheritance: "false"
+
 # Truststore for LDAPS outbound connections.
 # The JKS lives inside {{ keycloak_home }}/conf/truststores/ for a cleaner layout.
 keycloak_truststore_dir:      "{{ keycloak_home }}/conf/truststores"

@@ -65,7 +65,14 @@
     validate_certs: false
   when: "'full-name' not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
 
-- name: Create group LDAP mapper
+- name: Resolve existing freeipa-groups LDAP mapper id (if any)
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_freeipa_groups_mapper_id: >-
+      {{ (keycloak_saml_integration_ldap_mapper_existing.json
+          | selectattr('name', 'equalto', 'freeipa-groups')
+          | list | first | default({})).id | default('') }}
+
+- name: Create group LDAP mapper (if missing)
   ansible.builtin.uri:
     url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/components"
     method: POST
@@ -76,4 +83,20 @@
     body: "{{ lookup('template', 'ldap-group-mapper.json.j2') | from_json }}"
     status_code: [201, 409]
     validate_certs: false
-  when: "'freeipa-groups' not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
+  when: keycloak_saml_integration_freeipa_groups_mapper_id | length == 0
+
+# Reapply config when the mapper already exists so changes to
+# keycloak_ldap_preserve_group_inheritance (and other settings in the
+# template) propagate to existing installs without manual cleanup.
+- name: Update existing freeipa-groups LDAP mapper (idempotent re-apply)
+  ansible.builtin.uri:
+    url: "{{ keycloak_saml_integration_keycloak.admin_api_url }}/admin/realms/{{ keycloak_saml_integration_keycloak.realm }}/components/{{ keycloak_saml_integration_freeipa_groups_mapper_id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body: "{{ lookup('template', 'ldap-group-mapper.json.j2') | from_json | combine({'id': keycloak_saml_integration_freeipa_groups_mapper_id}) }}"
+    status_code: [204]
+    validate_certs: false
+  when: keycloak_saml_integration_freeipa_groups_mapper_id | length > 0
