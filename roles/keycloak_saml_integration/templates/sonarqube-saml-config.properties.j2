@@ -18,9 +18,12 @@ sonar.auth.saml.user.email={{ keycloak_saml_integration_sonarqube_saml_active.us
 
 # User Provisioning
 sonar.auth.saml.user.signUpEnabled={{ keycloak_saml_integration_sonarqube_saml_active.sign_up_enabled | lower }}
-# defaultGroup intentionally left empty: group membership is driven by the
-# SAML `groups` attribute populated from FreeIPA via the LDAP group-ldap-mapper.
-sonar.auth.saml.user.defaultGroup=
+# defaultGroup must be set to the built-in `sonar-users` group; without it
+# new SAML-provisioned users land in no SonarQube group at all and hit
+# "You are not authorized to access this page" right after login. App-level
+# admin/elevated access still flows from FreeIPA-side groups (e.g.
+# sonar-administrators) via the SAML `groups` attribute on top of this.
+sonar.auth.saml.user.defaultGroup=sonar-users
 
 # Group Mapping
 sonar.auth.saml.group.name={{ keycloak_saml_integration_sonarqube_saml_active.group_name_attribute }}

@@ -29,6 +29,23 @@
       content: "{{ keycloak_saml_integration_saml_descriptor_uri.content if keycloak_saml_integration_uri_valid | bool else keycloak_saml_integration_saml_descriptor_curl.stdout }}"
     keycloak_saml_integration_metadata_source: "{{ 'ansible-uri' if keycloak_saml_integration_uri_valid | bool else 'curl-fallback' }}"
 
+# When Keycloak is fetched via http://localhost:8080 (federation flow) it
+# generates the descriptor with `http://keycloak.local/...` Locations
+# because no `proxy=edge` is set. SP apps then submit AuthnRequests with
+# Destination=http://... while the browser actually arrives at
+# https://keycloak.local/..., and Keycloak rejects with
+# `error=invalid_authn_request, reason=invalid_destination`. Rewrite the
+# descriptor URLs to the public base URL so SP-side metadata matches the
+# URL the browser actually hits.
+- name: Rewrite descriptor URLs to public Keycloak base URL
+  ansible.builtin.set_fact:
+    keycloak_saml_integration_saml_descriptor:
+      content: "{{ keycloak_saml_integration_saml_descriptor.content | replace('http://' ~ keycloak_hostname, keycloak_base_url) }}"
+  when:
+    - keycloak_hostname is defined
+    - keycloak_base_url is defined
+    - keycloak_base_url != ('http://' ~ keycloak_hostname)
+
 - name: Display metadata fetch method
   ansible.builtin.debug:
     msg: "📥 SAML metadata fetched using: {{ keycloak_saml_integration_metadata_source }}"
