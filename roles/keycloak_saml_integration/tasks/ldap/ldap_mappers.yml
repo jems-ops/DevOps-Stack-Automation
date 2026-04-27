@@ -40,22 +40,16 @@
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
       Content-Type: "application/json"
     body_format: json
-    body:
-      name: "{{ item.name }}"
-      providerId: "user-attribute-ldap-mapper"
-      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
-      parentId: "{{ keycloak_saml_integration_ldap_provider_id }}"
-      config:
-        "ldap.attribute":              ["{{ item.ldap_attr }}"]
-        "user.model.attribute":        ["{{ item.user_model_attr }}"]
-        "read.only":                   ["true"]
-        "always.read.value.from.ldap": ["true"]
-        "is.mandatory.in.ldap":        ["false"]
+    body: "{{ lookup('template', 'ldap-user-attribute-mapper.json.j2') | from_json }}"
     status_code: [201, 409]
     validate_certs: false
   loop: "{{ keycloak_saml_integration_ldap_attribute_mappers }}"
   loop_control:
     label: "{{ item.name }}"
+  vars:
+    mapper_name: "{{ item.name }}"
+    ldap_attr: "{{ item.ldap_attr }}"
+    user_model_attr: "{{ item.user_model_attr }}"
   when: "item.name not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
 
 - name: Create full-name LDAP mapper
@@ -66,15 +60,7 @@
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
       Content-Type: "application/json"
     body_format: json
-    body:
-      name: "full-name"
-      providerId: "full-name-ldap-mapper"
-      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
-      parentId: "{{ keycloak_saml_integration_ldap_provider_id }}"
-      config:
-        "ldap.full.name.attribute": ["cn"]
-        "read.only":                ["true"]
-        "write.only":               ["false"]
+    body: "{{ lookup('template', 'ldap-full-name-mapper.json.j2') | from_json }}"
     status_code: [201, 409]
     validate_certs: false
   when: "'full-name' not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
@@ -87,21 +73,7 @@
       Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
       Content-Type: "application/json"
     body_format: json
-    body:
-      name: "freeipa-groups"
-      providerId: "group-ldap-mapper"
-      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
-      parentId: "{{ keycloak_saml_integration_ldap_provider_id }}"
-      config:
-        "groups.dn":                            ["{{ freeipa_groups_dn }}"]
-        "group.name.ldap.attribute":            ["cn"]
-        "group.object.classes":                 ["groupOfNames"]
-        "preserve.group.inheritance":           ["true"]
-        "membership.ldap.attribute":            ["member"]
-        "membership.attribute.type":            ["DN"]
-        "mode":                                 ["LDAP_ONLY"]
-        "user.roles.retrieve.strategy":         ["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"]
-        "drop.non.existing.groups.during.sync": ["false"]
+    body: "{{ lookup('template', 'ldap-group-mapper.json.j2') | from_json }}"
     status_code: [201, 409]
     validate_certs: false
   when: "'freeipa-groups' not in (keycloak_saml_integration_ldap_mapper_existing.json | map(attribute='name') | list)"
