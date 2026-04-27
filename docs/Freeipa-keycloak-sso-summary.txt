@@ -1,0 +1,36 @@
+# ------------------------------------------------------------
+# Role: Keycloak SAML Integration with FreeIPA LDAP Federation
+#
+# Description:
+# This role configures SAML-based SSO for multiple applications
+# using Keycloak as the Identity Provider (IdP) integrated with
+# FreeIPA via LDAP federation.
+#
+# Key Behavior:
+# - Users and groups are sourced from FreeIPA.
+# - Keycloak performs LDAP federation with periodic/full sync.
+# - No local users or groups are created in downstream applications.
+# - Authentication is centralized through Keycloak (SAML).
+#
+# SSO Session Behavior:
+# - A user authenticated via Keycloak through one application
+#   gains a valid SSO session.
+# - This session is reused across other SAML-integrated applications
+#   (e.g., Jenkins, SonarQube, Wazuh, Artifactory).
+# - Users are not required to re-enter credentials when accessing
+#   additional applications during the active session.
+#
+# Sync Details:
+# - Full LDAP sync can be triggered via Keycloak Admin API.
+# - Users (and groups, if mappers are configured) are imported
+#   and maintained in Keycloak.
+#
+# Requirements:
+# - Keycloak configured with FreeIPA LDAP provider
+# - Proper group and attribute mappers defined
+# - NGINX (or reverse proxy) correctly routing /access and SSO endpoints
+#
+# Notes:
+# - Applications rely entirely on SAML and do not manage local identities.
+# - Ensure API endpoints are reachable (avoid 502 via proxy misconfiguration).
+# ------------------------------------------------------------

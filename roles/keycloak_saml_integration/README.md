@@ -3,6 +3,11 @@ Ansible role that wires up Keycloak ↔ application SAML SSO and — via its
 `ldap_federation` submodule — federates user identities from FreeIPA into
 the Keycloak `master` realm. Authorization is driven by FreeIPA-side
 groups synced through the LDAP `group-ldap-mapper`.
+> **Read this first**: a one-page summary of the federation + cross-app
+> SSO behavior is in
+> [`docs/Freeipa-keycloak-sso-summary.md`](../../docs/Freeipa-keycloak-sso-summary.md).
+> A longer implementation note is in
+> [`docs/FREEIPA_KEYCLOAK_FEDERATION_NOTE.md`](../../docs/FREEIPA_KEYCLOAK_FEDERATION_NOTE.md).
 ## Currently enabled apps
 Jenkins and SonarQube are deployed end-to-end on the
 `keycloak-freeipa-template` branch. Task files for Artifactory, Nexus,
@@ -156,3 +161,6 @@ grants admin in the respective app via the SAML `groups` attribute.
    `freeipa_app_admin_groups` in `group_vars/all/freeipa.yml`.
 7. Run `ansible-playbook ... -e app=<app>` (or extend the
    `deploy-saml-stack` Makefile target's app loop).
+## Further reading
+- [`docs/Freeipa-keycloak-sso-summary.md`](../../docs/Freeipa-keycloak-sso-summary.md) — short reference describing the role's behavior, the SSO session flow across applications, sync details, and prerequisites.
+- [`docs/FREEIPA_KEYCLOAK_FEDERATION_NOTE.md`](../../docs/FREEIPA_KEYCLOAK_FEDERATION_NOTE.md) — implementation note covering what was built, the verified end-to-end SSO flow with Jenkins and SonarQube, and pointers to the relevant playbooks / vars.
