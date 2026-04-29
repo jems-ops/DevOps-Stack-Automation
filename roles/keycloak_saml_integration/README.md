@@ -1,8 +1,11 @@
 # keycloak_saml_integration
-Ansible role that wires up Keycloak ↔ application SAML SSO and — via its
-`ldap_federation` submodule — federates user identities from FreeIPA into
-the Keycloak `master` realm. Authorization is driven by FreeIPA-side
-groups synced through the LDAP `group-ldap-mapper`.
+Ansible role that wires up Keycloak ↔ application SAML SSO (the SP-side
+side of the stack: per-app SAML clients, protocol mappers, and on-host
+SAML configuration). User and group federation from FreeIPA is owned by
+a separate role, [`freeipa_keycloak_prep`](../freeipa_keycloak_prep/),
+which both prepares IPA and configures Keycloak's LDAP federation.
+Authorization is driven by FreeIPA-side groups synced into Keycloak
+through the LDAP `group-ldap-mapper` provided by `freeipa_keycloak_prep`.
 > **Read this first**: a one-page summary of the federation + cross-app
 > SSO behavior is in
 > [`docs/Freeipa-keycloak-sso-summary.md`](../../docs/Freeipa-keycloak-sso-summary.md).
@@ -14,21 +17,19 @@ Jenkins and SonarQube are deployed end-to-end on the
 Security Center, and Wazuh are scaffolded but not part of the default
 `deploy-saml-stack` flow.
 ## What it does
-1. **LDAP federation** (one-shot, on the Keycloak host): imports the
-   FreeIPA CA into Keycloak's JKS truststore, wires the SPI truststore
-   options into `keycloak.conf`, restarts Keycloak, creates the
-   `freeipa-ldap` UserStorageProvider and its mappers, and triggers a
-   full user sync.
-2. **Per-app Keycloak setup** (on the Keycloak host, against
+1. **Per-app Keycloak setup** (on the Keycloak host, against
    `http://localhost:8080`): obtains an admin token, ensures the realm
    exists, creates/updates the SAML client, configures protocol mappers,
    extracts the IdP certificate.
-3. **Per-app application setup** (on the application host): pulls the
+2. **Per-app application setup** (on the application host): pulls the
    SAML client UUID + IdP cert from the Keycloak host's facts, writes
    the app's SAML configuration, restarts the service.
 This role does NOT create Keycloak-managed users, parent groups,
 subgroups, client roles, or test users — user identities and group
-membership all come from FreeIPA.
+membership all come from FreeIPA via
+[`freeipa_keycloak_prep`](../freeipa_keycloak_prep/) (which also owns
+the Keycloak-side `freeipa-ldap` UserStorageProvider, mappers, and the
+IPA CA truststore wiring).
 ## Layout
 Task files are organized into category subfolders so the entry points
 at the root of `tasks/` are easy to find and the supporting tasks are
@@ -40,7 +41,6 @@ roles/keycloak_saml_integration/
 ├── tasks/
 │   ├── keycloak_setup.yml          # entry point: Keycloak-side per-app setup
 │   ├── app_setup.yml               # entry point: app-side per-app setup
-│   ├── ldap_federation.yml         # entry point: LDAP federation orchestrator
 │   ├── main.yml                    # entry point: legacy single-host flow
 │   ├── keycloak/                   # Keycloak admin REST helpers
 │   │   ├── get_keycloak_token.yml
@@ -49,11 +49,6 @@ roles/keycloak_saml_integration/
 │   │   ├── configure_protocol_mappers.yml
 │   │   ├── get_keycloak_certificate.yml
 │   │   └── preflight_checks.yml
-│   ├── ldap/                       # FreeIPA → Keycloak LDAP federation
-│   │   ├── ldap_truststore.yml         # IPA CA → JKS, SPI truststore wiring
-│   │   ├── ldap_provider.yml           # FreeIPA UserStorageProvider
-│   │   ├── ldap_mappers.yml            # username/email/firstName/lastName/full-name/groups
-│   │   └── ldap_sync.yml               # triggerFullSync
 │   ├── apps/                       # per-app SAML configuration on the app host
 │   │   ├── configure_jenkins_saml.yml
 │   │   ├── configure_sonarqube_saml.yml

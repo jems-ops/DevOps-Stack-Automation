@@ -55,7 +55,7 @@
       ansible.builtin.set_fact:
         keycloak_saml_integration_realm_name: "master"
   tasks:
-    - name: Run LDAP federation submodule of keycloak_saml_integration
+    - name: Run LDAP federation submodule of freeipa_keycloak_prep
       ansible.builtin.import_role:
-        name: keycloak_saml_integration
+        name: freeipa_keycloak_prep
         tasks_from: ldap_federation

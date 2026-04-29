@@ -18,7 +18,7 @@
   ansible.builtin.include_tasks: ldap/ldap_truststore.yml
 
 - name: Get Keycloak admin token (post-restart)
-  ansible.builtin.include_tasks: keycloak/get_keycloak_token.yml
+  ansible.builtin.include_tasks: ldap/get_keycloak_token.yml
 
 - name: Create or update FreeIPA LDAP user federation provider
   ansible.builtin.include_tasks: ldap/ldap_provider.yml
