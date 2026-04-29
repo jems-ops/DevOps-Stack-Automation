@@ -46,7 +46,9 @@ keycloak_saml_integration_protocol_mappers:
     config:
       "attribute.nameformat": "Basic"
       "attribute.name": "groups"
-      "single": "false"
+      # OneLogin (SonarQube's SAML lib) requires single=true; otherwise
+      # the multi-group response trips "duplicated Name" validation.
+      "single": "true"
       "full.path": "false"
 
 # SonarQube-specific SAML settings

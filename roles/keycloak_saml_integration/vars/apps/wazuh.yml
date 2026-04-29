@@ -95,7 +95,9 @@ keycloak_saml_integration_protocol_mappers:
     config:
       "attribute.name": "groups"
       "attribute.nameformat": "Basic"
-      "single": "false"
+      # See note in defaults/main.yml: single=true emits one <Attribute>
+      # with multiple values, avoiding OneLogin "duplicated Name" 400.
+      "single": "true"
       "full.path": "false"
 
   # Wazuh role list mapper (Roles attribute)

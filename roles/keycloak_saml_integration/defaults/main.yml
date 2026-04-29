@@ -102,7 +102,13 @@ keycloak_saml_integration_protocol_mappers:
     config:
       "attribute.name": "groups"
       "attribute.nameformat": "Basic"
-      "single": "false"
+      # single=true puts every group into one <Attribute Name="groups"> with
+      # multiple <AttributeValue> children. Setting it to "false" makes
+      # Keycloak emit one <Attribute> per group, all with Name="groups",
+      # which OneLogin (used by SonarQube) rejects with HTTP 400
+      # "Found an Attribute element with duplicated Name". Jenkins reads
+      # both layouts fine.
+      "single": "true"
       "full.path": "false"
 
 # SAML Configuration for Applications

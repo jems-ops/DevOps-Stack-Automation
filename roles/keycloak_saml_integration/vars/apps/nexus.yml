@@ -50,7 +50,9 @@ keycloak_saml_integration_protocol_mappers:
     config:
       "attribute.nameformat": "Basic"
       "attribute.name": "groups"
-      "single": "false"
+      # See note in defaults/main.yml: single=true emits one <Attribute>
+      # with multiple values, avoiding OneLogin "duplicated Name" 400.
+      "single": "true"
       "full.path": "false"
 
   - name: "roles"
@@ -59,7 +61,7 @@ keycloak_saml_integration_protocol_mappers:
     config:
       "attribute.nameformat": "Basic"
       "attribute.name": "roles"
-      "single": "false"
+      "single": "true"
 
 # Nexus-specific SAML settings
 keycloak_saml_integration_nexus_saml:
