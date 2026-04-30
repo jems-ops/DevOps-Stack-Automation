@@ -30,21 +30,25 @@
     keycloak_saml_integration_metadata_source: "{{ 'ansible-uri' if keycloak_saml_integration_uri_valid | bool else 'curl-fallback' }}"
 
 # When Keycloak is fetched via http://localhost:8080 (federation flow) it
-# generates the descriptor with `http://keycloak.local/...` Locations
-# because no `proxy=edge` is set. SP apps then submit AuthnRequests with
-# Destination=http://... while the browser actually arrives at
-# https://keycloak.local/..., and Keycloak rejects with
-# `error=invalid_authn_request, reason=invalid_destination`. Rewrite the
-# descriptor URLs to the public base URL so SP-side metadata matches the
-# URL the browser actually hits.
+# generates the descriptor with Locations that point at the Keycloak host
+# over plain HTTP. Depending on Keycloak's hostname/proxy config the URLs
+# may be `http://keycloak.local/...` OR `http://keycloak.local:8080/...`.
+# SP apps then build AuthnRequests with Destination=http://... while the
+# browser actually arrives at https://keycloak.local/..., and Keycloak
+# rejects with `error=invalid_authn_request, reason=invalid_destination`
+# (or, when the port leaks through, the SP redirects users to a
+# non-listening :8080 URL).
+#
+# Strip both the scheme and any port suffix on the Keycloak hostname,
+# replacing the whole prefix with the public base URL so SP metadata
+# matches the URL the browser actually hits.
 - name: Rewrite descriptor URLs to public Keycloak base URL
   ansible.builtin.set_fact:
     keycloak_saml_integration_saml_descriptor:
-      content: "{{ keycloak_saml_integration_saml_descriptor.content | replace('http://' ~ keycloak_hostname, keycloak_base_url) }}"
+      content: "{{ keycloak_saml_integration_saml_descriptor.content | regex_replace('https?://' ~ (keycloak_hostname | regex_escape) ~ '(:\\d+)?', keycloak_base_url) }}"
   when:
     - keycloak_hostname is defined
     - keycloak_base_url is defined
-    - keycloak_base_url != ('http://' ~ keycloak_hostname)
 
 - name: Display metadata fetch method
   ansible.builtin.debug:
