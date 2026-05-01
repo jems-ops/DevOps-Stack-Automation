@@ -105,6 +105,43 @@
   when: jenkins_manage_firewalld | bool
   ignore_errors: yes
 
+- name: Ensure Jenkins systemd drop-in directory exists
+  file:
+    path: /etc/systemd/system/jenkins.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure Jenkins context-path via systemd drop-in (JENKINS_OPTS=--prefix=...)
+  copy:
+    dest: /etc/systemd/system/jenkins.service.d/10-context-path.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      # Managed by Ansible install-jenkins role.
+      # Sets JENKINS_OPTS so Jenkins serves at {{ jenkins_context_path }}
+      # instead of /. Edit jenkins_context_path in group_vars to change.
+      [Service]
+      Environment=JENKINS_OPTS=--prefix={{ jenkins_context_path }}
+  when: (jenkins_context_path | length) > 0
+  notify:
+    - reload systemd
+    - restart jenkins
+
+- name: Remove Jenkins context-path drop-in when context_path is empty
+  file:
+    path: /etc/systemd/system/jenkins.service.d/10-context-path.conf
+    state: absent
+  when: (jenkins_context_path | length) == 0
+  notify:
+    - reload systemd
+    - restart jenkins
+
+- name: Apply pending systemd / Jenkins changes
+  meta: flush_handlers
+
 - name: Ensure Jenkins service is enabled and started
   systemd:
     name: jenkins

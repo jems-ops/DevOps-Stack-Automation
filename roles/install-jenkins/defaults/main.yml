@@ -6,6 +6,13 @@ jenkins_home: /var/lib/jenkins
 jenkins_user: jenkins
 jenkins_group: jenkins
 
+# URL prefix Jenkins is served under (e.g. "/jenkins"). Empty string means
+# Jenkins is served at the host root. When non-empty, this role installs a
+# systemd drop-in that sets JENKINS_OPTS="--prefix={{ jenkins_context_path }}"
+# and restarts Jenkins. Defaults to the project-wide value set in
+# group_vars/all/saml_integration.yml.
+jenkins_context_path: "{{ hostvars[inventory_hostname].jenkins_context_path | default('') }}"
+
 # Java configuration
 # NOTE: For Jenkins 2.492+ you may want Java 21 (e.g. java-21-openjdk)
 java_package: java-17-openjdk-devel
