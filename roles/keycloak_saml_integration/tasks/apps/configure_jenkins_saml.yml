@@ -31,6 +31,20 @@
     backup: yes
   become: true
 
+# The Jenkins SAML plugin builds its AssertionConsumerServiceURL from
+# Jenkins's own "Jenkins URL" (location config). Keep that in sync with
+# our base_url so the AuthnRequest's ACS matches the redirectUris on the
+# Keycloak client (otherwise Keycloak emits invalid_redirect_uri).
+- name: Generate Jenkins location config so SAML plugin builds the right ACS URL
+  ansible.builtin.template:
+    src: jenkins-location-config.xml.j2
+    dest: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].home }}/jenkins.model.JenkinsLocationConfiguration.xml"
+    owner: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].user }}"
+    group: "{{ keycloak_saml_integration_app_config[keycloak_saml_integration_app_type].group }}"
+    mode: '0644'
+    backup: yes
+  become: true
+
 - name: Remove cached SAML metadata files to force refresh
   ansible.builtin.file:
     path: "{{ item }}"
