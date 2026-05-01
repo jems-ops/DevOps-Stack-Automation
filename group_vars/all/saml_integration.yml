@@ -7,8 +7,13 @@ sonarqube_hostname: "{{ groups['sonarqube_servers'][0] }}"
 sonarqube_base_url: "https://{{ sonarqube_hostname }}"
 
 # Jenkins host resolution from inventory
-jenkins_hostname: "{{ groups['jenkins_servers'][0] }}"
-jenkins_base_url: "https://{{ jenkins_hostname }}"
+# jenkins_context_path is the URL prefix Jenkins is served under (Jenkins
+# itself must also be started with --prefix={{ jenkins_context_path }}, e.g.
+# JENKINS_OPTS="--prefix=/jenkins" in /etc/sysconfig/jenkins). Set to an
+# empty string to serve Jenkins at the host root.
+jenkins_hostname:     "{{ groups['jenkins_servers'][0] }}"
+jenkins_context_path: "/jenkins"
+jenkins_base_url:     "https://{{ jenkins_hostname }}{{ jenkins_context_path }}"
 
 # Nexus host resolution from inventory
 nexus_hostname: "{{ groups['nexus_servers'][0] }}"
