@@ -31,7 +31,6 @@ backup_old_configs: true
 
 # List of potentially conflicting nginx config files to backup and remove
 conflicting_configs:
-  - /etc/nginx/conf.d/dynamic-backends.conf
   - /etc/nginx/conf.d/keycloak.conf
   - /etc/nginx/conf.d/keycloak-redirect.conf
   - /etc/nginx/conf.d/freeipa.conf

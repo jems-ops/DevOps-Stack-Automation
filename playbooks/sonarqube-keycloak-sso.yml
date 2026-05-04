@@ -6,7 +6,7 @@
     keycloak_admin_password: "{{ vault_KEYCLOAK_ADMIN_PASSWORD }}"
     sonarqube_client_secret: "{{ vault_sonarqube_oidc_client_secret | default('sonarqube-sso-secret-2024-secure') }}"
     sonarqube_realm: jenkins  # Using existing jenkins realm
-    sonarqube_base_url: "http://192.168.201.16:9000"
+    sonarqube_base_url: "http://192.168.56.18:9000"
     sonarqube_proxy_url: "https://sonar.local"  # If using nginx proxy
   collections:
     - middleware_automation.keycloak

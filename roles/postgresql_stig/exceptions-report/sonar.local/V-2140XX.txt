@@ -1,0 +1,24 @@
+============================================================
+PostgreSQL STIG Exception Report
+============================================================
+
+Generated On: 2026-02-26T16:07:16Z
+Host: sonar.local
+PostgreSQL Version: 13.23
+
+------------------------------------------------------------
+ID / Control: V-2140XX
+Control Name: pgaudit
+Value: False
+------------------------------------------------------------
+
+Reason / Justification:
+pgaudit is not available/installable in this environment; enabling it would prevent PostgreSQL from starting.
+
+Mitigation / Compensating Controls:
+PostgreSQL is operating within a controlled boundary; OS hardening and logging controls are applied.
+
+POA&M / Evidence:
+
+
+============================================================

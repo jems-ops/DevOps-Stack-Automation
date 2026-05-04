@@ -1,0 +1,24 @@
+============================================================
+PostgreSQL STIG Exception Report
+============================================================
+
+Generated On: 2026-02-26T16:07:16Z
+Host: sonar.local
+PostgreSQL Version: 13.23
+
+------------------------------------------------------------
+ID / Control: CCI-000015
+Control Name: centralized_authentication
+Value: local (peer + scram-sha-256)
+------------------------------------------------------------
+
+Reason / Justification:
+Centralized authentication (LDAP/Kerberos/SSPI via pg_hba methods like ldap/gss/sspi) is not yet available in this lab environment; the system is awaiting enterprise identity integration.
+
+Mitigation / Compensating Controls:
+Database access is restricted; local authentication uses SCRAM-SHA-256 and RBAC; OS STIG hardening and logging are enabled.
+
+POA&M / Evidence:
+docs/stig-exceptions/postgresql-centralized-auth-cci-000015.md
+
+============================================================

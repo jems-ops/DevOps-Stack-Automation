@@ -52,12 +52,12 @@
         direct_access_grants_enabled: true
         service_accounts_enabled: false
         redirect_uris:
-          - "http://192.168.201.16:9000/*"
-          - "http://192.168.201.16:9000/oauth2/callback/oidc"
+          - "http://192.168.56.18:9000/*"
+          - "http://192.168.56.18:9000/oauth2/callback/oidc"
           - "https://sonar.local/*"
           - "https://sonar.local/oauth2/callback/oidc"
         web_origins:
-          - "http://192.168.201.16:9000"
+          - "http://192.168.56.18:9000"
           - "https://sonar.local"
           - "+"
 
@@ -81,7 +81,7 @@
 
     - name: Test individual OIDC endpoints
       uri:
-        url: "http://127.0.0.1:8080/realms/{{ sonar_realm }}/protocol/openid-connect/auth?response_type=code&client_id=sonarqube&redirect_uri=http://192.168.201.16:9000&state=test"
+        url: "http://127.0.0.1:8080/realms/{{ sonar_realm }}/protocol/openid-connect/auth?response_type=code&client_id=sonarqube&redirect_uri=http://192.168.56.18:9000&state=test"
         method: GET
         timeout: 30
       register: auth_endpoint_check

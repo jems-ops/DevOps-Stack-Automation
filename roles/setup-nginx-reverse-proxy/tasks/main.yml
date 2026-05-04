@@ -34,6 +34,26 @@
     group: nginx
     mode: '0755'
 
+- name: Create SSL directory for backend certificates
+  file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Generate self-signed SSL certificate for each backend
+  command: >
+    openssl req -x509 -nodes -newkey rsa:2048
+    -keyout /etc/nginx/ssl/{{ item.server_name | replace('.', '-') }}.key
+    -out /etc/nginx/ssl/{{ item.server_name | replace('.', '-') }}.crt
+    -days 365 -subj "/CN={{ item.server_name }}"
+  args:
+    creates: "/etc/nginx/ssl/{{ item.server_name | replace('.', '-') }}.crt"
+  loop: "{{ site_backends }}"
+  loop_control:
+    label: "{{ item.server_name }}"
+
 - name: Deploy dynamic nginx configuration for all backends
   template:
     src: "dynamic-backends.conf.j2"

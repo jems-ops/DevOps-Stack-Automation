@@ -107,6 +107,83 @@ server {
 
 {% endfor %}
 
+{% for backend in backends %}
+{% set server_names = backend.server_name if backend.server_name is iterable and backend.server_name is not string else [backend.server_name] %}
+{% set service_name = (server_names[0]).split('.')[0] %}
+{% set cert_name = server_names[0] | replace('.', '-') %}
+# HTTPS server for {{ backend.server_name }}
+server {
+  listen 443 ssl;
+  server_name     {{ server_names | join(' ') }};
+
+  ssl_certificate     /etc/nginx/ssl/{{ cert_name }}.crt;
+  ssl_certificate_key /etc/nginx/ssl/{{ cert_name }}.key;
+  ssl_protocols       TLSv1.2 TLSv1.3;
+  ssl_prefer_server_ciphers on;
+
+  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-XSS-Protection "1; mode=block" always;
+
+  access_log {{ nginx_access_log }};
+  error_log  {{ nginx_error_log }};
+
+  ignore_invalid_headers off;
+
+{% if 'jenkins' in server_names %}
+  root {{ jenkins_war_root }};
+
+  location ~ "^\/static\/[0-9a-fA-F]{8}\/(.*)$" {
+    rewrite "^\/static\/[0-9a-fA-F]{8}\/(.*)$" /$1 last;
+  }
+
+  location /userContent {
+    root {{ jenkins_home }}/;
+    if (!-f $request_filename){
+      rewrite (.*) /$1 last;
+      break;
+    }
+    sendfile on;
+  }
+
+{% endif %}
+  location / {
+{% if backend.rewrite_rule is defined %}
+    rewrite {{ backend.rewrite_rule }};
+{% endif %}
+{% if 'jenkins' in server_names %}
+    sendfile off;
+{% endif %}
+    proxy_pass         http://{{ service_name }}_backend;
+    proxy_redirect     default;
+    proxy_http_version 1.1;
+
+{% if 'jenkins' in server_names %}
+    proxy_set_header   Connection        $connection_upgrade;
+    proxy_set_header   Upgrade           $http_upgrade;
+{% endif %}
+    proxy_set_header   Host              $http_host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_max_temp_file_size 0;
+
+    client_max_body_size    {{ nginx_client_max_body_size }};
+    client_body_buffer_size {{ nginx_client_body_buffer_size }};
+
+    proxy_connect_timeout   {{ nginx_proxy_connect_timeout }};
+    proxy_send_timeout      {{ nginx_proxy_send_timeout }};
+    proxy_read_timeout      {{ nginx_proxy_read_timeout }};
+{% if 'jenkins' in server_names %}
+    proxy_request_buffering off;
+{% else %}
+    proxy_request_buffering on;
+{% endif %}
+  }
+}
+
+{% endfor %}
+
 # Default server block for requests without matching Host header
 # Default server for HTTP is managed by keycloak-redirect when keycloak_ssl_server_name is set
 server {

@@ -22,10 +22,28 @@
     name: "{{ jenkins_required_packages }}"
     state: present
 
+- name: Remove older Java versions
+  dnf:
+    name:
+      - java-17-openjdk
+      - java-17-openjdk-headless
+      - java-17-openjdk-devel
+    state: absent
+  ignore_errors: yes
+
 - name: Install Java OpenJDK
   dnf:
     name: "{{ java_package }}"
     state: present
+
+- name: Set Java 21 as default alternative
+  shell: |
+    JAVA21=$(alternatives --list | awk '/java-21/ && !/sdk/ && !/jre_21/ {print $3; exit}')
+    if [ -n "$JAVA21" ]; then
+      alternatives --set java "$JAVA21"
+    fi
+  ignore_errors: yes
+  changed_when: false
 
 - name: Import Jenkins repository key
   rpm_key:
@@ -61,18 +79,20 @@
 - name: Wait for Jenkins to start
   wait_for:
     port: "{{ jenkins_port }}"
-    host: "{{ inventory_hostname }}"
+    host: "127.0.0.1"
     delay: 10
     timeout: 300
   when: jenkins_service_state == "started"
+  delegate_to: "{{ inventory_hostname }}"
 
 - name: Check if Jenkins initial setup is complete
   uri:
-    url: "http://{{ inventory_hostname }}:{{ jenkins_port }}"
+    url: "http://127.0.0.1:{{ jenkins_port }}"
     method: GET
     timeout: 10
   register: jenkins_status_check
   ignore_errors: yes
+  delegate_to: "{{ inventory_hostname }}"
 
 - name: Get Jenkins initial admin password (if setup not complete)
   slurp:

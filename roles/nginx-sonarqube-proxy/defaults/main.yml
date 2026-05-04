@@ -3,7 +3,7 @@
 
 # SonarQube server configuration
 sonarqube_server_name: sonar.local
-sonarqube_backend_host: 192.168.201.11
+sonarqube_backend_host: 192.168.56.18
 sonarqube_backend_port: 9000
 
 # SSL configuration

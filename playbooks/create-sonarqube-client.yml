@@ -35,12 +35,12 @@
         direct_access_grants_enabled: true
         service_accounts_enabled: false
         redirect_uris:
-          - "http://192.168.201.16:9000/*"
-          - "http://192.168.201.16:9000/oauth2/callback/oidc"
+          - "http://192.168.56.18:9000/*"
+          - "http://192.168.56.18:9000/oauth2/callback/oidc"
           - "https://sonar.local/*"
           - "https://sonar.local/oauth2/callback/oidc"
         web_origins:
-          - "http://192.168.201.16:9000"
+          - "http://192.168.56.18:9000"
           - "https://sonar.local"
           - "+"
 

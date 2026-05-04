@@ -9,8 +9,8 @@ upstream keycloak_upstream {
 }
 
 server {
-  listen 443 ssl default_server;
-  server_name {{ keycloak_server_name }} _;
+  listen 443 ssl;
+  server_name {{ keycloak_server_name }};
 
   # SSL Configuration
   ssl_certificate     {{ keycloak_ssl_certificate_path | default('/etc/nginx/ssl/keycloak.crt') }};
