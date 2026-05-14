@@ -46,8 +46,13 @@ vault_docker_registry_password:   "REPLACE_ME"
 # Required by:
 #   - roles/freeipa_keycloak_prep        (kinit / ipa CLI)
 #   - roles/keycloak_saml_integration    (LDAP federation submodule)
-# Generate the bind password yourself; it is the password set on the IPA user
-# `svc_keycloak` and reused as the LDAP bind credential by Keycloak.
-vault_freeipa_admin_password:     "REPLACE_ME"   # IPA admin password (kinit)
-vault_freeipa_bind_password:      "REPLACE_ME"   # password for svc_keycloak bind user
-vault_keycloak_truststore_password: "REPLACE_ME" # passphrase for the JKS truststore on Keycloak host
+vault_freeipa_admin_password:        "REPLACE_ME"   # IPA admin password (kinit)
+
+# svc.ldap — LDAP bind user for Keycloak's FreeIPA user federation sync.
+vault_freeipa_ldap_bind_password:    "REPLACE_ME"   # password for the svc.ldap IPA user
+
+# svc.keycloak — Keycloak service user for connecting to downstream apps
+# (replaces each app's default local user account).
+vault_freeipa_keycloak_svc_password: "REPLACE_ME"   # password for the svc.keycloak IPA user
+
+vault_keycloak_truststore_password:  "REPLACE_ME"   # passphrase for the JKS truststore on Keycloak host

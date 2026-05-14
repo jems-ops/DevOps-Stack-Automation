@@ -23,11 +23,22 @@ freeipa_base_dn:  "{{ freeipa_domain.split('.') | map('regex_replace', '^(.*)$',
 freeipa_users_dn:  "cn=users,cn=accounts,{{ freeipa_base_dn }}"
 freeipa_groups_dn: "cn=groups,cn=accounts,{{ freeipa_base_dn }}"
 
-# Bind user is a regular IPA user under cn=users,cn=accounts (not a sysaccount).
+# ── LDAP bind service account ──
+# svc.ldap is the dedicated IPA user Keycloak uses for LDAP federation
+# (reading users/groups from FreeIPA). It is a regular IPA user under
+# cn=users,cn=accounts (not a sysaccount).
 # Managed via the IPA CLI (kinit admin + ipa user-*) in freeipa_keycloak_prep.
-freeipa_bind_uid:       svc_keycloak
+freeipa_bind_uid:       svc.ldap
 freeipa_bind_dn:        "uid={{ freeipa_bind_uid }},cn=users,cn=accounts,{{ freeipa_base_dn }}"
-freeipa_bind_password:  "{{ vault_freeipa_bind_password }}"
+freeipa_bind_password:  "{{ vault_freeipa_ldap_bind_password }}"
+
+# ── Keycloak application service account ──
+# svc.keycloak is the dedicated IPA user that Keycloak presents when
+# connecting to downstream applications (replaces each app's default
+# local user account).
+freeipa_keycloak_svc_uid:      svc.keycloak
+freeipa_keycloak_svc_dn:       "uid={{ freeipa_keycloak_svc_uid }},cn=users,cn=accounts,{{ freeipa_base_dn }}"
+freeipa_keycloak_svc_password: "{{ vault_freeipa_keycloak_svc_password }}"
 
 freeipa_admin_user:     admin
 freeipa_admin_password: "{{ vault_freeipa_admin_password }}"
@@ -73,7 +84,7 @@ keycloak_ldap_user_object_classes:
   - posixAccount
   - krbPrincipalAux
 
-keycloak_ldap_bind_password:      "{{ vault_freeipa_bind_password }}"
+keycloak_ldap_bind_password:      "{{ vault_freeipa_ldap_bind_password }}"
 keycloak_ldap_use_truststore_spi: "ALWAYS"
 
 # Group LDAP mapper behaviour.

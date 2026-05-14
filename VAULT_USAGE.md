@@ -53,7 +53,8 @@ The following sensitive variables are stored in the encrypted `vault.yml`:
 Used by the `freeipa_keycloak_prep` role and the LDAP federation submodule of
 `keycloak_saml_integration` (added on the `keycloak-freeipa-template` branch).
 - `vault_freeipa_admin_password` - IPA admin password (used by `kinit` on the IPA host)
-- `vault_freeipa_bind_password` - password set on the `svc_keycloak` IPA user; reused as the LDAP bind credential by Keycloak
+- `vault_freeipa_ldap_bind_password` - password set on the `svc.ldap` IPA user; used as the LDAP bind credential by Keycloak
+- `vault_freeipa_keycloak_svc_password` - password set on the `svc.keycloak` IPA user; used for Keycloak app connections
 - `vault_keycloak_truststore_password` - passphrase for the JKS truststore Keycloak uses for outbound LDAPS
 
 A full plaintext key listing is kept in `group_vars/all/vault.yml.example`

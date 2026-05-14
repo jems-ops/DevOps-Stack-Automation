@@ -29,6 +29,28 @@
       Body        : {{ keycloak_saml_integration_ldap_full_sync.content | default('<empty>') }}
       Common causes:
         - GroupsMultipleParents      → set keycloak_ldap_preserve_group_inheritance: "false" (already the default)
-        - LDAP bind failed           → svc_keycloak password drift in IPA; run --tags freeipa_prep
+        - LDAP bind failed           → svc.ldap password drift in IPA; run --tags freeipa_prep
         - LDAP Query failed (TLS)    → IPA CA in Keycloak's JKS truststore is stale; re-run --tags ldap
   when: keycloak_saml_integration_ldap_full_sync.status not in [200, 204]
+
+# ── Post-sync: verify service users were imported into Keycloak ─────────────
+- name: Verify service user was imported into Keycloak
+  ansible.builtin.uri:
+    url: "{{ freeipa_keycloak_prep_keycloak.admin_api_url }}/admin/realms/{{ freeipa_keycloak_prep_keycloak.realm }}/users?username={{ item }}&exact=true"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_saml_integration_access_token }}"
+    status_code: 200
+    validate_certs: false
+  register: keycloak_user_lookup
+  failed_when:
+    - keycloak_user_lookup.json | length == 0
+  loop:
+    - "{{ freeipa_bind_uid }}"
+    - "{{ freeipa_keycloak_svc_uid }}"
+
+- name: Post-sync validation summary
+  ansible.builtin.debug:
+    msg:
+      - "Service users {{ freeipa_bind_uid }} and {{ freeipa_keycloak_svc_uid }} confirmed present in Keycloak"
+      - "Sync imported {{ keycloak_saml_integration_ldap_full_sync.json.added | default(0) }} users, updated {{ keycloak_saml_integration_ldap_full_sync.json.updated | default(0) }}"

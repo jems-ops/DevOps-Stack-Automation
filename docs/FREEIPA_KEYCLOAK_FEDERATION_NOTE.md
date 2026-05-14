@@ -3,8 +3,9 @@ Branch: `keycloak-freeipa-template`
 Apps deployed end-to-end: **Jenkins** and **SonarQube**
 ## What was built
 1. **FreeIPA prep** — new role `freeipa_keycloak_prep`. On the IPA master,
-   it ensures a regular IPA user `svc_keycloak` exists (the LDAP bind
-   account), creates canonical app admin groups (`jenkins-administrators`,
+   it ensures two dedicated IPA service users exist — `svc.ldap` (LDAP
+   bind account) and `svc.keycloak` (Keycloak app service user) —
+   creates canonical app admin groups (`jenkins-administrators`,
    `sonar-administrators`), and exports the IPA CA cert to a known path.
 2. **Keycloak LDAP federation** — new submodule of the existing
    `keycloak_saml_integration` role under `tasks/ldap/`. It imports the
@@ -23,8 +24,8 @@ Apps deployed end-to-end: **Jenkins** and **SonarQube**
    Inventory IPs/DNS were aligned with the reference setup
    (freeipa.local 192.168.56.14, keycloak.local .12, sonar.local .18,
    jenkins.local .13). Three new vault keys:
-   `vault_freeipa_admin_password`, `vault_freeipa_bind_password`,
-   `vault_keycloak_truststore_password`.
+   `vault_freeipa_admin_password`, `vault_freeipa_ldap_bind_password`,
+   `vault_freeipa_keycloak_svc_password`, `vault_keycloak_truststore_password`.
 ## How to run
 ```bash
 # One-shot: FreeIPA prep + Keycloak LDAP federation + sync

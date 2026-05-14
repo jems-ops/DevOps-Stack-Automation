@@ -6,8 +6,9 @@ role [`keycloak_saml_integration`](../keycloak_saml_integration/).
 ## What it does
 1. **On the FreeIPA host** (`bind_account` / `admin_groups` / `export_ca` /
    `validate`):
-   - Creates a regular IPA user `svc_keycloak` to act as the LDAP bind
-     account, with a non-expiring password.
+   - Creates two dedicated IPA service users — `svc.ldap` (LDAP bind
+     account for federation sync) and `svc.keycloak` (Keycloak service
+     user for connecting to downstream apps) — with non-expiring passwords.
    - Ensures the canonical per-app admin groups exist
      (`jenkins-administrators`, `sonar-administrators`, …).
    - Auto-detects and exports the FreeIPA CA cert to a known path
@@ -30,7 +31,7 @@ roles/freeipa_keycloak_prep/
 ├── handlers/main.yml                    # restart keycloak
 ├── tasks/
 │   ├── main.yml                         # IPA-side entry point
-│   ├── bind_account.yml                 # svc_keycloak IPA user
+│   ├── bind_account.yml                 # svc.ldap + svc.keycloak IPA users
 │   ├── admin_groups.yml                 # canonical app admin groups
 │   ├── export_ca.yml                    # IPA CA → /tmp/freeipa-ca.crt
 │   ├── validate.yml                     # ldapsearch sanity check
@@ -51,7 +52,8 @@ roles/freeipa_keycloak_prep/
 Vault keys (encrypted in `group_vars/all/vault.yml`; full reference in
 `group_vars/all/vault.yml.example`):
 - `vault_freeipa_admin_password`        — IPA admin password used for `kinit`
-- `vault_freeipa_bind_password`         — password set on `svc_keycloak`
+- `vault_freeipa_ldap_bind_password`    — password set on `svc.ldap`
+- `vault_freeipa_keycloak_svc_password` — password set on `svc.keycloak`
 - `vault_keycloak_admin_password`       — Keycloak admin user password
 - `vault_keycloak_truststore_password`  — JKS truststore passphrase
 Inventory groups in `inventory`:
@@ -71,7 +73,7 @@ ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml
 ```
 Tag-scoped variants:
 ```bash
-# IPA-side only: svc_keycloak user, admin groups, CA export, bind validation
+# IPA-side only: svc.ldap + svc.keycloak users, admin groups, CA export, bind validation
 ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml --tags freeipa_prep
 # Keycloak-side only: truststore, provider, mappers, sync
 ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml --tags ldap

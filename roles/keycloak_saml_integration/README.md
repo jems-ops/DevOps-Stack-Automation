@@ -77,7 +77,8 @@ Vault keys (encrypt in `group_vars/all/vault.yml`; full reference in
 `group_vars/all/vault.yml.example`):
 - `vault_keycloak_admin_password`
 - `vault_freeipa_admin_password`
-- `vault_freeipa_bind_password`
+- `vault_freeipa_ldap_bind_password`
+- `vault_freeipa_keycloak_svc_password`
 - `vault_keycloak_truststore_password`
 Inventory groups in `inventory`:
 - `[freeipa]`, `[keycloak]`, `[jenkins_servers]`, `[sonarqube_servers]`
@@ -91,7 +92,7 @@ ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml
 ```
 Tag-scoped variants:
 ```bash
-# FreeIPA prep only (svc_keycloak user, admin groups, CA export)
+# FreeIPA prep only (svc.ldap + svc.keycloak users, admin groups, CA export)
 ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml --tags freeipa_prep
 # Keycloak LDAP federation only (truststore, provider, mappers, sync)
 ansible-playbook -i inventory playbooks/configure-keycloak-ldap-federation.yml --tags ldap

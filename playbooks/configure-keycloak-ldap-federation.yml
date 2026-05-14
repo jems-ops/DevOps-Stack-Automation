@@ -2,7 +2,7 @@
 # Configure FreeIPA → Keycloak LDAP user federation.
 #
 # Two plays:
-#   A. freeipa: create the svc_keycloak bind user, ensure canonical app admin
+#   A. freeipa: create the svc.ldap and svc.keycloak service users, ensure canonical app admin
 #      groups exist, export the FreeIPA CA cert.
 #   B. keycloak: import the FreeIPA CA into the Keycloak JKS truststore, wire
 #      the SPI truststore options into keycloak.conf, restart Keycloak, then
@@ -16,7 +16,8 @@
 #
 # Prerequisite vault keys (see VAULT_USAGE.md and group_vars/all/vault.yml.example):
 #   vault_freeipa_admin_password
-#   vault_freeipa_bind_password
+#   vault_freeipa_ldap_bind_password     (svc.ldap)
+#   vault_freeipa_keycloak_svc_password  (svc.keycloak)
 #   vault_keycloak_truststore_password
 #   vault_keycloak_admin_user / vault_keycloak_admin_password
 #

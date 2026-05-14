@@ -127,7 +127,7 @@ case "$HTTP_STATUS" in
     echo "❌ Keycloak rejected the sync (HTTP 400). Common causes:"
     echo "   - errorMessage 'GroupsMultipleParents' → set keycloak_ldap_preserve_group_inheritance: \"false\""
     echo "                                            and re-run the federation playbook"
-    echo "   - LDAP bind credentials drifted        → re-run --tags freeipa_prep to reset svc_keycloak"
+    echo "   - LDAP bind credentials drifted        → re-run --tags freeipa_prep to reset svc.ldap"
     echo "   - LDAP query failed (TLS / schema)     → re-import the IPA CA via --tags ldap"
     exit 1
     ;;
