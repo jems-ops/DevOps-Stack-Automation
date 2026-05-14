@@ -14,7 +14,7 @@
           🔍 SonarQube Nginx Reverse Proxy Setup Playbook
           📅 Execution time: {{ ansible_date_time.iso8601 }}
           🖥️  Nginx server: {{ inventory_hostname }}
-          🔗 SonarQube backend: 192.168.201.1:9000
+          🔗 SonarQube backend: {{ (site_backends | selectattr('server_name', 'equalto', 'sonar.local') | first).ip }}:{{ (site_backends | selectattr('server_name', 'equalto', 'sonar.local') | first).port }}
           👤 User: {{ ansible_user }}
 
   roles:
@@ -28,15 +28,15 @@
 
           📊 Summary:
           • Nginx server: {{ inventory_hostname }}
-          • Backend: 192.168.201.1:9000
-          • Configuration: /etc/nginx/conf.d/sonarqube.conf
+          • Backend: {{ (site_backends | selectattr('server_name', 'equalto', 'sonar.local') | first).ip }}:{{ (site_backends | selectattr('server_name', 'equalto', 'sonar.local') | first).port }}
+          • Configuration: /etc/nginx/conf.d/dynamic-backends.conf
 
           🌐 Access Information:
-          • Direct SonarQube: http://192.168.201.1:9000
+          • Direct SonarQube: http://{{ (site_backends | selectattr('server_name', 'equalto', 'sonar.local') | first).ip }}:{{ (site_backends | selectattr('server_name', 'equalto', 'sonar.local') | first).port }}
           • Via Proxy: http://{{ inventory_hostname }}
-          • Domain: http://sonar.example.com (configure DNS)
+          • Domain: http://sonar.local (configure DNS)
 
           🔧 Next Steps:
           1. Test proxy: curl -I http://{{ inventory_hostname }}
-          2. Configure DNS/hosts for sonar.example.com
+          2. Configure DNS/hosts for sonar.local
           3. Install SSL certificate (run install-ssl-cert.yml)

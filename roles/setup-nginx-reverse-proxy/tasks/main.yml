@@ -18,6 +18,20 @@
     state: absent
   notify: restart nginx
 
+- name: Remove stale individual backend configs (replaced by dynamic-backends.conf)
+  file:
+    path: "/etc/nginx/conf.d/{{ item }}"
+    state: absent
+  loop:
+    - sonarqube.conf
+    - jenkins.conf
+    - nexus.conf
+    - keycloak.conf
+    - artifactory.conf
+    - wazuh.conf
+    - freeipa.conf
+  notify: restart nginx
+
 - name: Create nginx configuration directory
   file:
     path: "{{ nginx_config_path }}"
